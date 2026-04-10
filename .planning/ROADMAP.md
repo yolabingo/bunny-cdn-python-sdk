@@ -8,9 +8,11 @@
 
 **Goal:** Establish the installable package structure, typed exception hierarchy, and PEP 561 marker so all downstream phases build on a solid, importable foundation.
 
-**Plans:**
-1. Package scaffold — create `src/bunny_cdn_sdk/` with `pyproject.toml`, `py.typed`, and empty module stubs
-2. Exception hierarchy — implement `_exceptions.py` with `BunnySDKError` → `BunnyAPIError` (with `status_code`, `message`, `response` attributes) and its 4 subclasses, plus `BunnyConnectionError` → `BunnyTimeoutError`
+**Plans:** 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Update Python 3.12 floor, create all 7 module stubs and py.typed marker
+- [ ] 01-02-PLAN.md — Implement full exception hierarchy in _exceptions.py
 
 **Requirements:**
 - INFRA-06, INFRA-09
