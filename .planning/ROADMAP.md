@@ -50,7 +50,7 @@ Plans:
 
 **Goal:** Implement `CoreClient` (all Pull Zone, Storage Zone, DNS, Video Library, and utility endpoints) and `StorageClient` (upload, download, delete, list with 10-region URL mapping) so the SDK delivers its full v1 surface.
 
-**Plans:** 1/2 plans complete
+**Plans:** 2/2 plans complete
 
 1. [x] 03-01-PLAN.md — Implement CoreClient with all 27+ methods across 5 resource groups
 2. [ ] 03-02-PLAN.md — Implement StorageClient with upload, download, delete, list and 10-region URL mapping

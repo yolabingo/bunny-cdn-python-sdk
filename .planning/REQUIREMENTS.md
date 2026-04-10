@@ -34,11 +34,11 @@
 
 ### Storage API
 
-- [ ] **STOR-01**: `StorageClient.upload(path, data, content_type?)` accepts `bytes | BinaryIO`
-- [ ] **STOR-02**: `StorageClient.download(path)` returns `bytes`
-- [ ] **STOR-03**: `StorageClient.delete(path)` removes a file from the storage zone
-- [ ] **STOR-04**: `StorageClient.list(path)` returns flat directory listing as `list[dict]` (no pagination)
-- [ ] **STOR-05**: `StorageClient` constructor maps `region` parameter to correct base URL across all 10 supported regions (default Falkenstein + de, ny, la, sg, syd, uk, se, br, jh)
+- [x] **STOR-01**: `StorageClient.upload(path, data, content_type?)` accepts `bytes | BinaryIO`
+- [x] **STOR-02**: `StorageClient.download(path)` returns `bytes`
+- [x] **STOR-03**: `StorageClient.delete(path)` removes a file from the storage zone
+- [x] **STOR-04**: `StorageClient.list(path)` returns flat directory listing as `list[dict]` (no pagination)
+- [x] **STOR-05**: `StorageClient` constructor maps `region` parameter to correct base URL across all 10 supported regions (default Falkenstein + de, ny, la, sg, syd, uk, se, br, jh)
 
 ### Tests
 
@@ -98,11 +98,11 @@
 | CORE-09 | 3 | Complete |
 | CORE-10 | 3 | Complete |
 | CORE-11 | 3 | Complete |
-| STOR-01 | 3 | Pending |
-| STOR-02 | 3 | Pending |
-| STOR-03 | 3 | Pending |
-| STOR-04 | 3 | Pending |
-| STOR-05 | 3 | Pending |
+| STOR-01 | 3 | Complete |
+| STOR-02 | 3 | Complete |
+| STOR-03 | 3 | Complete |
+| STOR-04 | 3 | Complete |
+| STOR-05 | 3 | Complete |
 | TEST-01 | 4 | Pending |
 | TEST-02 | 4 | Pending |
 | TEST-03 | 4 | Pending |
