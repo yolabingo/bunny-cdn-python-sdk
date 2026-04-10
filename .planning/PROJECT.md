@@ -55,6 +55,8 @@ The sync-public/async-internal pattern was chosen to give callers a simple sync 
 
 - **Tech stack**: httpx only — no requests, aiohttp, or other HTTP libs
 - **Python version**: 3.10+ (union types, match statements if needed, modern asyncio)
+- **Package manager**: `uv` — not pip directly
+- **Type checker**: `ty` — not mypy or pyright
 - **Return types**: plain `dict` from `response.json()` — no Pydantic, no dataclasses
 - **Auth**: `AccessKey` header injection per-client — no credential sharing between clients
 - **API fidelity**: method signatures match HLD exactly — no deviation without explicit decision

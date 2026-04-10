@@ -16,8 +16,8 @@
 - INFRA-06, INFRA-09
 
 **Success Criteria:**
-- [ ] `pip install -e .` succeeds and `import bunny_cdn_sdk` works without errors
-- [ ] `py.typed` is present in the installed package, satisfying mypy/pyright PEP 561 discovery
+- [ ] `uv sync` succeeds and `import bunny_cdn_sdk` works without errors
+- [ ] `py.typed` is present in the installed package, satisfying `ty` PEP 561 discovery
 - [ ] All 7 exception classes are importable and form the correct inheritance chain (`BunnyAuthenticationError` is a `BunnyAPIError` is a `BunnySDKError`)
 - [ ] `BunnyAPIError` instances expose `status_code`, `message`, and `response` attributes
 
