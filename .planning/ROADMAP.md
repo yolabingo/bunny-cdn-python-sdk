@@ -71,10 +71,12 @@ Plans:
 
 **Goal:** Validate every exception path, every Core endpoint, and every Storage operation using `httpx.MockTransport` so the SDK ships with a complete, runnable test suite and no untested code paths.
 
-**Plans:**
-1. Exception tests — write `tests/test_exceptions.py` covering 401 → `BunnyAuthenticationError`, 404 → `BunnyNotFoundError`, 429 → `BunnyRateLimitError`, 5xx → `BunnyServerError`, network error → `BunnyConnectionError`, timeout → `BunnyTimeoutError`
-2. Core client tests — write `tests/test_core.py` with mocked responses for all Pull Zone, Storage Zone, DNS, Video Library, and utility endpoints
-3. Storage client tests — write `tests/test_storage.py` covering upload, download, delete, and list operations with mocked responses
+**Plans:** 3 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Create tests/__init__.py, tests/conftest.py, and tests/test_exceptions.py (6 exception-mapping tests)
+- [ ] 04-02-PLAN.md — Write tests/test_core.py covering all 37 CoreClient methods + concurrent batch + pagination (39+ tests)
+- [ ] 04-03-PLAN.md — Write tests/test_storage.py covering upload×2, download, delete, list, region mapping (9 tests)
 
 **Requirements:**
 - TEST-01, TEST-02, TEST-03
@@ -82,6 +84,6 @@ Plans:
 **Success Criteria:**
 - [ ] `pytest` exits 0 with no failures or errors
 - [ ] Each of the 6 exception types is triggered by the correct HTTP status/network condition in the test suite
-- [ ] Every `CoreClient` method (all 27 endpoints) has at least one test covering the happy path
+- [ ] Every `CoreClient` method (all 37 endpoints) has at least one test covering the happy path
 - [ ] All 4 `StorageClient` operations are tested with both `bytes` and `BinaryIO` inputs where applicable
 - [ ] Test coverage report shows 100% line coverage of `_exceptions.py`, `_client.py`, `core.py`, and `storage.py`
