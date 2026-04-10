@@ -71,11 +71,11 @@ Plans:
 
 **Goal:** Validate every exception path, every Core endpoint, and every Storage operation using `httpx.MockTransport` so the SDK ships with a complete, runnable test suite and no untested code paths.
 
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
 Plans:
 - [x] 04-01-PLAN.md — Create tests/__init__.py, tests/conftest.py, and tests/test_exceptions.py (6 exception-mapping tests)
-- [ ] 04-02-PLAN.md — Write tests/test_core.py covering all 37 CoreClient methods + concurrent batch + pagination (39+ tests)
+- [x] 04-02-PLAN.md — Write tests/test_core.py covering all 37 CoreClient methods + concurrent batch + pagination (39+ tests)
 - [ ] 04-03-PLAN.md — Write tests/test_storage.py covering upload×2, download, delete, list, region mapping (9 tests)
 
 **Requirements:**

@@ -43,7 +43,7 @@
 ### Tests
 
 - [ ] **TEST-01**: All exception types tested via `httpx.MockTransport` (401, 404, 429, 5xx, network error, timeout)
-- [ ] **TEST-02**: `CoreClient` methods tested with mocked responses covering all endpoints
+- [x] **TEST-02**: `CoreClient` methods tested with mocked responses covering all endpoints
 - [ ] **TEST-03**: `StorageClient` methods tested with mocked responses covering all 4 operations
 
 ## v2 Requirements
@@ -104,7 +104,7 @@
 | STOR-04 | 3 | Complete |
 | STOR-05 | 3 | Complete |
 | TEST-01 | 4 | Pending |
-| TEST-02 | 4 | Pending |
+| TEST-02 | 4 | Complete |
 | TEST-03 | 4 | Pending |
 
 **Coverage:**
