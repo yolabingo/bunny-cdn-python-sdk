@@ -74,7 +74,7 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Create tests/__init__.py, tests/conftest.py, and tests/test_exceptions.py (6 exception-mapping tests)
+- [x] 04-01-PLAN.md — Create tests/__init__.py, tests/conftest.py, and tests/test_exceptions.py (6 exception-mapping tests)
 - [ ] 04-02-PLAN.md — Write tests/test_core.py covering all 37 CoreClient methods + concurrent batch + pagination (39+ tests)
 - [ ] 04-03-PLAN.md — Write tests/test_storage.py covering upload×2, download, delete, list, region mapping (9 tests)
 
