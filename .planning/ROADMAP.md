@@ -8,11 +8,11 @@
 
 **Goal:** Establish the installable package structure, typed exception hierarchy, and PEP 561 marker so all downstream phases build on a solid, importable foundation.
 
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 01-01-PLAN.md — Update Python 3.12 floor, create all 7 module stubs and py.typed marker
-- [ ] 01-02-PLAN.md — Implement full exception hierarchy in _exceptions.py
+- [x] 01-01-PLAN.md — Update Python 3.12 floor, create all 7 module stubs and py.typed marker
+- [x] 01-02-PLAN.md — Implement full exception hierarchy in _exceptions.py
 
 **Requirements:**
 - INFRA-06, INFRA-09
