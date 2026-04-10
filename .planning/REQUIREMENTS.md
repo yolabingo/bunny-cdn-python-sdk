@@ -77,40 +77,40 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | — | Pending |
-| INFRA-02 | — | Pending |
-| INFRA-03 | — | Pending |
-| INFRA-04 | — | Pending |
-| INFRA-05 | — | Pending |
-| INFRA-06 | — | Pending |
-| INFRA-07 | — | Pending |
-| INFRA-08 | — | Pending |
-| INFRA-09 | — | Pending |
-| INFRA-10 | — | Pending |
-| CORE-01 | — | Pending |
-| CORE-02 | — | Pending |
-| CORE-03 | — | Pending |
-| CORE-04 | — | Pending |
-| CORE-05 | — | Pending |
-| CORE-06 | — | Pending |
-| CORE-07 | — | Pending |
-| CORE-08 | — | Pending |
-| CORE-09 | — | Pending |
-| CORE-10 | — | Pending |
-| CORE-11 | — | Pending |
-| STOR-01 | — | Pending |
-| STOR-02 | — | Pending |
-| STOR-03 | — | Pending |
-| STOR-04 | — | Pending |
-| STOR-05 | — | Pending |
-| TEST-01 | — | Pending |
-| TEST-02 | — | Pending |
-| TEST-03 | — | Pending |
+| INFRA-01 | 2 | Pending |
+| INFRA-02 | 2 | Pending |
+| INFRA-03 | 2 | Pending |
+| INFRA-04 | 2 | Pending |
+| INFRA-05 | 2 | Pending |
+| INFRA-06 | 1 | Pending |
+| INFRA-07 | 2 | Pending |
+| INFRA-08 | 2 | Pending |
+| INFRA-09 | 1 | Pending |
+| INFRA-10 | 2 | Pending |
+| CORE-01 | 3 | Pending |
+| CORE-02 | 3 | Pending |
+| CORE-03 | 3 | Pending |
+| CORE-04 | 3 | Pending |
+| CORE-05 | 3 | Pending |
+| CORE-06 | 3 | Pending |
+| CORE-07 | 3 | Pending |
+| CORE-08 | 3 | Pending |
+| CORE-09 | 3 | Pending |
+| CORE-10 | 3 | Pending |
+| CORE-11 | 3 | Pending |
+| STOR-01 | 3 | Pending |
+| STOR-02 | 3 | Pending |
+| STOR-03 | 3 | Pending |
+| STOR-04 | 3 | Pending |
+| STOR-05 | 3 | Pending |
+| TEST-01 | 4 | Pending |
+| TEST-02 | 4 | Pending |
+| TEST-03 | 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 29 total
-- Mapped to phases: 0 (populated by roadmapper)
-- Unmapped: 29 ⚠️
+- Mapped to phases: 29
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-10*
