@@ -20,17 +20,17 @@
 
 ### Core API
 
-- [ ] **CORE-01**: `CoreClient` Pull Zone CRUD — `list_pull_zones`, `get_pull_zone`, `create_pull_zone`, `update_pull_zone`, `delete_pull_zone`
-- [ ] **CORE-02**: `CoreClient` Pull Zone extras — `purge_pull_zone_cache`, `add_custom_hostname`, `remove_custom_hostname`, `add_blocked_ip`, `remove_blocked_ip`
-- [ ] **CORE-03**: `CoreClient.get_pull_zones(ids)` fetches multiple pull zones concurrently using `_gather()`
-- [ ] **CORE-04**: `CoreClient` Pull Zone pagination — `list_pull_zones(page, per_page, search)` + `iter_pull_zones(per_page, search)`
-- [ ] **CORE-05**: `CoreClient` Storage Zone CRUD — `list_storage_zones`, `get_storage_zone`, `create_storage_zone`, `update_storage_zone`, `delete_storage_zone`
-- [ ] **CORE-06**: `CoreClient` Storage Zone pagination — `list_storage_zones(page, per_page)` + `iter_storage_zones(per_page)`
-- [ ] **CORE-07**: `CoreClient` DNS Zone CRUD — `list_dns_zones`, `get_dns_zone`, `create_dns_zone`, `update_dns_zone`, `delete_dns_zone`
-- [ ] **CORE-08**: `CoreClient` DNS Record management — `add_dns_record`, `update_dns_record`, `delete_dns_record`
-- [ ] **CORE-09**: `CoreClient` DNS Zone pagination — `list_dns_zones(page, per_page, search)` + `iter_dns_zones(per_page, search)`
-- [ ] **CORE-10**: `CoreClient` Video Library CRUD — `list_video_libraries`, `get_video_library`, `create_video_library`, `update_video_library`, `delete_video_library`
-- [ ] **CORE-11**: `CoreClient` utilities — `purge_url(url)`, `get_statistics(**kwargs)`, `list_countries()`, `list_regions()`, `get_billing()`
+- [x] **CORE-01**: `CoreClient` Pull Zone CRUD — `list_pull_zones`, `get_pull_zone`, `create_pull_zone`, `update_pull_zone`, `delete_pull_zone`
+- [x] **CORE-02**: `CoreClient` Pull Zone extras — `purge_pull_zone_cache`, `add_custom_hostname`, `remove_custom_hostname`, `add_blocked_ip`, `remove_blocked_ip`
+- [x] **CORE-03**: `CoreClient.get_pull_zones(ids)` fetches multiple pull zones concurrently using `_gather()`
+- [x] **CORE-04**: `CoreClient` Pull Zone pagination — `list_pull_zones(page, per_page, search)` + `iter_pull_zones(per_page, search)`
+- [x] **CORE-05**: `CoreClient` Storage Zone CRUD — `list_storage_zones`, `get_storage_zone`, `create_storage_zone`, `update_storage_zone`, `delete_storage_zone`
+- [x] **CORE-06**: `CoreClient` Storage Zone pagination — `list_storage_zones(page, per_page)` + `iter_storage_zones(per_page)`
+- [x] **CORE-07**: `CoreClient` DNS Zone CRUD — `list_dns_zones`, `get_dns_zone`, `create_dns_zone`, `update_dns_zone`, `delete_dns_zone`
+- [x] **CORE-08**: `CoreClient` DNS Record management — `add_dns_record`, `update_dns_record`, `delete_dns_record`
+- [x] **CORE-09**: `CoreClient` DNS Zone pagination — `list_dns_zones(page, per_page, search)` + `iter_dns_zones(per_page, search)`
+- [x] **CORE-10**: `CoreClient` Video Library CRUD — `list_video_libraries`, `get_video_library`, `create_video_library`, `update_video_library`, `delete_video_library`
+- [x] **CORE-11**: `CoreClient` utilities — `purge_url(url)`, `get_statistics(**kwargs)`, `list_countries()`, `list_regions()`, `get_billing()`
 
 ### Storage API
 
@@ -87,17 +87,17 @@
 | INFRA-08 | 2 | Pending |
 | INFRA-09 | 1 | Pending |
 | INFRA-10 | 2 | Pending |
-| CORE-01 | 3 | Pending |
-| CORE-02 | 3 | Pending |
-| CORE-03 | 3 | Pending |
-| CORE-04 | 3 | Pending |
-| CORE-05 | 3 | Pending |
-| CORE-06 | 3 | Pending |
-| CORE-07 | 3 | Pending |
-| CORE-08 | 3 | Pending |
-| CORE-09 | 3 | Pending |
-| CORE-10 | 3 | Pending |
-| CORE-11 | 3 | Pending |
+| CORE-01 | 3 | Complete |
+| CORE-02 | 3 | Complete |
+| CORE-03 | 3 | Complete |
+| CORE-04 | 3 | Complete |
+| CORE-05 | 3 | Complete |
+| CORE-06 | 3 | Complete |
+| CORE-07 | 3 | Complete |
+| CORE-08 | 3 | Complete |
+| CORE-09 | 3 | Complete |
+| CORE-10 | 3 | Complete |
+| CORE-11 | 3 | Complete |
 | STOR-01 | 3 | Pending |
 | STOR-02 | 3 | Pending |
 | STOR-03 | 3 | Pending |

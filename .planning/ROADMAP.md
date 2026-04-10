@@ -50,9 +50,10 @@ Plans:
 
 **Goal:** Implement `CoreClient` (all Pull Zone, Storage Zone, DNS, Video Library, and utility endpoints) and `StorageClient` (upload, download, delete, list with 10-region URL mapping) so the SDK delivers its full v1 surface.
 
-**Plans:**
-1. Core client — implement `core.py` covering all 5 resource groups: Pull Zones (CRUD + extras + concurrent fetch + pagination), Storage Zones (CRUD + pagination), DNS Zones (CRUD + records + pagination), Video Libraries (CRUD), and utilities
-2. Storage client — implement `storage.py` with `upload`, `download`, `delete`, `list` operations and the 10-region base-URL mapping table
+**Plans:** 1/2 plans complete
+
+1. [x] 03-01-PLAN.md — Implement CoreClient with all 27+ methods across 5 resource groups
+2. [ ] 03-02-PLAN.md — Implement StorageClient with upload, download, delete, list and 10-region URL mapping
 
 **Requirements:**
 - CORE-01, CORE-02, CORE-03, CORE-04, CORE-05, CORE-06, CORE-07, CORE-08, CORE-09, CORE-10, CORE-11, STOR-01, STOR-02, STOR-03, STOR-04, STOR-05
