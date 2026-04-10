@@ -29,7 +29,7 @@ audit = ["pip-audit"]
 dev = "uv sync --all-groups"
 lint = "ruff format --check && ruff check && ty check src/"
 format = "ruff format ."
-test = "pytest"
+test = "pytest --cov-fail-under=80"
 build = "uv build"
 
 [tool.ruff]
@@ -41,7 +41,7 @@ select = ["ALL"]
 ignore = ["D", "COM812", "ISC001"]
 
 [tool.pytest.ini_options]
-addopts = ["--cov=bunny_cdn_sdk", "--cov-fail-under=80"]
+addopts = ["--cov=bunny_cdn_sdk"]
 
 [tool.ty.terminal]
 error-on-warning = true
