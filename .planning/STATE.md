@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Executing Phase 04
-last_updated: "2026-04-10T23:41:00Z"
+last_updated: "2026-04-10T23:45:42Z"
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 10
-  completed_plans: 9
-  percent: 90
+  completed_plans: 10
+  percent: 100
 ---
 
 # Project State
@@ -17,8 +17,8 @@ progress:
 ## Current Status
 
 **Phase:** 04-test-suite
-**Active Phase:** Plan 04-02 (COMPLETE)
-**Next Action:** Execute Phase 04 Plan 03 (StorageClient tests)
+**Active Phase:** Plan 04-03 (COMPLETE)
+**Next Action:** Phase 04 complete — all plans executed
 
 ## Project Reference
 
@@ -34,7 +34,7 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 | 1 | Package Scaffold & Exception Hierarchy | Complete | INFRA-06, INFRA-09 |
 | 2 | Base Client Infrastructure | Complete | INFRA-01, INFRA-02, INFRA-03, INFRA-04, INFRA-05, INFRA-07, INFRA-08, INFRA-10 |
 | 3 | Core API & Storage API Clients | Complete | CORE-01, CORE-02, CORE-03, CORE-04, CORE-05, CORE-06, CORE-07, CORE-08, CORE-09, CORE-10, CORE-11, STOR-01, STOR-02, STOR-03, STOR-04, STOR-05 |
-| 4 | Test Suite | In progress (2/3) | TEST-01, TEST-02, TEST-03 |
+| 4 | Test Suite | Complete | TEST-01, TEST-02, TEST-03 |
 
 ## Decisions Log
 
@@ -48,3 +48,5 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 - [04-01] --cov-fail-under=80 moved from pytest addopts to poe test task so individual test files can run cleanly during incremental phase development
 - [04-01] _BaseClient used directly in exception tests; CoreClient does not accept client kwarg for MockTransport injection
 - [04-02] CoreClient.__new__ + _BaseClient.__init__ pattern used for mock injection; 43 tests, 100% line coverage of core.py
+- [04-03] BinaryIO must be read into bytes before passing to httpx AsyncClient — sync file-like objects incompatible with AsyncByteStream
+- [04-03] headers must be popped (not get) from kwargs in _BaseClient._request to avoid duplicate keyword argument TypeError
