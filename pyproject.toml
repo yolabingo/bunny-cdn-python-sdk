@@ -22,14 +22,14 @@ dev = [
     "poethepoet>=0.44.0",
 ]
 lint = ["ruff", "ty"]
-test = ["pytest", "pytest-cov"]
+test = ["pytest", "pytest-cov", "pytest-xdist"]
 audit = ["pip-audit"]
 
 [tool.poe.tasks]
 dev = "uv sync --all-groups"
 lint = "ruff format --check && ruff check && ty check src/"
 format = "ruff format ."
-test = "pytest --cov-fail-under=80"
+test = "pytest -n auto --cov-fail-under=80"
 build = "uv build"
 
 [tool.ruff]
