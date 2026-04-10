@@ -127,7 +127,10 @@ class StorageClient(_BaseClient):
         headers = self._build_auth_header()
         if content_type is not None:
             headers["Content-Type"] = content_type
-        response = self._sync_request("PUT", url, headers=headers, content=data)
+        # httpx AsyncClient requires bytes, not a sync file-like object.
+        # Read BinaryIO into bytes so the async transport can stream it correctly.
+        payload: bytes = data.read() if hasattr(data, "read") else data  # type: ignore[union-attr]
+        response = self._sync_request("PUT", url, headers=headers, content=payload)
         return response.json() if response.content else {}
 
     def download(self, path: str) -> bytes:

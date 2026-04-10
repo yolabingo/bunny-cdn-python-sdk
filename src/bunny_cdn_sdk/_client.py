@@ -96,8 +96,8 @@ class _BaseClient:
             BunnyConnectionError: On network connection errors
             BunnyTimeoutError: On request timeouts
         """
-        # Inject headers
-        headers = {**kwargs.get("headers", {})}
+        # Inject headers — pop from kwargs to avoid duplicate keyword argument
+        headers = {**kwargs.pop("headers", {})}
         headers["AccessKey"] = self.api_key
         headers["User-Agent"] = "bunny-cdn-sdk/0.1.0"
 
