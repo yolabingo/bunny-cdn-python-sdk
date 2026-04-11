@@ -39,8 +39,8 @@ Plans:
 **Plans:** 0/2 plans complete
 
 Plans:
-- [ ] 06-01-PLAN.md — Implement `_retry.py` (`RetryTransport` class) and export from `__init__.py`
-- [ ] 06-02-PLAN.md — MockTransport-backed tests for all retry triggers, backoff growth, and composability
+- [x] 06-01-PLAN.md — Implement `_retry.py` (`RetryTransport` class) and export from `__init__.py`
+- [x] 06-02-PLAN.md — MockTransport-backed tests for all retry triggers, backoff growth, and composability
 
 **Requirements:**
 - RETRY-01, RETRY-02, RETRY-03, RETRY-05
