@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import warnings
 from typing import TYPE_CHECKING, Any, Self
 
 import httpx
@@ -16,6 +17,7 @@ from bunny_cdn_sdk._exceptions import (
     BunnyServerError,
     BunnyTimeoutError,
 )
+from bunny_cdn_sdk._retry import RetryTransport
 
 if TYPE_CHECKING:
     from typing import Awaitable
@@ -28,17 +30,40 @@ class _BaseClient:
         self,
         api_key: str,
         client: httpx.AsyncClient | None = None,
+        *,
+        max_retries: int = 0,
+        backoff_base: float = 0.5,
     ) -> None:
         """Initialize the base client.
 
         Args:
             api_key: API key for authentication
             client: Optional httpx.AsyncClient to use; if not provided, one is created
+            max_retries: Number of retry attempts on 429/5xx/network errors (default 0 = no retry).
+                Ignored when ``client=`` is provided — configure RetryTransport on your
+                AsyncClient directly in that case. Reasonable values are 1-5.
+            backoff_base: Base delay in seconds for exponential backoff (default 0.5).
+                Only used when ``max_retries > 0`` and ``client`` is None.
         """
         self.api_key = api_key
         if client is not None:
+            if max_retries > 0:
+                warnings.warn(
+                    "max_retries is ignored when client= is provided. "
+                    "Configure RetryTransport on your AsyncClient directly.",
+                    UserWarning,
+                    stacklevel=2,
+                )
             self._client = client
             self._client_owner = False
+        elif max_retries > 0:
+            transport = RetryTransport(
+                httpx.AsyncHTTPTransport(),
+                max_retries=max_retries,
+                backoff_base=backoff_base,
+            )
+            self._client = httpx.AsyncClient(transport=transport)
+            self._client_owner = True
         else:
             self._client = httpx.AsyncClient()
             self._client_owner = True
