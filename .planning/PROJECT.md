@@ -37,6 +37,17 @@ A Python developer can `pip install bunny-cdn-sdk`, instantiate a client with th
 - `list_single_page()` exported but unused in `_pagination.py`
 - No test exercises `from bunny_cdn_sdk import ...` public surface
 
+## Current Milestone: v1.1 — Reliability & Coverage
+
+**Goal:** Close v1.0 coverage gaps and add configurable retry/backoff so the SDK is production-ready under rate limits and transient failures.
+
+**Target features:**
+- Tech debt: `BunnyAPIError.__str__` test, context manager lifecycle tests, `list_single_page()` cleanup, public surface smoke test
+- `RetryTransport` — composable httpx transport with 429/5xx/network retry + exponential backoff + jitter
+- `max_retries` / `backoff_base` constructor kwargs on `CoreClient` and `StorageClient` (off by default)
+
+---
+
 ## Next Milestone Goals — v2.0
 
 *(To be defined via `/gsd-new-milestone`)*
