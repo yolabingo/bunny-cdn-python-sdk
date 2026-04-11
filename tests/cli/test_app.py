@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+from io import StringIO
 from unittest.mock import MagicMock
 
 import pytest
 import typer
+from rich.console import Console
 
 from bunny_cdn_sdk._exceptions import (
     BunnyAPIError,
@@ -206,43 +208,56 @@ def test_cell_int_converts_to_string() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_output_result_table_list_shows_column_headers(capsys) -> None:
-    output_result([{"Id": 1, "Name": "a"}], columns=["Id", "Name"], json_mode=False)
-    captured = capsys.readouterr()
-    assert "Id" in captured.out
-    assert "Name" in captured.out
+def _make_console() -> tuple[Console, StringIO]:
+    """Return a (Console, buf) pair for capturing Rich output in tests."""
+    buf = StringIO()
+    con = Console(file=buf, highlight=False)
+    return con, buf
 
 
-def test_output_result_table_list_shows_row_values(capsys) -> None:
-    output_result([{"Id": 42, "Name": "test"}], columns=["Id", "Name"], json_mode=False)
-    captured = capsys.readouterr()
-    assert "42" in captured.out
-    assert "test" in captured.out
+def test_output_result_table_list_shows_column_headers() -> None:
+    con, buf = _make_console()
+    output_result([{"Id": 1, "Name": "a"}], columns=["Id", "Name"], json_mode=False, _console=con)
+    out = buf.getvalue()
+    assert "Id" in out
+    assert "Name" in out
 
 
-def test_output_result_table_single_dict_renders_single_row(capsys) -> None:
-    output_result({"Id": 99, "Name": "solo"}, columns=["Id", "Name"], json_mode=False)
-    captured = capsys.readouterr()
-    assert "99" in captured.out
-    assert "solo" in captured.out
+def test_output_result_table_list_shows_row_values() -> None:
+    con, buf = _make_console()
+    output_result([{"Id": 42, "Name": "test"}], columns=["Id", "Name"], json_mode=False, _console=con)
+    out = buf.getvalue()
+    assert "42" in out
+    assert "test" in out
 
 
-def test_output_result_table_columns_filters_fields(capsys) -> None:
+def test_output_result_table_single_dict_renders_single_row() -> None:
+    con, buf = _make_console()
+    output_result({"Id": 99, "Name": "solo"}, columns=["Id", "Name"], json_mode=False, _console=con)
+    out = buf.getvalue()
+    assert "99" in out
+    assert "solo" in out
+
+
+def test_output_result_table_columns_filters_fields() -> None:
+    con, buf = _make_console()
     output_result(
         [{"Id": 1, "Name": "a", "Hidden": "secret"}],
         columns=["Id", "Name"],
         json_mode=False,
+        _console=con,
     )
-    captured = capsys.readouterr()
-    assert "Hidden" not in captured.out
-    assert "secret" not in captured.out
+    out = buf.getvalue()
+    assert "Hidden" not in out
+    assert "secret" not in out
 
 
-def test_output_result_table_auto_columns(capsys) -> None:
-    output_result([{"Alpha": "v1", "Beta": "v2"}], columns=None, json_mode=False)
-    captured = capsys.readouterr()
-    assert "Alpha" in captured.out
-    assert "Beta" in captured.out
+def test_output_result_table_auto_columns() -> None:
+    con, buf = _make_console()
+    output_result([{"Alpha": "v1", "Beta": "v2"}], columns=None, json_mode=False, _console=con)
+    out = buf.getvalue()
+    assert "Alpha" in out
+    assert "Beta" in out
 
 
 def test_output_result_json_mode_datetime_no_crash(capsys) -> None:

@@ -67,8 +67,11 @@ def output_result(
     *,
     columns: list[str] | None = None,
     json_mode: bool = False,
+    _console: Console | None = None,
 ) -> None:
     """Emit command output — JSON if json_mode, Rich table otherwise."""
+    _con = _console or console
+
     if json_mode:
         typer.echo(json.dumps(data, indent=2, default=str))
         return
@@ -91,7 +94,7 @@ def output_result(
         # Empty list — print empty table with headers if columns provided, else nothing
         if columns:
             table = Table(*columns)
-            console.print(table)
+            _con.print(table)
         return
 
     # Derive column order: explicit list takes priority; fallback to first row's keys
@@ -101,7 +104,7 @@ def output_result(
     for row in rows:
         table.add_row(*[_cell(row.get(col)) for col in col_names])
 
-    console.print(table)
+    _con.print(table)
 
 
 def _cell(value: object) -> str:
