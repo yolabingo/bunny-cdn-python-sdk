@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Release Engineering
 status: in_progress
-stopped_at: Phase 13 complete — ready to plan Phase 14
+stopped_at: Phase 14 planned — 2 plans ready to execute
 last_updated: "2026-04-11T00:00:00.000Z"
 last_activity: 2026-04-11
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
+  total_plans: 5
   completed_plans: 3
   percent: 25
 ---
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-11)
 ## Current Position
 
 Phase: 14 of 16 (tox & Local Quality Gates)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-04-11 — Phase 13 complete (VERSION-01–03, BUILD-01–03 satisfied)
+Plan: 0 of 2 (ready to execute)
+Status: Plans complete, ready to execute
+Last activity: 2026-04-11 — Phase 14 planned (2 plans: tox.ini + ruff fixes)
 
 Progress: [██░░░░░░░░] 25%
 
@@ -61,10 +61,10 @@ None.
 
 ### Blockers/Concerns
 
-- 2 pre-existing `ty` errors in `storage.py` — carried from v1.1; Phase 14 typecheck tox env will surface these; resolve or suppress before CI goes green
+None. (ty errors in storage.py resolved: httpx.AsyncClient→Client, isinstance narrowing, typing.List for shadowed builtin)
 
 ## Session Continuity
 
 Last session: 2026-04-11
-Stopped at: Roadmap written — 4 phases (13–16), 22/22 requirements mapped
+Stopped at: Phase 14 planned — execute with /gsd-execute-phase 14
 Resume file: None

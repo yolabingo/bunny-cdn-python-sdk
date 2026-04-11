@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import base64
-from typing import TYPE_CHECKING, Any, BinaryIO
+from typing import TYPE_CHECKING, Any, BinaryIO, List
 
 from bunny_cdn_sdk._client import _BaseClient
 
@@ -40,7 +40,7 @@ class StorageClient(_BaseClient):
             ``api_key`` and the Basic Auth credential).
         region: Storage region key.  Must be one of the 10 supported regions
             (default: ``"falkenstein"``).  See ``REGION_MAP`` for the full list.
-        client: Optional ``httpx.AsyncClient`` to inject (keyword-only, advanced use).
+        client: Optional ``httpx.Client`` to inject (keyword-only, advanced use).
             When provided, max_retries is ignored.
         max_retries: Number of retry attempts on 429/5xx/network errors (default 0 = no retry).
         backoff_base: Base delay in seconds for exponential backoff (default 0.5).
@@ -55,7 +55,7 @@ class StorageClient(_BaseClient):
         password: str,
         region: str = "falkenstein",
         *,
-        client: httpx.AsyncClient | None = None,
+        client: httpx.Client | None = None,
         max_retries: int = 0,
         backoff_base: float = 0.5,
     ) -> None:
@@ -134,9 +134,10 @@ class StorageClient(_BaseClient):
         headers = self._build_auth_header()
         if content_type is not None:
             headers["Content-Type"] = content_type
-        # httpx AsyncClient requires bytes, not a sync file-like object.
-        # Read BinaryIO into bytes so the async transport can stream it correctly.
-        payload: bytes = data.read() if hasattr(data, "read") else data  # type: ignore[union-attr]
+        if isinstance(data, bytes):
+            payload = data
+        else:
+            payload = data.read()
         response = self._sync_request("PUT", url, headers=headers, content=payload)
         return response.json() if response.content else {}
 
@@ -164,7 +165,7 @@ class StorageClient(_BaseClient):
         headers = self._build_auth_header()
         self._sync_request("DELETE", url, headers=headers)
 
-    def list(self, path: str = "/") -> list[dict[str, Any]]:
+    def list(self, path: str = "/") -> List[dict[str, Any]]:
         """List files and directories in the storage zone (STOR-04).
 
         The path should end with ``"/"`` to indicate a directory listing.
