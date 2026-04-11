@@ -6,6 +6,8 @@ import asyncio
 import urllib.parse
 from typing import Any, Iterator
 
+import httpx
+
 from bunny_cdn_sdk._client import _BaseClient
 from bunny_cdn_sdk._pagination import pagination_iterator
 from bunny_cdn_sdk._types import PaginatedResponse
@@ -32,6 +34,10 @@ class CoreClient(_BaseClient):
     Args:
         api_key: Bunny CDN account API key.
         base_url: Base URL for the Core API (default: https://api.bunnycdn.com).
+        client: Optional httpx.AsyncClient to inject (advanced use). When provided,
+            max_retries is ignored — configure RetryTransport on your client directly.
+        max_retries: Number of retry attempts on 429/5xx/network errors (default 0 = no retry).
+        backoff_base: Base delay in seconds for exponential backoff (default 0.5).
 
     Note on concurrent batch operations:
         ``get_pull_zones([id1, id2, ...])`` issues all requests concurrently via
@@ -43,8 +49,12 @@ class CoreClient(_BaseClient):
         self,
         api_key: str,
         base_url: str = _BASE_URL,
+        *,
+        client: httpx.AsyncClient | None = None,
+        max_retries: int = 0,
+        backoff_base: float = 0.5,
     ) -> None:
-        super().__init__(api_key)
+        super().__init__(api_key, client=client, max_retries=max_retries, backoff_base=backoff_base)
         self.base_url = base_url.rstrip("/")
 
     # ------------------------------------------------------------------
