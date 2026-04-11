@@ -43,7 +43,7 @@
 
 **Milestone Goal:** Ship a production-ready release pipeline — version hygiene, build verification, tox quality gates, GHA CI, Dependabot, and Trusted Publishing to TestPyPI and production PyPI.
 
-- [ ] **Phase 13: Version & Metadata** - pyproject.toml as single source of truth; `bunnycdn.__version__` via importlib.metadata; complete package metadata; CHANGELOG.md; build artifacts verified
+- [x] **Phase 13: Version & Metadata** - pyproject.toml as single source of truth; `bunnycdn.__version__` via importlib.metadata; complete package metadata; CHANGELOG.md; build artifacts verified (completed 2026-04-11)
 - [ ] **Phase 14: tox & Local Quality Gates** - tox-uv config covering py312/py313/py314 test envs plus lint and typecheck envs; all envs pass locally
 - [ ] **Phase 15: CI & Dependabot** - GHA CI workflow running all tox envs on push/PR with uv caching; Dependabot monitoring pip and GitHub Actions ecosystems
 - [ ] **Phase 16: Publishing Pipeline** - Trusted Publishing (OIDC) configured on PyPI and TestPyPI; release workflow auto-publishes on v* tags; TestPyPI smoke test verified
@@ -63,9 +63,9 @@
 **Plans**: 3 plans
 
 Plans:
-- [ ] 13-01-PLAN.md — `__version__` via importlib.metadata + complete pyproject.toml metadata
-- [ ] 13-02-PLAN.md — CHANGELOG.md with v1.0–v2.1 entries
-- [ ] 13-03-PLAN.md — Build verification: `uv build` + `twine check dist/*`
+- [x] 13-01-PLAN.md — `__version__` via importlib.metadata + complete pyproject.toml metadata
+- [x] 13-02-PLAN.md — CHANGELOG.md with v1.0–v2.1 entries
+- [x] 13-03-PLAN.md — Build verification: `uv build` + `twine check dist/*`
 
 ### Phase 14: tox & Local Quality Gates
 **Goal**: Developers can run `uv run tox` locally and get isolated test runs across Python 3.12/3.13/3.14, plus dedicated lint and typecheck environments, all passing
@@ -76,7 +76,11 @@ Plans:
   2. tox-uv plugin is used so env creation is fast and pip is not invoked
   3. Separate `lint` and `typecheck` tox envs exist and run ruff and ty respectively
   4. `uv run tox` completes with all envs passing (exit 0)
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — Write tox.ini (uv-venv-lock-runner, 5 envs) + ruff per-file-ignores + auto-fix
+- [ ] 14-02-PLAN.md — Fix residual ruff errors manually + end-to-end `uv run tox` gate
 
 ### Phase 15: CI & Dependabot
 **Goal**: Every push and pull request automatically runs all tox envs on GitHub Actions with caching; Dependabot opens PRs for outdated pip and GitHub Actions dependencies
@@ -118,8 +122,8 @@ Plans:
 | 10. CoreClient Sub-Apps | v2.0 | 6/6 | Complete | 2026-04-11 |
 | 11. StorageClient Sub-App | v2.0 | 2/2 | Complete | 2026-04-11 |
 | 12. Utility Commands & Integration | v2.0 | 2/2 | Complete | 2026-04-11 |
-| 13. Version & Metadata | v2.1 | 0/3 | Not started | - |
-| 14. tox & Local Quality Gates | v2.1 | 0/? | Not started | - |
+| 13. Version & Metadata | v2.1 | 3/3 | Complete   | 2026-04-11 |
+| 14. tox & Local Quality Gates | v2.1 | 0/2 | Not started | - |
 | 15. CI & Dependabot | v2.1 | 0/? | Not started | - |
 | 16. Publishing Pipeline | v2.1 | 0/? | Not started | - |
 
