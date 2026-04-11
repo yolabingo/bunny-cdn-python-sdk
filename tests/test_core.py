@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import httpx
-import pytest
 
 from bunny_cdn_sdk._client import _BaseClient
 from bunny_cdn_sdk.core import CoreClient
-
 
 # ---------------------------------------------------------------------------
 # Client factory
@@ -488,6 +486,7 @@ def test_core_client_init_direct() -> None:
 
 def test_list_pull_zones_with_search() -> None:
     """Covers the search param branch in list_pull_zones (line 72)."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         assert "search=my-zone" in str(request.url)
         return httpx.Response(
@@ -502,6 +501,7 @@ def test_list_pull_zones_with_search() -> None:
 
 def test_iter_pull_zones_with_search() -> None:
     """Covers the search param branch in iter_pull_zones (line 142)."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
@@ -520,6 +520,7 @@ def test_iter_pull_zones_with_search() -> None:
 
 def test_list_dns_zones_with_search() -> None:
     """Covers the search param branch in list_dns_zones (line 369)."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         assert "search=example" in str(request.url)
         return httpx.Response(
@@ -534,6 +535,7 @@ def test_list_dns_zones_with_search() -> None:
 
 def test_iter_dns_zones_with_search() -> None:
     """Covers the search param branch in iter_dns_zones (line 437)."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
@@ -552,6 +554,7 @@ def test_iter_dns_zones_with_search() -> None:
 
 def test_purge_url_with_kwargs() -> None:
     """Covers the extra kwargs branch in purge_url (lines 575-576)."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         url = str(request.url)
         # Verify URL contains the base purge param and the extra kwarg

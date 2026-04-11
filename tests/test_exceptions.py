@@ -1,4 +1,5 @@
 """Tests for exception hierarchy mapping in _client._request()."""
+
 from __future__ import annotations
 
 import httpx
@@ -21,6 +22,7 @@ _URL = "https://api.bunnycdn.com/pullzone/1"
 def _status_handler(status: int):
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(status, json={"Message": "error"})
+
     return handler
 
 
@@ -58,6 +60,7 @@ def test_server_error() -> None:
 def test_connection_error() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("Connection refused")
+
     client = make_base_client(handler)
     with pytest.raises(BunnyConnectionError) as exc_info:
         client._sync_request("GET", _URL)
@@ -67,6 +70,7 @@ def test_connection_error() -> None:
 def test_timeout_error() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.TimeoutException("Timed out")
+
     client = make_base_client(handler)
     with pytest.raises(BunnyTimeoutError) as exc_info:
         client._sync_request("GET", _URL)

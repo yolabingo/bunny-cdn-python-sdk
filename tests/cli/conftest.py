@@ -6,7 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 
-@pytest.fixture()
+@pytest.fixture
 def runner() -> CliRunner:
     """Return a CliRunner for in-process CLI invocation."""
     return CliRunner()

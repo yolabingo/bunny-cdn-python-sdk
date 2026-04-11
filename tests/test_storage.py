@@ -1,4 +1,5 @@
 """Tests for StorageClient operations and region mapping."""
+
 from __future__ import annotations
 
 import io
@@ -8,7 +9,6 @@ import pytest
 
 from bunny_cdn_sdk.storage import REGION_MAP, StorageClient
 from tests.conftest import make_storage_client
-
 
 # ---------------------------------------------------------------------------
 # Upload

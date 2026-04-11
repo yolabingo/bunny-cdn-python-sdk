@@ -1,4 +1,5 @@
 """Smoke test: verify the public bunny_cdn_sdk package surface resolves at import time."""
+
 from __future__ import annotations
 
 

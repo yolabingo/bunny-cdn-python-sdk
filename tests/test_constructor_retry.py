@@ -7,6 +7,7 @@ Pattern: create a CoreClient or StorageClient with max_retries=N, make a request
 against a MockTransport that returns 500 repeatedly, and assert the correct call count.
 time.sleep is patched to avoid real delays.
 """
+
 from __future__ import annotations
 
 import warnings
@@ -26,6 +27,7 @@ _STORAGE_URL = "https://storage.bunnycdn.com/my-zone/file.txt"
 # ---------------------------------------------------------------------------
 # Local helpers (not in conftest to keep constructor tests self-contained)
 # ---------------------------------------------------------------------------
+
 
 def _always_500_handler():
     """Return (handler, call_list) — every call returns HTTP 500."""
@@ -55,6 +57,7 @@ def _fail_then_succeed_handler(fail_count: int, fail_status: int = 500):
 # Backward compatibility — max_retries=0 default (v1.0 parity)
 # ---------------------------------------------------------------------------
 
+
 def test_core_client_default_no_retry_single_call() -> None:
     """CoreClient(api_key) with 500 response raises BunnyServerError after 1 attempt.
 
@@ -64,8 +67,7 @@ def test_core_client_default_no_retry_single_call() -> None:
     transport = httpx.MockTransport(handler)
     client = CoreClient("test_api_key", client=httpx.Client(transport=transport))
 
-    with patch("time.sleep") as mock_sleep, \
-         pytest.raises(BunnyServerError):
+    with patch("time.sleep") as mock_sleep, pytest.raises(BunnyServerError):
         client._sync_request("GET", _CORE_URL)
 
     assert len(calls) == 1, f"Expected 1 call, got {len(calls)}"
@@ -75,21 +77,22 @@ def test_core_client_default_no_retry_single_call() -> None:
 def test_core_client_no_retry_transport_when_max_retries_zero() -> None:
     """CoreClient(api_key) with max_retries=0 does NOT wrap a Client in RetryTransport."""
     client = CoreClient("test_api_key")
-    assert not isinstance(
-        client._client._transport, RetryTransport
-    ), "RetryTransport should not be present when max_retries=0"
+    assert not isinstance(client._client._transport, RetryTransport), (
+        "RetryTransport should not be present when max_retries=0"
+    )
 
 
 # ---------------------------------------------------------------------------
 # CoreClient constructor auto-wiring
 # ---------------------------------------------------------------------------
 
+
 def test_core_client_max_retries_wires_retry_transport() -> None:
     """CoreClient(api_key, max_retries=N) auto-creates a RetryTransport-backed Client."""
     client = CoreClient("test_api_key", max_retries=3)
-    assert isinstance(
-        client._client._transport, RetryTransport
-    ), "Expected RetryTransport to be auto-wired"
+    assert isinstance(client._client._transport, RetryTransport), (
+        "Expected RetryTransport to be auto-wired"
+    )
 
 
 def test_core_client_max_retries_2_produces_3_calls() -> None:
@@ -102,8 +105,7 @@ def test_core_client_max_retries_2_produces_3_calls() -> None:
     retry_transport = RetryTransport(transport, max_retries=2, backoff_base=0.0)
     client = CoreClient("test_api_key", client=httpx.Client(transport=retry_transport))
 
-    with patch("time.sleep"), \
-         pytest.raises(BunnyServerError):
+    with patch("time.sleep"), pytest.raises(BunnyServerError):
         client._sync_request("GET", _CORE_URL)
 
     assert len(calls) == 3, f"Expected 3 calls (1 + 2 retries), got {len(calls)}"
@@ -117,8 +119,7 @@ def test_core_client_constructor_max_retries_2_produces_3_calls() -> None:
     handler, calls = _always_500_handler()
     client._client._transport._inner = httpx.MockTransport(handler)
 
-    with patch("time.sleep"), \
-         pytest.raises(BunnyServerError):
+    with patch("time.sleep"), pytest.raises(BunnyServerError):
         client._sync_request("GET", _CORE_URL)
 
     assert len(calls) == 3, f"Expected 3 calls (1 + 2 retries), got {len(calls)}"
@@ -141,12 +142,13 @@ def test_core_client_max_retries_1_succeeds_on_second_call() -> None:
 # StorageClient constructor auto-wiring
 # ---------------------------------------------------------------------------
 
+
 def test_storage_client_max_retries_wires_retry_transport() -> None:
     """StorageClient(zone, pwd, max_retries=N) auto-creates a RetryTransport-backed Client."""
     client = StorageClient("my-zone", "test_password", max_retries=2)
-    assert isinstance(
-        client._client._transport, RetryTransport
-    ), "Expected RetryTransport to be auto-wired"
+    assert isinstance(client._client._transport, RetryTransport), (
+        "Expected RetryTransport to be auto-wired"
+    )
 
 
 def test_storage_client_default_no_retry_single_call() -> None:
@@ -155,8 +157,7 @@ def test_storage_client_default_no_retry_single_call() -> None:
     transport = httpx.MockTransport(handler)
     client = StorageClient("my-zone", "test_password", client=httpx.Client(transport=transport))
 
-    with patch("time.sleep") as mock_sleep, \
-         pytest.raises(BunnyServerError):
+    with patch("time.sleep") as mock_sleep, pytest.raises(BunnyServerError):
         client._sync_request("GET", _STORAGE_URL)
 
     assert len(calls) == 1, f"Expected 1 call, got {len(calls)}"
@@ -170,8 +171,7 @@ def test_storage_client_max_retries_1_produces_2_calls() -> None:
     handler, calls = _always_500_handler()
     client._client._transport._inner = httpx.MockTransport(handler)
 
-    with patch("time.sleep"), \
-         pytest.raises(BunnyServerError):
+    with patch("time.sleep"), pytest.raises(BunnyServerError):
         client._sync_request("GET", _STORAGE_URL)
 
     assert len(calls) == 2, f"Expected 2 calls (1 + 1 retry), got {len(calls)}"
@@ -188,6 +188,7 @@ def test_storage_client_region_kwarg_still_works_with_max_retries() -> None:
 # backoff_base pass-through
 # ---------------------------------------------------------------------------
 
+
 def test_backoff_base_zero_skips_delay_but_still_retries() -> None:
     """backoff_base=0.0 means zero sleep delay, but retries still happen."""
     client = CoreClient("test_api_key", max_retries=2, backoff_base=0.0)
@@ -199,8 +200,7 @@ def test_backoff_base_zero_skips_delay_but_still_retries() -> None:
     def capture_sleep(d: float) -> None:
         sleep_delays.append(d)
 
-    with patch("time.sleep", side_effect=capture_sleep), \
-         pytest.raises(BunnyServerError):
+    with patch("time.sleep", side_effect=capture_sleep), pytest.raises(BunnyServerError):
         client._sync_request("GET", _CORE_URL)
 
     assert len(calls) == 3
@@ -211,6 +211,7 @@ def test_backoff_base_zero_skips_delay_but_still_retries() -> None:
 # ---------------------------------------------------------------------------
 # UserWarning on client= + max_retries conflict
 # ---------------------------------------------------------------------------
+
 
 def test_user_warning_when_client_and_max_retries_provided() -> None:
     """Providing client= and max_retries>0 emits exactly one UserWarning."""

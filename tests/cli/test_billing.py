@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
-from bunny_cdn_sdk._exceptions import BunnyAPIError, BunnyAuthenticationError
+from bunny_cdn_sdk._exceptions import BunnyAuthenticationError
 from bunny_cdn_sdk.cli import app
 
 _BILLING = {
@@ -75,9 +75,7 @@ def test_billing_missing_auth(runner) -> None:
 def test_billing_api_error(runner) -> None:
     """billing with API error exits 1."""
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
-        MockClient.return_value.get_billing.side_effect = _mock_exc(
-            BunnyAuthenticationError, 401
-        )
+        MockClient.return_value.get_billing.side_effect = _mock_exc(BunnyAuthenticationError, 401)
         result = runner.invoke(app, ["--api-key", "bad", "billing"])
     assert result.exit_code == 1
 

@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Iterator
-
-import httpx
+from typing import TYPE_CHECKING, Any
 
 from bunny_cdn_sdk._client import _BaseClient
 from bunny_cdn_sdk._pagination import pagination_iterator
-from bunny_cdn_sdk._types import PaginatedResponse
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    import httpx
+
+    from bunny_cdn_sdk._types import PaginatedResponse
 
 __all__ = ["CoreClient"]
 
@@ -138,6 +142,7 @@ class CoreClient(_BaseClient):
         Yields:
             Individual pull zone dicts across all pages.
         """
+
         def fetch_page(page: int) -> PaginatedResponse:
             params: dict[str, Any] = {"page": page, "perPage": per_page}
             if search is not None:
@@ -168,6 +173,7 @@ class CoreClient(_BaseClient):
         Raises:
             Any exception from _request propagates immediately if any request fails.
         """
+
         def fetch_one(id: int) -> dict:
             return self._request("GET", f"{self.base_url}/pullzone/{id}").json()
 
@@ -310,9 +316,7 @@ class CoreClient(_BaseClient):
         Returns:
             Updated storage zone dict.
         """
-        return self._sync_request(
-            "POST", f"{self.base_url}/storagezone/{id}", json=kwargs
-        ).json()
+        return self._sync_request("POST", f"{self.base_url}/storagezone/{id}", json=kwargs).json()
 
     def delete_storage_zone(self, id: int) -> dict:
         """Delete a storage zone.
@@ -335,6 +339,7 @@ class CoreClient(_BaseClient):
         Yields:
             Individual storage zone dicts across all pages.
         """
+
         def fetch_page(page: int) -> PaginatedResponse:
             params: dict[str, Any] = {"page": page, "perPage": per_page}
             return self._request("GET", f"{self.base_url}/storagezone", params=params).json()
@@ -398,9 +403,7 @@ class CoreClient(_BaseClient):
         Returns:
             Updated DNS zone dict.
         """
-        return self._sync_request(
-            "POST", f"{self.base_url}/dnszone/{id}", json=kwargs
-        ).json()
+        return self._sync_request("POST", f"{self.base_url}/dnszone/{id}", json=kwargs).json()
 
     def delete_dns_zone(self, id: int) -> dict:
         """Delete a DNS zone.
@@ -428,6 +431,7 @@ class CoreClient(_BaseClient):
         Yields:
             Individual DNS zone dicts across all pages.
         """
+
         def fetch_page(page: int) -> PaginatedResponse:
             params: dict[str, Any] = {"page": page, "perPage": per_page}
             if search is not None:
@@ -535,9 +539,7 @@ class CoreClient(_BaseClient):
         Returns:
             Updated video library dict.
         """
-        return self._sync_request(
-            "POST", f"{self.base_url}/videolibrary/{id}", json=kwargs
-        ).json()
+        return self._sync_request("POST", f"{self.base_url}/videolibrary/{id}", json=kwargs).json()
 
     def delete_video_library(self, id: int) -> dict:
         """Delete a video library.
@@ -560,6 +562,7 @@ class CoreClient(_BaseClient):
         Yields:
             Individual video library dicts across all pages.
         """
+
         def fetch_page(page: int) -> PaginatedResponse:
             params: dict[str, Any] = {"page": page, "perPage": per_page}
             return self._request("GET", f"{self.base_url}/videolibrary", params=params).json()

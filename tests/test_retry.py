@@ -25,6 +25,7 @@ _URL = "https://api.bunnycdn.com/pullzone/1"
 # Helper factories
 # ---------------------------------------------------------------------------
 
+
 def _make_flaky_handler(fail_count: int, fail_status: int = 503, headers: dict | None = None):
     """Return (handler, call_list) where handler fails fail_count times then succeeds.
 
@@ -71,6 +72,7 @@ def _make_network_error_handler(exc: Exception, fail_count: int):
 
 def _make_always_network_error_handler(exc: Exception):
     """Return handler that always raises exc."""
+
     def handler(req: httpx.Request) -> httpx.Response:
         raise exc
 
@@ -93,6 +95,7 @@ def _client_with_retry(
 # 5xx retry
 # ---------------------------------------------------------------------------
 
+
 def test_retries_on_503() -> None:
     """RetryTransport retries on 5xx and returns 200 on success."""
     handler, calls = _make_flaky_handler(fail_count=2, fail_status=503)
@@ -102,7 +105,7 @@ def test_retries_on_503() -> None:
         resp = client._sync_request("GET", _URL)
 
     assert resp.status_code == 200
-    assert len(calls) == 3          # 1 initial + 2 retries
+    assert len(calls) == 3  # 1 initial + 2 retries
     assert mock_sleep.call_count == 2  # sleep before retry 1 and retry 2
 
 
@@ -134,6 +137,7 @@ def test_no_sleep_on_first_attempt() -> None:
 # ---------------------------------------------------------------------------
 # 429 retry — Retry-After header variants
 # ---------------------------------------------------------------------------
+
 
 def test_retries_on_429_with_retry_after_integer() -> None:
     """RetryTransport respects Retry-After integer-seconds header on 429."""
@@ -197,6 +201,7 @@ def test_retries_on_429_without_retry_after_uses_backoff() -> None:
 # Network exception retry
 # ---------------------------------------------------------------------------
 
+
 def test_retries_on_connect_error() -> None:
     """RetryTransport retries on httpx.ConnectError and returns 200 on success."""
     handler, calls = _make_network_error_handler(
@@ -208,15 +213,13 @@ def test_retries_on_connect_error() -> None:
         resp = client._sync_request("GET", _URL)
 
     assert resp.status_code == 200
-    assert calls[0] == 3            # 1 initial + 2 retries
+    assert calls[0] == 3  # 1 initial + 2 retries
     assert mock_sleep.call_count == 2
 
 
 def test_retries_on_timeout_exception() -> None:
     """RetryTransport retries on httpx.TimeoutException and returns 200 on success."""
-    handler, calls = _make_network_error_handler(
-        httpx.TimeoutException("Timed out"), fail_count=1
-    )
+    handler, calls = _make_network_error_handler(httpx.TimeoutException("Timed out"), fail_count=1)
     client = _client_with_retry(handler, max_retries=2)
 
     with patch("time.sleep"):
@@ -229,6 +232,7 @@ def test_retries_on_timeout_exception() -> None:
 # ---------------------------------------------------------------------------
 # Max retries exhausted
 # ---------------------------------------------------------------------------
+
 
 def test_max_retries_exhausted_returns_final_5xx_response() -> None:
     """When all retries fail with 5xx, the final failed response is returned (not raised).
@@ -250,9 +254,7 @@ def test_max_retries_exhausted_returns_final_5xx_response() -> None:
 
 def test_max_retries_exhausted_reraises_connect_error() -> None:
     """When all retries fail with ConnectError, the exception is re-raised."""
-    handler = _make_always_network_error_handler(
-        httpx.ConnectError("Connection refused")
-    )
+    handler = _make_always_network_error_handler(httpx.ConnectError("Connection refused"))
     client = _client_with_retry(handler, max_retries=1)
 
     with patch("time.sleep"):
@@ -262,9 +264,7 @@ def test_max_retries_exhausted_reraises_connect_error() -> None:
 
 def test_max_retries_exhausted_reraises_timeout_exception() -> None:
     """When all retries fail with TimeoutException, the exception is re-raised."""
-    handler = _make_always_network_error_handler(
-        httpx.TimeoutException("Timed out")
-    )
+    handler = _make_always_network_error_handler(httpx.TimeoutException("Timed out"))
     client = _client_with_retry(handler, max_retries=1)
 
     with patch("time.sleep"):
@@ -276,6 +276,7 @@ def test_max_retries_exhausted_reraises_timeout_exception() -> None:
 # Backoff growth
 # ---------------------------------------------------------------------------
 
+
 def test_backoff_grows_exponentially() -> None:
     """Patch random.uniform to return upper bound; verify delays double each attempt."""
     handler, _ = _make_always_fail_handler(fail_status=503)
@@ -286,9 +287,11 @@ def test_backoff_grows_exponentially() -> None:
     def capture_sleep(d: float) -> None:
         sleep_delays.append(d)
 
-    with patch("time.sleep", side_effect=capture_sleep), \
-         patch("random.uniform", side_effect=lambda lo, hi: hi), \
-         pytest.raises(Exception):  # noqa: BLE001
+    with (
+        patch("time.sleep", side_effect=capture_sleep),
+        patch("random.uniform", side_effect=lambda lo, hi: hi),
+        pytest.raises(Exception),
+    ):  # noqa: BLE001
         client._sync_request("GET", _URL)
 
     # attempt index 0,1,2 → upper bounds = 0.5*2^0, 0.5*2^1, 0.5*2^2 = 0.5, 1.0, 2.0
@@ -306,9 +309,11 @@ def test_backoff_caps_at_60_seconds() -> None:
     def capture_sleep(d: float) -> None:
         sleep_delays.append(d)
 
-    with patch("time.sleep", side_effect=capture_sleep), \
-         patch("random.uniform", side_effect=lambda lo, hi: hi), \
-         pytest.raises(Exception):  # noqa: BLE001
+    with (
+        patch("time.sleep", side_effect=capture_sleep),
+        patch("random.uniform", side_effect=lambda lo, hi: hi),
+        pytest.raises(Exception),
+    ):  # noqa: BLE001
         client._sync_request("GET", _URL)
 
     # All delays should be capped at 60.0 (min(60, 100*2^N) = 60 for all N >= 0)
@@ -318,6 +323,7 @@ def test_backoff_caps_at_60_seconds() -> None:
 # ---------------------------------------------------------------------------
 # Composability (RETRY-05)
 # ---------------------------------------------------------------------------
+
 
 def test_composability_with_async_http_transport() -> None:
     """RetryTransport(httpx.AsyncHTTPTransport()) can be injected into _BaseClient via client=."""
@@ -341,8 +347,7 @@ def test_max_retries_zero_makes_single_attempt() -> None:
     handler, calls = _make_always_fail_handler(fail_status=503)
     client = _client_with_retry(handler, max_retries=0)
 
-    with patch("time.sleep") as mock_sleep, \
-         pytest.raises(Exception):  # noqa: BLE001
+    with patch("time.sleep") as mock_sleep, pytest.raises(Exception):  # noqa: BLE001
         client._sync_request("GET", _URL)
 
     assert len(calls) == 1
@@ -352,6 +357,7 @@ def test_max_retries_zero_makes_single_attempt() -> None:
 # ---------------------------------------------------------------------------
 # _parse_retry_after unit tests (covers the helper directly)
 # ---------------------------------------------------------------------------
+
 
 def test_parse_retry_after_integer() -> None:
     """_parse_retry_after('60') returns 60.0."""
@@ -393,6 +399,7 @@ def test_parse_retry_after_garbage_returns_zero() -> None:
 # ---------------------------------------------------------------------------
 # aclose passthrough
 # ---------------------------------------------------------------------------
+
 
 def test_close_delegates_to_inner_transport() -> None:
     """RetryTransport.close() calls close() on the inner transport."""

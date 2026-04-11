@@ -63,7 +63,7 @@ def sdk_errors() -> Generator[None, None, None]:
 
 
 def output_result(
-    data: Any,  # noqa: ANN401
+    data: Any,
     *,
     columns: list[str] | None = None,
     json_mode: bool = False,

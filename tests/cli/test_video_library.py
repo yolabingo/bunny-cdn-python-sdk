@@ -94,7 +94,9 @@ def test_video_library_create_success(runner) -> None:
     created = {**VIDEO_LIB, "Name": "new-lib"}
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.create_video_library.return_value = created
-        result = runner.invoke(app, ["--api-key", "k", "video-library", "create", "--name", "new-lib"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "video-library", "create", "--name", "new-lib"]
+        )
     assert result.exit_code == 0
     assert "new-lib" in result.output
 
@@ -172,5 +174,7 @@ def test_video_library_update_json(runner) -> None:
 
 
 def test_video_library_update_malformed_set(runner) -> None:
-    result = runner.invoke(app, ["--api-key", "k", "video-library", "update", "5", "--set", "NOEQUALS"])
+    result = runner.invoke(
+        app, ["--api-key", "k", "video-library", "update", "5", "--set", "NOEQUALS"]
+    )
     assert result.exit_code == 1

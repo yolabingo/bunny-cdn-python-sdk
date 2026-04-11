@@ -124,9 +124,7 @@ def update_record(
     ctx: typer.Context,
     zone_id: int = typer.Argument(..., help="DNS zone ID"),
     record_id: int = typer.Argument(..., help="DNS record ID"),
-    set_: list[str] = typer.Option(
-        [], "--set", help="Field to update as KEY=VALUE (repeatable)"
-    ),
+    set_: list[str] = typer.Option([], "--set", help="Field to update as KEY=VALUE (repeatable)"),
 ) -> None:
     """Update a DNS record using --set KEY=VALUE."""
     from bunny_cdn_sdk.cli._app import State
@@ -155,7 +153,9 @@ def update_record(
             output_result(after, json_mode=True)
             return
         # D-13, D-14: diff table with only changed rows in red italic
-        changed_keys = [k for k in updates if str(before_record.get(k, "")) != str(after.get(k, ""))]
+        changed_keys = [
+            k for k in updates if str(before_record.get(k, "")) != str(after.get(k, ""))
+        ]
         if not changed_keys:
             typer.echo("No fields changed.")
             return

@@ -96,7 +96,16 @@ def test_pull_zone_create_success(runner) -> None:
         MockClient.return_value.create_pull_zone.return_value = created
         result = runner.invoke(
             app,
-            ["--api-key", "k", "pull-zone", "create", "--name", "new-zone", "--origin-url", "https://o.example.com"],
+            [
+                "--api-key",
+                "k",
+                "pull-zone",
+                "create",
+                "--name",
+                "new-zone",
+                "--origin-url",
+                "https://o.example.com",
+            ],
         )
     assert result.exit_code == 0
     assert "new-zone" in result.output
@@ -107,7 +116,16 @@ def test_pull_zone_create_error(runner) -> None:
         MockClient.return_value.create_pull_zone.side_effect = _mock_exc(BunnyAPIError, 422)
         result = runner.invoke(
             app,
-            ["--api-key", "k", "pull-zone", "create", "--name", "z", "--origin-url", "https://o.example.com"],
+            [
+                "--api-key",
+                "k",
+                "pull-zone",
+                "create",
+                "--name",
+                "z",
+                "--origin-url",
+                "https://o.example.com",
+            ],
         )
     assert result.exit_code == 1
 
@@ -186,7 +204,9 @@ def test_pull_zone_purge_success(runner) -> None:
 
 def test_pull_zone_purge_error(runner) -> None:
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
-        MockClient.return_value.purge_pull_zone_cache.side_effect = _mock_exc(BunnyNotFoundError, 404)
+        MockClient.return_value.purge_pull_zone_cache.side_effect = _mock_exc(
+            BunnyNotFoundError, 404
+        )
         result = runner.invoke(app, ["--api-key", "k", "pull-zone", "purge", "999"])
     assert result.exit_code == 1
 
@@ -204,7 +224,15 @@ def test_pull_zone_update_success_shows_diff(runner) -> None:
         MockClient.return_value.update_pull_zone.return_value = after
         result = runner.invoke(
             app,
-            ["--api-key", "k", "pull-zone", "update", "1", "--set", "OriginUrl=https://new.example.com"],
+            [
+                "--api-key",
+                "k",
+                "pull-zone",
+                "update",
+                "1",
+                "--set",
+                "OriginUrl=https://new.example.com",
+            ],
         )
     assert result.exit_code == 0
     assert "OriginUrl" in result.output
@@ -217,7 +245,16 @@ def test_pull_zone_update_json(runner) -> None:
         MockClient.return_value.update_pull_zone.return_value = after
         result = runner.invoke(
             app,
-            ["--api-key", "k", "--json", "pull-zone", "update", "1", "--set", "OriginUrl=https://new.example.com"],
+            [
+                "--api-key",
+                "k",
+                "--json",
+                "pull-zone",
+                "update",
+                "1",
+                "--set",
+                "OriginUrl=https://new.example.com",
+            ],
         )
     assert result.exit_code == 0
     parsed = json.loads(result.output)
@@ -232,5 +269,7 @@ def test_pull_zone_update_malformed_set(runner) -> None:
 def test_pull_zone_update_error_on_get(runner) -> None:
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.get_pull_zone.side_effect = _mock_exc(BunnyNotFoundError, 404)
-        result = runner.invoke(app, ["--api-key", "k", "pull-zone", "update", "1", "--set", "Name=x"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "pull-zone", "update", "1", "--set", "Name=x"]
+        )
     assert result.exit_code == 1

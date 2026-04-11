@@ -22,7 +22,6 @@ from bunny_cdn_sdk._exceptions import (
 from bunny_cdn_sdk.cli import app
 from bunny_cdn_sdk.cli._output import _cell, output_result, sdk_errors
 
-
 # ---------------------------------------------------------------------------
 # App — help and no-args
 # ---------------------------------------------------------------------------
@@ -84,7 +83,9 @@ def test_help_shows_json_flag(runner) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _mock_exc(cls: type[BunnyAPIError], status_code: int = 400, message: str = "test error") -> BunnyAPIError:
+def _mock_exc(
+    cls: type[BunnyAPIError], status_code: int = 400, message: str = "test error"
+) -> BunnyAPIError:
     """Helper: create an API exception with a mock response."""
     return cls(status_code=status_code, message=message, response=MagicMock())
 
@@ -225,7 +226,9 @@ def test_output_result_table_list_shows_column_headers() -> None:
 
 def test_output_result_table_list_shows_row_values() -> None:
     con, buf = _make_console()
-    output_result([{"Id": 42, "Name": "test"}], columns=["Id", "Name"], json_mode=False, _console=con)
+    output_result(
+        [{"Id": 42, "Name": "test"}], columns=["Id", "Name"], json_mode=False, _console=con
+    )
     out = buf.getvalue()
     assert "42" in out
     assert "test" in out

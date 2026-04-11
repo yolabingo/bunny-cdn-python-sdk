@@ -1,7 +1,8 @@
 """Shared test fixtures and helpers."""
+
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import httpx
 

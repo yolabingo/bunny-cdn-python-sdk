@@ -22,7 +22,6 @@ from bunny_cdn_sdk.core import CoreClient
 from bunny_cdn_sdk.storage import StorageClient
 
 __all__ = [
-    "__version__",
     "BunnyAPIError",
     "BunnyAuthenticationError",
     "BunnyConnectionError",
@@ -34,4 +33,5 @@ __all__ = [
     "CoreClient",
     "RetryTransport",
     "StorageClient",
+    "__version__",
 ]

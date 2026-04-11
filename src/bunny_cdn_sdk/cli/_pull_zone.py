@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 import typer
 from rich.table import Table
 from rich.text import Text
 
 from bunny_cdn_sdk.cli._output import console, err_console, output_result, sdk_errors
-
-if TYPE_CHECKING:
-    pass
 
 pull_zone_app = typer.Typer(no_args_is_help=True, help="Manage Bunny CDN pull zones.")
 _COLUMNS = ["Name", "OriginUrl", "Enabled", "Id"]
@@ -119,9 +116,7 @@ def purge_zone(
 def update_zone(
     ctx: typer.Context,
     id: int = typer.Argument(..., help="Pull zone ID"),
-    set_: list[str] = typer.Option(
-        [], "--set", help="Field to update as KEY=VALUE (repeatable)"
-    ),
+    set_: list[str] = typer.Option([], "--set", help="Field to update as KEY=VALUE (repeatable)"),
 ) -> None:
     """Update pull zone fields using --set KEY=VALUE."""
     from bunny_cdn_sdk.cli._app import State

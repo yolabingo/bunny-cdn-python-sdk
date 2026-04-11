@@ -95,7 +95,9 @@ def test_dns_zone_create_success(runner) -> None:
     created = {**DNS_ZONE, "Domain": "newzone.com"}
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.create_dns_zone.return_value = created
-        result = runner.invoke(app, ["--api-key", "k", "dns-zone", "create", "--domain", "newzone.com"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "dns-zone", "create", "--domain", "newzone.com"]
+        )
     assert result.exit_code == 0
     assert "newzone.com" in result.output
 
@@ -158,11 +160,18 @@ def test_dns_zone_record_add_success(runner) -> None:
         result = runner.invoke(
             app,
             [
-                "--api-key", "k",
-                "dns-zone", "record", "add", "10",
-                "--type", "A",
-                "--name", "www",
-                "--value", "1.2.3.4",
+                "--api-key",
+                "k",
+                "dns-zone",
+                "record",
+                "add",
+                "10",
+                "--type",
+                "A",
+                "--name",
+                "www",
+                "--value",
+                "1.2.3.4",
             ],
         )
     assert result.exit_code == 0
@@ -175,11 +184,18 @@ def test_dns_zone_record_add_error(runner) -> None:
         result = runner.invoke(
             app,
             [
-                "--api-key", "k",
-                "dns-zone", "record", "add", "10",
-                "--type", "A",
-                "--name", "www",
-                "--value", "1.2.3.4",
+                "--api-key",
+                "k",
+                "dns-zone",
+                "record",
+                "add",
+                "10",
+                "--type",
+                "A",
+                "--name",
+                "www",
+                "--value",
+                "1.2.3.4",
             ],
         )
     assert result.exit_code == 1
@@ -191,12 +207,19 @@ def test_dns_zone_record_add_json(runner) -> None:
         result = runner.invoke(
             app,
             [
-                "--api-key", "k",
+                "--api-key",
+                "k",
                 "--json",
-                "dns-zone", "record", "add", "10",
-                "--type", "A",
-                "--name", "www",
-                "--value", "1.2.3.4",
+                "dns-zone",
+                "record",
+                "add",
+                "10",
+                "--type",
+                "A",
+                "--name",
+                "www",
+                "--value",
+                "1.2.3.4",
             ],
         )
     assert result.exit_code == 0
@@ -218,9 +241,15 @@ def test_dns_zone_record_update_success(runner) -> None:
         result = runner.invoke(
             app,
             [
-                "--api-key", "k",
-                "dns-zone", "record", "update", "10", "99",
-                "--set", "Value=5.6.7.8",
+                "--api-key",
+                "k",
+                "dns-zone",
+                "record",
+                "update",
+                "10",
+                "99",
+                "--set",
+                "Value=5.6.7.8",
             ],
         )
     assert result.exit_code == 0
@@ -235,10 +264,16 @@ def test_dns_zone_record_update_json(runner) -> None:
         result = runner.invoke(
             app,
             [
-                "--api-key", "k",
+                "--api-key",
+                "k",
                 "--json",
-                "dns-zone", "record", "update", "10", "99",
-                "--set", "Value=5.6.7.8",
+                "dns-zone",
+                "record",
+                "update",
+                "10",
+                "99",
+                "--set",
+                "Value=5.6.7.8",
             ],
         )
     assert result.exit_code == 0

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
-from bunny_cdn_sdk._exceptions import BunnyAPIError, BunnyAuthenticationError
+from bunny_cdn_sdk._exceptions import BunnyAuthenticationError
 from bunny_cdn_sdk.cli import app
 from bunny_cdn_sdk.cli._app import _fmt_bytes
 

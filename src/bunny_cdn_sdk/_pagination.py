@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from bunny_cdn_sdk._types import PaginatedResponse
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
+
+    from bunny_cdn_sdk._types import PaginatedResponse
 
 __all__ = ["pagination_iterator"]
 

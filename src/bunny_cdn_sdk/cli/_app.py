@@ -9,11 +9,11 @@ from typing import cast
 
 import typer
 
-from bunny_cdn_sdk.cli._pull_zone import pull_zone_app
-from bunny_cdn_sdk.cli._storage_zone import storage_zone_app
 from bunny_cdn_sdk.cli._dns_zone import dns_zone_app
-from bunny_cdn_sdk.cli._video_library import video_library_app
+from bunny_cdn_sdk.cli._pull_zone import pull_zone_app
 from bunny_cdn_sdk.cli._storage import storage_app
+from bunny_cdn_sdk.cli._storage_zone import storage_zone_app
+from bunny_cdn_sdk.cli._video_library import video_library_app
 
 app = typer.Typer(no_args_is_help=True, help="Bunny CDN management CLI.")
 
@@ -78,11 +78,11 @@ def _fmt_bytes(n: int) -> str:
     """Format byte count as human-readable string."""
     if n < 1024:
         return f"{n} B"
-    if n < 1024 ** 2:
+    if n < 1024**2:
         return f"{n / 1024:.1f} KB"
-    if n < 1024 ** 3:
-        return f"{n / 1024 ** 2:.1f} MB"
-    return f"{n / 1024 ** 3:.1f} GB"
+    if n < 1024**3:
+        return f"{n / 1024**2:.1f} MB"
+    return f"{n / 1024**3:.1f} GB"
 
 
 def _build_stats_row(name: str, stats: dict | None) -> dict:
@@ -111,9 +111,11 @@ def purge_url_cmd(
     url: str = typer.Argument(..., help="URL to purge from CDN cache"),
 ) -> None:
     """Purge a specific URL from CDN cache."""
+    import typer as _typer
+
     from bunny_cdn_sdk.cli._output import err_console, sdk_errors
     from bunny_cdn_sdk.core import CoreClient
-    import typer as _typer
+
     state = cast("State", ctx.obj)
     if not state.api_key:
         err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
@@ -124,7 +126,14 @@ def purge_url_cmd(
         _typer.echo(f"Purged: {url}")
 
 
-_STATS_COLUMNS = ["Name", "RequestsServed", "BandwidthUsed", "BandwidthCached", "CacheHitRate", "Error%"]
+_STATS_COLUMNS = [
+    "Name",
+    "RequestsServed",
+    "BandwidthUsed",
+    "BandwidthCached",
+    "CacheHitRate",
+    "Error%",
+]
 
 
 @app.command("stats")
@@ -133,17 +142,14 @@ def stats_cmd(
     pull_zone_id: int | None = typer.Option(
         None, "--pull-zone-id", help="Narrow report to a single pull zone ID"
     ),
-    from_: str | None = typer.Option(
-        None, "--from", help="Start date (ISO, default: 7 days ago)"
-    ),
-    to_: str | None = typer.Option(
-        None, "--to", help="End date (ISO, default: today)"
-    ),
+    from_: str | None = typer.Option(None, "--from", help="Start date (ISO, default: 7 days ago)"),
+    to_: str | None = typer.Option(None, "--to", help="End date (ISO, default: today)"),
 ) -> None:
     """Display CDN statistics per pull zone."""
+    import typer as _typer
+
     from bunny_cdn_sdk.cli._output import err_console, output_result, sdk_errors
     from bunny_cdn_sdk.core import CoreClient
-    import typer as _typer
 
     state = cast("State", ctx.obj)
     if not state.api_key:
@@ -158,15 +164,15 @@ def stats_cmd(
 
         if pull_zone_id is not None:
             zone = client.get_pull_zone(pull_zone_id)
-            stats = client.get_statistics(pullZoneId=pull_zone_id, dateFrom=date_from, dateTo=date_to)
+            stats = client.get_statistics(
+                pullZoneId=pull_zone_id, dateFrom=date_from, dateTo=date_to
+            )
             rows = [_build_stats_row(zone["Name"], stats)]
         else:
             zones = list(client.iter_pull_zones())
 
             def _fetch_one(z: dict) -> dict:
-                s = client.get_statistics(
-                    pullZoneId=z["Id"], dateFrom=date_from, dateTo=date_to
-                )
+                s = client.get_statistics(pullZoneId=z["Id"], dateFrom=date_from, dateTo=date_to)
                 return _build_stats_row(z.get("Name", ""), s)
 
             with ThreadPoolExecutor(max_workers=min(len(zones), 20)) as pool:
@@ -190,9 +196,10 @@ _BILLING_COLUMNS = [
 @app.command("billing")
 def billing_cmd(ctx: typer.Context) -> None:
     """Display account billing summary."""
+    import typer as _typer
+
     from bunny_cdn_sdk.cli._output import err_console, output_result, sdk_errors
     from bunny_cdn_sdk.core import CoreClient
-    import typer as _typer
 
     state = cast("State", ctx.obj)
     if not state.api_key:

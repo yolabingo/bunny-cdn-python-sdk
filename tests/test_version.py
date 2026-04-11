@@ -33,10 +33,12 @@ def test_version_in_all() -> None:
 def test_no_bare_version_literal() -> None:
     """__init__.py must not contain a hardcoded __version__ = '...' string literal."""
     import pathlib
+
     init_path = pathlib.Path(__file__).parent.parent / "src" / "bunny_cdn_sdk" / "__init__.py"
     source = init_path.read_text()
     # Check that there's no direct string assignment like __version__ = "x.y.z"
     import re
+
     bare_assignment = re.search(r'__version__\s*=\s*["\']', source)
     assert bare_assignment is None, (
         f"Found bare __version__ string literal in __init__.py at position {bare_assignment.start()}"

@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from bunny_cdn_sdk._exceptions import BunnyAPIError, BunnyAuthenticationError
 from bunny_cdn_sdk.cli import app

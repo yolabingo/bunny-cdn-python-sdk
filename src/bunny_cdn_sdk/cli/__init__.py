@@ -10,6 +10,7 @@ _MSG = (
 try:
     import typer  # noqa: F401
     from rich.console import Console  # noqa: F401
+
     from bunny_cdn_sdk.cli._app import app
 except ImportError as _err:
     raise ImportError(_MSG) from _err

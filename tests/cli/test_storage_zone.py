@@ -94,7 +94,9 @@ def test_storage_zone_create_success(runner) -> None:
     created = {**STORAGE_ZONE, "Name": "new-storage"}
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.create_storage_zone.return_value = created
-        result = runner.invoke(app, ["--api-key", "k", "storage-zone", "create", "--name", "new-storage"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "storage-zone", "create", "--name", "new-storage"]
+        )
     assert result.exit_code == 0
     assert "new-storage" in result.output
 
@@ -165,7 +167,9 @@ def test_storage_zone_update_success_shows_diff(runner) -> None:
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.get_storage_zone.return_value = before
         MockClient.return_value.update_storage_zone.return_value = after
-        result = runner.invoke(app, ["--api-key", "k", "storage-zone", "update", "2", "--set", "Region=UK"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "storage-zone", "update", "2", "--set", "Region=UK"]
+        )
     assert result.exit_code == 0
     assert "Region" in result.output
 
@@ -184,14 +188,18 @@ def test_storage_zone_update_json(runner) -> None:
 
 
 def test_storage_zone_update_malformed_set(runner) -> None:
-    result = runner.invoke(app, ["--api-key", "k", "storage-zone", "update", "2", "--set", "NOEQUALS"])
+    result = runner.invoke(
+        app, ["--api-key", "k", "storage-zone", "update", "2", "--set", "NOEQUALS"]
+    )
     assert result.exit_code == 1
 
 
 def test_storage_zone_update_error_on_get(runner) -> None:
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.get_storage_zone.side_effect = _mock_exc(BunnyNotFoundError, 404)
-        result = runner.invoke(app, ["--api-key", "k", "storage-zone", "update", "2", "--set", "Name=x"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "storage-zone", "update", "2", "--set", "Name=x"]
+        )
     assert result.exit_code == 1
 
 
@@ -200,6 +208,8 @@ def test_storage_zone_update_no_fields_changed(runner) -> None:
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.get_storage_zone.return_value = STORAGE_ZONE
         MockClient.return_value.update_storage_zone.return_value = STORAGE_ZONE
-        result = runner.invoke(app, ["--api-key", "k", "storage-zone", "update", "2", "--set", "Region=DE"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "storage-zone", "update", "2", "--set", "Region=DE"]
+        )
     assert result.exit_code == 0
     assert "No fields changed" in result.output

@@ -133,14 +133,13 @@ class _BaseClient:
 
             if status_code == 401:
                 raise BunnyAuthenticationError(status_code, message, response) from exc
-            elif status_code == 404:
+            if status_code == 404:
                 raise BunnyNotFoundError(status_code, message, response) from exc
-            elif status_code == 429:
+            if status_code == 429:
                 raise BunnyRateLimitError(status_code, message, response) from exc
-            elif 500 <= status_code < 600:
+            if 500 <= status_code < 600:
                 raise BunnyServerError(status_code, message, response) from exc
-            else:
-                raise BunnyAPIError(status_code, message, response) from exc
+            raise BunnyAPIError(status_code, message, response) from exc
         except httpx.ConnectTimeout as exc:
             raise BunnyTimeoutError(f"Connection timeout: {exc}") from exc
         except httpx.ConnectError as exc:

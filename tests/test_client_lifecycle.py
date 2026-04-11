@@ -1,7 +1,6 @@
 """Tests for _BaseClient context manager lifecycle (sync, _client_owner=True)."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from bunny_cdn_sdk._client import _BaseClient
 
