@@ -30,6 +30,7 @@ def test_authentication_error() -> None:
         client._sync_request("GET", _URL)
     assert exc_info.value.status_code == 401
     assert isinstance(exc_info.value, BunnyAPIError)
+    assert str(exc_info.value) == "HTTP 401: error"
 
 
 def test_not_found_error() -> None:
