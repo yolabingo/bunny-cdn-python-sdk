@@ -82,7 +82,7 @@ def test_help_shows_json_flag(runner) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _mock_exc(cls: type, status_code: int = 400, message: str = "test error") -> BunnyAPIError:
+def _mock_exc(cls: type[BunnyAPIError], status_code: int = 400, message: str = "test error") -> BunnyAPIError:
     """Helper: create an API exception with a mock response."""
     return cls(status_code=status_code, message=message, response=MagicMock())
 
