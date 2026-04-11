@@ -111,7 +111,8 @@ def update_lib(
         updates: dict[str, str] = {}
         for pair in set_:
             if "=" not in pair:
-                raise ValueError(f"Invalid --set value: '{pair}' (expected KEY=VALUE)")
+                msg = f"Invalid --set value: '{pair}' (expected KEY=VALUE)"
+                raise ValueError(msg)
             k, v = pair.split("=", 1)
             updates[k] = v
         client = CoreClient(api_key=state.api_key)

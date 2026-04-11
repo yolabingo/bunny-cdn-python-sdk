@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import os
+from pathlib import Path
 from typing import cast
 
 import typer
@@ -53,10 +53,11 @@ def upload_file(
         )
         raise typer.Exit(1)
     with sdk_errors():
-        if not os.path.isfile(local_path):
-            raise ValueError(f"Local file not found: {local_path!r}")
+        if not Path(local_path).is_file():
+            msg = f"Local file not found: {local_path!r}"
+            raise ValueError(msg)
         client = StorageClient(state.zone_name, state.storage_key, region=state.region)
-        with open(local_path, "rb") as fh:
+        with Path(local_path).open("rb") as fh:
             client.upload(remote_path, fh.read())
         typer.echo(f"Uploaded {local_path!r} -> {remote_path!r}")
 
@@ -82,8 +83,7 @@ def download_file(
         client = StorageClient(state.zone_name, state.storage_key, region=state.region)
         data = client.download(remote_path)
         try:
-            with open(local_path, "wb") as fh:
-                fh.write(data)
+            Path(local_path).write_bytes(data)
         except OSError as exc:
             raise ValueError(str(exc)) from exc
         typer.echo(f"Downloaded {remote_path!r} -> {local_path!r}")

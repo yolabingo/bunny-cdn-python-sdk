@@ -41,5 +41,6 @@ def test_no_bare_version_literal() -> None:
 
     bare_assignment = re.search(r'__version__\s*=\s*["\']', source)
     assert bare_assignment is None, (
-        f"Found bare __version__ string literal in __init__.py at position {bare_assignment.start()}"
+        "Found bare __version__ string literal in __init__.py"
+        f" at position {bare_assignment.start()}"
     )

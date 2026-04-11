@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import importlib.metadata
 import warnings
-from typing import Any, Self
+from typing import Any, Never, Self
 
 import httpx
-
-_USER_AGENT = f"bunny-cdn-sdk/{importlib.metadata.version('bunny-cdn-sdk')}"
 
 from bunny_cdn_sdk._exceptions import (
     BunnyAPIError,
@@ -20,6 +18,41 @@ from bunny_cdn_sdk._exceptions import (
     BunnyTimeoutError,
 )
 from bunny_cdn_sdk._retry import RetryTransport
+
+_USER_AGENT = f"bunny-cdn-sdk/{importlib.metadata.version('bunny-cdn-sdk')}"
+
+# HTTP status code constants (PLR2004)
+_HTTP_UNAUTHORIZED = 401
+_HTTP_NOT_FOUND = 404
+_HTTP_TOO_MANY_REQUESTS = 429
+_HTTP_SERVER_ERROR_MIN = 500
+_HTTP_SERVER_ERROR_MAX = 600
+
+
+def _extract_error_message(response: httpx.Response, status_code: int) -> str:
+    """Extract a human-readable error message from an HTTP error response."""
+    try:
+        return response.json().get("Message") or response.text or f"HTTP {status_code}"
+    except ValueError:
+        return response.text or f"HTTP {status_code}"
+
+
+def _raise_for_status_code(
+    status_code: int,
+    message: str,
+    response: httpx.Response,
+    exc: httpx.HTTPStatusError,
+) -> Never:
+    """Raise the appropriate Bunny exception for an HTTP error status code."""
+    if status_code == _HTTP_UNAUTHORIZED:
+        raise BunnyAuthenticationError(status_code, message, response) from exc
+    if status_code == _HTTP_NOT_FOUND:
+        raise BunnyNotFoundError(status_code, message, response) from exc
+    if status_code == _HTTP_TOO_MANY_REQUESTS:
+        raise BunnyRateLimitError(status_code, message, response) from exc
+    if _HTTP_SERVER_ERROR_MIN <= status_code < _HTTP_SERVER_ERROR_MAX:
+        raise BunnyServerError(status_code, message, response) from exc
+    raise BunnyAPIError(status_code, message, response) from exc
 
 
 class _BaseClient:
@@ -112,40 +145,23 @@ class _BaseClient:
         headers["User-Agent"] = _USER_AGENT
 
         try:
-            response = self._client.request(
-                method,
-                url,
-                headers=headers,
-                **kwargs,
-            )
+            response = self._client.request(method, url, headers=headers, **kwargs)
             response.raise_for_status()
-            return response
         except httpx.HTTPStatusError as exc:
-            # Map HTTP errors to exception subclasses
             status_code = exc.response.status_code
-            response = exc.response
-
-            # Try to extract error message from response
-            try:
-                message = response.json().get("Message") or response.text or f"HTTP {status_code}"
-            except Exception:
-                message = response.text or f"HTTP {status_code}"
-
-            if status_code == 401:
-                raise BunnyAuthenticationError(status_code, message, response) from exc
-            if status_code == 404:
-                raise BunnyNotFoundError(status_code, message, response) from exc
-            if status_code == 429:
-                raise BunnyRateLimitError(status_code, message, response) from exc
-            if 500 <= status_code < 600:
-                raise BunnyServerError(status_code, message, response) from exc
-            raise BunnyAPIError(status_code, message, response) from exc
+            message = _extract_error_message(exc.response, status_code)
+            _raise_for_status_code(status_code, message, exc.response, exc)
         except httpx.ConnectTimeout as exc:
-            raise BunnyTimeoutError(f"Connection timeout: {exc}") from exc
+            msg = f"Connection timeout: {exc}"
+            raise BunnyTimeoutError(msg) from exc
         except httpx.ConnectError as exc:
-            raise BunnyConnectionError(f"Connection error: {exc}") from exc
+            msg = f"Connection error: {exc}"
+            raise BunnyConnectionError(msg) from exc
         except httpx.TimeoutException as exc:
-            raise BunnyTimeoutError(f"Request timeout: {exc}") from exc
+            msg = f"Request timeout: {exc}"
+            raise BunnyTimeoutError(msg) from exc
+        else:
+            return response
 
     def _sync_request(
         self,

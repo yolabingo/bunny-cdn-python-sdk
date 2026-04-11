@@ -154,7 +154,7 @@ def test_sdk_errors_passes_through_success() -> None:
 
 
 # ---------------------------------------------------------------------------
-# output_result()
+# Tests for output_result()
 # ---------------------------------------------------------------------------
 
 
@@ -180,7 +180,7 @@ def test_output_result_plain_mode(capsys) -> None:
 
 
 # ---------------------------------------------------------------------------
-# _cell()
+# Tests for _cell()
 # ---------------------------------------------------------------------------
 
 
@@ -264,9 +264,9 @@ def test_output_result_table_auto_columns() -> None:
 
 
 def test_output_result_json_mode_datetime_no_crash(capsys) -> None:
-    from datetime import datetime
+    from datetime import UTC, datetime
 
-    output_result({"ts": datetime(2025, 1, 1)}, json_mode=True)
+    output_result({"ts": datetime(2025, 1, 1, tzinfo=UTC)}, json_mode=True)
     captured = capsys.readouterr()
     parsed = json.loads(captured.out)
     assert "2025" in parsed["ts"]

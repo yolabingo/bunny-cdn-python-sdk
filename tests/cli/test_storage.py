@@ -130,7 +130,7 @@ def test_storage_delete_prompt_confirmed(runner) -> None:
 
 
 def test_storage_delete_prompt_aborted(runner) -> None:
-    with patch("bunny_cdn_sdk.storage.StorageClient") as MockClient:
+    with patch("bunny_cdn_sdk.storage.StorageClient"):
         result = runner.invoke(app, [*_AUTH, "storage", "delete", "remote/file.txt"], input="n\n")
     assert result.exit_code != 0
 

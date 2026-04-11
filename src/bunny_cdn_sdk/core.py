@@ -570,7 +570,7 @@ class CoreClient(_BaseClient):
         return pagination_iterator(fetch_page)
 
     # ------------------------------------------------------------------
-    # Utilities (CORE-11)
+    # Utilities
     # ------------------------------------------------------------------
 
     def purge_url(self, url: str, **kwargs: Any) -> dict:

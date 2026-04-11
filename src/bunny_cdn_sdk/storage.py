@@ -62,9 +62,8 @@ class StorageClient(_BaseClient):
         backoff_base: float = 0.5,
     ) -> None:
         if region not in REGION_MAP:
-            raise ValueError(
-                f"Unknown region {region!r}. Valid regions: {', '.join(sorted(REGION_MAP))}"
-            )
+            msg = f"Unknown region {region!r}. Valid regions: {', '.join(sorted(REGION_MAP))}"
+            raise ValueError(msg)
         # Pass password as api_key — _BaseClient injects it as AccessKey header.
         # We additionally set Authorization: Basic on every request so the
         # Storage API can validate zone ownership (T-03-07 mitigation).

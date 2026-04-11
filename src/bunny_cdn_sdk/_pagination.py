@@ -31,8 +31,7 @@ def pagination_iterator(
     current_page = start_page
     while True:
         response = fetch_page(current_page)
-        for item in response["Items"]:
-            yield item
+        yield from response["Items"]
         if not response["HasMoreItems"]:
             break
         current_page += 1

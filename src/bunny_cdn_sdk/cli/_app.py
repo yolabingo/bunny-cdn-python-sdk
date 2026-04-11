@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import cast
 
 import typer
@@ -74,15 +74,20 @@ def main(
     state.json_output = json_output
 
 
+_KB = 1024
+_MB = 1024**2
+_GB = 1024**3
+
+
 def _fmt_bytes(n: int) -> str:
     """Format byte count as human-readable string."""
-    if n < 1024:
+    if n < _KB:
         return f"{n} B"
-    if n < 1024**2:
-        return f"{n / 1024:.1f} KB"
-    if n < 1024**3:
-        return f"{n / 1024**2:.1f} MB"
-    return f"{n / 1024**3:.1f} GB"
+    if n < _MB:
+        return f"{n / _KB:.1f} KB"
+    if n < _GB:
+        return f"{n / _MB:.1f} MB"
+    return f"{n / _GB:.1f} GB"
 
 
 def _build_stats_row(name: str, stats: dict | None) -> dict:
@@ -156,8 +161,9 @@ def stats_cmd(
         err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
         raise _typer.Exit(1)
 
-    date_from = from_ or (date.today() - timedelta(days=7)).isoformat()
-    date_to = to_ or date.today().isoformat()
+    today = datetime.now(tz=UTC).date()
+    date_from = from_ or (today - timedelta(days=7)).isoformat()
+    date_to = to_ or today.isoformat()
 
     with sdk_errors():
         client = CoreClient(api_key=state.api_key)
