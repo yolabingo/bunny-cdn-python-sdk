@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Executing Phase 04
-last_updated: "2026-04-10T23:45:42Z"
+status: Complete — archived
+last_updated: "2026-04-10T00:00:00Z"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -16,16 +16,15 @@ progress:
 
 ## Current Status
 
-**Phase:** 04-test-suite
-**Active Phase:** Plan 04-03 (COMPLETE)
-**Next Action:** Phase 04 complete — all plans executed
+**Milestone v1.0 archived.** All 4 phases complete. 29/29 requirements satisfied.
+
+Next: run `/gsd-new-milestone` to define v2.0.
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-10)
+See: .planning/PROJECT.md (updated 2026-04-10 at v1.0 completion)
 
 **Core value:** A Python developer can `pip install bunny-cdn-sdk`, instantiate a client with their API key, and call methods that map 1:1 to Bunny CDN endpoints — no surprises, no hidden behavior.
-**Current focus:** Phase 04 — test-suite
 
 ## Phase Summary
 
@@ -33,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 |-------|------|--------|--------------|
 | 1 | Package Scaffold & Exception Hierarchy | Complete | INFRA-06, INFRA-09 |
 | 2 | Base Client Infrastructure | Complete | INFRA-01, INFRA-02, INFRA-03, INFRA-04, INFRA-05, INFRA-07, INFRA-08, INFRA-10 |
-| 3 | Core API & Storage API Clients | Complete | CORE-01, CORE-02, CORE-03, CORE-04, CORE-05, CORE-06, CORE-07, CORE-08, CORE-09, CORE-10, CORE-11, STOR-01, STOR-02, STOR-03, STOR-04, STOR-05 |
+| 3 | Core API & Storage API Clients | Complete | CORE-01 through CORE-11, STOR-01 through STOR-05 |
 | 4 | Test Suite | Complete | TEST-01, TEST-02, TEST-03 |
 
 ## Quick Tasks Completed
