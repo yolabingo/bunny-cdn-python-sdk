@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 import typer
 from rich.console import Console
+from rich.table import Table
 
 from bunny_cdn_sdk._exceptions import (
     BunnyAPIError,
@@ -61,13 +62,40 @@ def sdk_errors() -> Generator[None, None, None]:
         raise typer.Exit(1) from None
 
 
-def output_result(data: Any, *, json_mode: bool = False) -> None:  # noqa: ANN401
-    """Emit command output — JSON if json_mode, Rich table rendering in Phase 09."""
+def output_result(
+    data: Any,  # noqa: ANN401
+    *,
+    columns: list[str] | None = None,
+    json_mode: bool = False,
+) -> None:
+    """Emit command output — JSON if json_mode, Rich table otherwise."""
     if json_mode:
         typer.echo(json.dumps(data, indent=2, default=str))
         return
-    # Phase 09 will replace this with Rich table rendering
-    typer.echo(str(data))
+
+    # Passthrough for plain strings and other non-dict/list scalars
+    if not isinstance(data, (dict, list)):
+        typer.echo(str(data))
+        return
+
+    # Normalize single dict to list so all rendering uses the same code path
+    rows: list[dict[str, Any]] = [data] if isinstance(data, dict) else data  # type: ignore[assignment]
+
+    if not rows:
+        # Empty list — print empty table with headers if columns provided, else nothing
+        if columns:
+            table = Table(*columns)
+            console.print(table)
+        return
+
+    # Derive column order: explicit list takes priority; fallback to first row's keys
+    col_names: list[str] = columns if columns is not None else list(rows[0].keys())
+
+    table = Table(*col_names)
+    for row in rows:
+        table.add_row(*[_cell(row.get(col)) for col in col_names])
+
+    console.print(table)
 
 
 def _cell(value: object) -> str:
