@@ -49,7 +49,10 @@
   3. Running `bunnycdn` without [cli] deps installed prints a clear "install bunny-cdn-sdk[cli]" message and exits non-zero
   4. `bunnycdn pull-zone list --api-key TOKEN` and `BUNNY_API_KEY=TOKEN bunnycdn pull-zone list` both resolve auth correctly
   5. Missing auth (no flag, no env var) prints an actionable error message and exits with a non-zero code
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 08-01-PLAN.md — pyproject.toml [cli] extra, entry point, cli/ subpackage source files (ImportError guard, State, sdk_errors)
+- [ ] 08-02-PLAN.md — tests/cli/ package with CliRunner fixture and scaffold-level tests
 **UI hint**: yes
 
 ### Phase 09: Output Layer & Error Handling
@@ -113,7 +116,7 @@
 | 05. Quality & Coverage | v1.1 | 2/2 | Complete | 2026-04-10 |
 | 06. RetryTransport | v1.1 | 2/2 | Complete | 2026-04-10 |
 | 07. Constructor Integration | v1.1 | 2/2 | Complete | 2026-04-10 |
-| 08. CLI Scaffold | v2.0 | 0/? | Not started | - |
+| 08. CLI Scaffold | v2.0 | 0/2 | Not started | - |
 | 09. Output Layer & Error Handling | v2.0 | 0/? | Not started | - |
 | 10. CoreClient Sub-Apps | v2.0 | 0/? | Not started | - |
 | 11. StorageClient Sub-App | v2.0 | 0/? | Not started | - |
