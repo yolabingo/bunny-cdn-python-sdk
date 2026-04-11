@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
 import importlib.metadata
 import warnings
-from typing import TYPE_CHECKING, Any, Self
+from typing import Any, Self
 
 import httpx
 
@@ -22,9 +21,6 @@ from bunny_cdn_sdk._exceptions import (
 )
 from bunny_cdn_sdk._retry import RetryTransport
 
-if TYPE_CHECKING:
-    from typing import Awaitable
-
 
 class _BaseClient:
     """Base HTTP client (internal)."""
@@ -32,7 +28,7 @@ class _BaseClient:
     def __init__(
         self,
         api_key: str,
-        client: httpx.AsyncClient | None = None,
+        client: httpx.Client | None = None,
         *,
         max_retries: int = 0,
         backoff_base: float = 0.5,
@@ -41,10 +37,10 @@ class _BaseClient:
 
         Args:
             api_key: API key for authentication
-            client: Optional httpx.AsyncClient to use; if not provided, one is created
+            client: Optional httpx.Client to use; if not provided, one is created
             max_retries: Number of retry attempts on 429/5xx/network errors (default 0 = no retry).
                 Ignored when ``client=`` is provided — configure RetryTransport on your
-                AsyncClient directly in that case. Reasonable values are 1-5.
+                Client directly in that case. Reasonable values are 1-5.
             backoff_base: Base delay in seconds for exponential backoff (default 0.5).
                 Only used when ``max_retries > 0`` and ``client`` is None.
         """
@@ -53,7 +49,7 @@ class _BaseClient:
             if max_retries > 0:
                 warnings.warn(
                     "max_retries is ignored when client= is provided. "
-                    "Configure RetryTransport on your AsyncClient directly.",
+                    "Configure RetryTransport on your Client directly.",
                     UserWarning,
                     stacklevel=2,
                 )
@@ -61,33 +57,18 @@ class _BaseClient:
             self._client_owner = False
         elif max_retries > 0:
             transport = RetryTransport(
-                httpx.AsyncHTTPTransport(),
+                httpx.HTTPTransport(),
                 max_retries=max_retries,
                 backoff_base=backoff_base,
             )
-            self._client = httpx.AsyncClient(transport=transport)
+            self._client = httpx.Client(transport=transport)
             self._client_owner = True
         else:
-            self._client = httpx.AsyncClient()
+            self._client = httpx.Client()
             self._client_owner = True
-
-    async def __aenter__(self) -> Self:
-        """Async context manager entry."""
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: object,
-    ) -> None:
-        """Async context manager exit."""
-        if self._client_owner:
-            await self._client.aclose()
 
     def __enter__(self) -> Self:
         """Sync context manager entry."""
-        asyncio.run(self.__aenter__())
         return self
 
     def __exit__(
@@ -97,9 +78,10 @@ class _BaseClient:
         exc_tb: object,
     ) -> None:
         """Sync context manager exit."""
-        asyncio.run(self.__aexit__(exc_type, exc_val, exc_tb))
+        if self._client_owner:
+            self._client.close()
 
-    async def _request(
+    def _request(
         self,
         method: str,
         url: str,
@@ -110,7 +92,7 @@ class _BaseClient:
         Args:
             method: HTTP method
             url: URL to request
-            **kwargs: Additional arguments to pass to httpx.AsyncClient.request
+            **kwargs: Additional arguments to pass to httpx.Client.request
 
         Returns:
             The httpx.Response object
@@ -130,7 +112,7 @@ class _BaseClient:
         headers["User-Agent"] = _USER_AGENT
 
         try:
-            response = await self._client.request(
+            response = self._client.request(
                 method,
                 url,
                 headers=headers,
@@ -166,31 +148,11 @@ class _BaseClient:
         except httpx.TimeoutException as exc:
             raise BunnyTimeoutError(f"Request timeout: {exc}") from exc
 
-    async def _gather(self, *coroutines: Awaitable[Any]) -> list[Any]:
-        """Run multiple coroutines concurrently.
-
-        Args:
-            *coroutines: Coroutines to run
-
-        Returns:
-            List of results in input order
-        """
-        return await asyncio.gather(*coroutines)
-
     def _sync_request(
         self,
         method: str,
         url: str,
         **kwargs: Any,
     ) -> httpx.Response:
-        """Make an HTTP request synchronously.
-
-        Args:
-            method: HTTP method
-            url: URL to request
-            **kwargs: Additional arguments to pass to _request
-
-        Returns:
-            The httpx.Response object
-        """
-        return asyncio.run(self._request(method, url, **kwargs))
+        """Alias for _request. Kept for internal call-site compatibility."""
+        return self._request(method, url, **kwargs)

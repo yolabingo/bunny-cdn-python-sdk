@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
 import random
+import time
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 
@@ -34,10 +34,10 @@ def _parse_retry_after(value: str) -> float:
             return 0.0
 
 
-class RetryTransport(httpx.AsyncBaseTransport):
-    """Composable httpx async transport that adds retry logic to any inner transport.
+class RetryTransport(httpx.BaseTransport):
+    """Composable httpx transport that adds retry logic to any inner transport.
 
-    Wraps an existing ``httpx.AsyncBaseTransport`` and retries failed requests
+    Wraps an existing ``httpx.BaseTransport`` and retries failed requests
     using exponential backoff with full jitter.
 
     Retry triggers:
@@ -51,15 +51,15 @@ class RetryTransport(httpx.AsyncBaseTransport):
         import httpx
         from bunny_cdn_sdk import RetryTransport, CoreClient
 
-        inner = httpx.AsyncHTTPTransport()
+        inner = httpx.HTTPTransport()
         retry_transport = RetryTransport(inner, max_retries=3, backoff_base=0.5)
-        async_client = httpx.AsyncClient(transport=retry_transport)
-        core = CoreClient(api_key="...", client=async_client)
+        client = httpx.Client(transport=retry_transport)
+        core = CoreClient(api_key="...", client=client)
     """
 
     def __init__(
         self,
-        inner: httpx.AsyncBaseTransport,
+        inner: httpx.BaseTransport,
         *,
         max_retries: int = 3,
         backoff_base: float = 0.5,
@@ -77,11 +77,11 @@ class RetryTransport(httpx.AsyncBaseTransport):
         self._max_retries = max_retries
         self._backoff_base = backoff_base
 
-    async def handle_async_request(
+    def handle_request(
         self,
         request: httpx.Request,
     ) -> httpx.Response:
-        """Handle a single async request, retrying on retriable failures.
+        """Handle a single request, retrying on retriable failures.
 
         On the final attempt (attempt == max_retries), returns the failed response
         for status-code errors (so ``_BaseClient._request`` can call
@@ -105,9 +105,9 @@ class RetryTransport(httpx.AsyncBaseTransport):
         for attempt in range(self._max_retries + 1):
             if attempt > 0:
                 delay = self._backoff_delay(attempt - 1, response)
-                await asyncio.sleep(delay)
+                time.sleep(delay)
             try:
-                response = await self._inner.handle_async_request(request)
+                response = self._inner.handle_request(request)
                 if self._should_retry_response(response) and attempt < self._max_retries:
                     continue
             except (httpx.ConnectError, httpx.TimeoutException):
@@ -118,9 +118,9 @@ class RetryTransport(httpx.AsyncBaseTransport):
         # Unreachable: the loop always returns or raises before reaching here.
         return response  # type: ignore[return-value]  # pragma: no cover
 
-    async def aclose(self) -> None:
+    def close(self) -> None:
         """Close the inner transport and release its resources."""
-        await self._inner.aclose()
+        self._inner.close()
 
     def _should_retry_response(self, response: httpx.Response) -> bool:
         """Return True if the response status code warrants a retry."""

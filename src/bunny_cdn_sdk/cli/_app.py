@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import cast
@@ -163,21 +163,14 @@ def stats_cmd(
         else:
             zones = list(client.iter_pull_zones())
 
-            async def _fetch_all() -> list[dict]:
-                loop = asyncio.get_running_loop()
+            def _fetch_one(z: dict) -> dict:
+                s = client.get_statistics(
+                    pullZoneId=z["Id"], dateFrom=date_from, dateTo=date_to
+                )
+                return _build_stats_row(z.get("Name", ""), s)
 
-                async def _one(z: dict) -> dict:
-                    s = await loop.run_in_executor(
-                        None,
-                        lambda: client.get_statistics(
-                            pullZoneId=z["Id"], dateFrom=date_from, dateTo=date_to
-                        ),
-                    )
-                    return _build_stats_row(z.get("Name", ""), s)
-
-                return list(await asyncio.gather(*(_one(z) for z in zones)))
-
-            rows = asyncio.run(_fetch_all())
+            with ThreadPoolExecutor(max_workers=min(len(zones), 20)) as pool:
+                rows = list(pool.map(_fetch_one, zones))
 
         output_result(rows, columns=_STATS_COLUMNS, json_mode=state.json_output)
 

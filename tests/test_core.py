@@ -17,9 +17,8 @@ from bunny_cdn_sdk.core import CoreClient
 def make_core_client(handler) -> CoreClient:
     """Inject a MockTransport into CoreClient via __new__ + _BaseClient.__init__."""
     transport = httpx.MockTransport(handler)
-    async_client = httpx.AsyncClient(transport=transport)
     core = CoreClient.__new__(CoreClient)
-    _BaseClient.__init__(core, "test_api_key", client=async_client)
+    _BaseClient.__init__(core, "test_api_key", client=httpx.Client(transport=transport))
     core.base_url = "https://api.bunnycdn.com"
     return core
 

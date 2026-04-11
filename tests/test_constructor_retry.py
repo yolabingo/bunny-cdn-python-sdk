@@ -5,12 +5,12 @@ These tests exercise the full path: CoreClient/StorageClient constructor
 
 Pattern: create a CoreClient or StorageClient with max_retries=N, make a request
 against a MockTransport that returns 500 repeatedly, and assert the correct call count.
-asyncio.sleep is patched with AsyncMock to avoid real delays.
+time.sleep is patched to avoid real delays.
 """
 from __future__ import annotations
 
 import warnings
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import httpx
 import pytest
@@ -51,16 +51,6 @@ def _fail_then_succeed_handler(fail_count: int, fail_status: int = 500):
     return handler, calls
 
 
-def _make_core_client(handler, max_retries: int = 0, backoff_base: float = 0.5) -> CoreClient:
-    """Create a CoreClient backed by a MockTransport handler."""
-    transport = httpx.MockTransport(handler)
-    # Bypass auto-wiring: inject the MockTransport-backed client directly.
-    # This tests the *constructor kwarg pass-through* path, not the auto-wiring.
-    # For auto-wiring tests, use CoreClient(api_key, max_retries=N) without client=.
-    async_client = httpx.AsyncClient(transport=transport)
-    return CoreClient("test_api_key", client=async_client, max_retries=max_retries, backoff_base=backoff_base)
-
-
 # ---------------------------------------------------------------------------
 # Backward compatibility — max_retries=0 default (v1.0 parity)
 # ---------------------------------------------------------------------------
@@ -72,10 +62,9 @@ def test_core_client_default_no_retry_single_call() -> None:
     """
     handler, calls = _always_500_handler()
     transport = httpx.MockTransport(handler)
-    async_client = httpx.AsyncClient(transport=transport)
-    client = CoreClient("test_api_key", client=async_client)
+    client = CoreClient("test_api_key", client=httpx.Client(transport=transport))
 
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep, \
+    with patch("time.sleep") as mock_sleep, \
          pytest.raises(BunnyServerError):
         client._sync_request("GET", _CORE_URL)
 
@@ -84,7 +73,7 @@ def test_core_client_default_no_retry_single_call() -> None:
 
 
 def test_core_client_no_retry_transport_when_max_retries_zero() -> None:
-    """CoreClient(api_key) with max_retries=0 does NOT wrap an AsyncClient in RetryTransport."""
+    """CoreClient(api_key) with max_retries=0 does NOT wrap a Client in RetryTransport."""
     client = CoreClient("test_api_key")
     assert not isinstance(
         client._client._transport, RetryTransport
@@ -96,7 +85,7 @@ def test_core_client_no_retry_transport_when_max_retries_zero() -> None:
 # ---------------------------------------------------------------------------
 
 def test_core_client_max_retries_wires_retry_transport() -> None:
-    """CoreClient(api_key, max_retries=N) auto-creates a RetryTransport-backed AsyncClient."""
+    """CoreClient(api_key, max_retries=N) auto-creates a RetryTransport-backed Client."""
     client = CoreClient("test_api_key", max_retries=3)
     assert isinstance(
         client._client._transport, RetryTransport
@@ -111,10 +100,9 @@ def test_core_client_max_retries_2_produces_3_calls() -> None:
     handler, calls = _always_500_handler()
     transport = httpx.MockTransport(handler)
     retry_transport = RetryTransport(transport, max_retries=2, backoff_base=0.0)
-    async_client = httpx.AsyncClient(transport=retry_transport)
-    client = CoreClient("test_api_key", client=async_client)
+    client = CoreClient("test_api_key", client=httpx.Client(transport=retry_transport))
 
-    with patch("asyncio.sleep", new_callable=AsyncMock), \
+    with patch("time.sleep"), \
          pytest.raises(BunnyServerError):
         client._sync_request("GET", _CORE_URL)
 
@@ -122,26 +110,14 @@ def test_core_client_max_retries_2_produces_3_calls() -> None:
 
 
 def test_core_client_constructor_max_retries_2_produces_3_calls() -> None:
-    """CoreClient(api_key, max_retries=2) auto-wires RetryTransport; always-500 → 3 calls.
-
-    Tests the auto-wiring path (no explicit client= injection).
-    We patch the inner AsyncHTTPTransport to use MockTransport by monkey-patching
-    after construction, then make the request.
-
-    Alternative: use RetryTransport directly with MockTransport inner (per test above).
-    This test exercises the constructor path: CoreClient(max_retries=2) creates
-    RetryTransport(AsyncHTTPTransport(), max_retries=2). We verify call count by
-    replacing the inner transport post-construction.
-    """
-    # Build client via constructor auto-wiring
+    """CoreClient(api_key, max_retries=2) auto-wires RetryTransport; always-500 → 3 calls."""
     client = CoreClient("test_api_key", max_retries=2, backoff_base=0.0)
     assert isinstance(client._client._transport, RetryTransport)
 
-    # Replace the inner transport with MockTransport so no real network calls happen
     handler, calls = _always_500_handler()
     client._client._transport._inner = httpx.MockTransport(handler)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock), \
+    with patch("time.sleep"), \
          pytest.raises(BunnyServerError):
         client._sync_request("GET", _CORE_URL)
 
@@ -154,7 +130,7 @@ def test_core_client_max_retries_1_succeeds_on_second_call() -> None:
     client = CoreClient("test_api_key", max_retries=1, backoff_base=0.0)
     client._client._transport._inner = httpx.MockTransport(handler)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock):
+    with patch("time.sleep"):
         resp = client._sync_request("GET", _CORE_URL)
 
     assert resp.status_code == 200
@@ -166,7 +142,7 @@ def test_core_client_max_retries_1_succeeds_on_second_call() -> None:
 # ---------------------------------------------------------------------------
 
 def test_storage_client_max_retries_wires_retry_transport() -> None:
-    """StorageClient(zone, pwd, max_retries=N) auto-creates a RetryTransport-backed AsyncClient."""
+    """StorageClient(zone, pwd, max_retries=N) auto-creates a RetryTransport-backed Client."""
     client = StorageClient("my-zone", "test_password", max_retries=2)
     assert isinstance(
         client._client._transport, RetryTransport
@@ -177,10 +153,9 @@ def test_storage_client_default_no_retry_single_call() -> None:
     """StorageClient(zone, pwd) with 500 response raises BunnyServerError after 1 attempt."""
     handler, calls = _always_500_handler()
     transport = httpx.MockTransport(handler)
-    async_client = httpx.AsyncClient(transport=transport)
-    client = StorageClient("my-zone", "test_password", client=async_client)
+    client = StorageClient("my-zone", "test_password", client=httpx.Client(transport=transport))
 
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep, \
+    with patch("time.sleep") as mock_sleep, \
          pytest.raises(BunnyServerError):
         client._sync_request("GET", _STORAGE_URL)
 
@@ -195,7 +170,7 @@ def test_storage_client_max_retries_1_produces_2_calls() -> None:
     handler, calls = _always_500_handler()
     client._client._transport._inner = httpx.MockTransport(handler)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock), \
+    with patch("time.sleep"), \
          pytest.raises(BunnyServerError):
         client._sync_request("GET", _STORAGE_URL)
 
@@ -221,19 +196,15 @@ def test_backoff_base_zero_skips_delay_but_still_retries() -> None:
 
     sleep_delays: list[float] = []
 
-    async def capture_sleep(d: float) -> None:
+    def capture_sleep(d: float) -> None:
         sleep_delays.append(d)
 
-    with patch("asyncio.sleep", side_effect=capture_sleep), \
+    with patch("time.sleep", side_effect=capture_sleep), \
          pytest.raises(BunnyServerError):
         client._sync_request("GET", _CORE_URL)
 
-    # 3 total calls for max_retries=2
     assert len(calls) == 3
-    # With backoff_base=0.0: min(60, 0.0 * 2^N) = 0.0 → uniform(0, 0) = 0.0
-    # sleep is called twice (before retry 1 and retry 2)
     assert len(sleep_delays) == 2
-    # All delays should be 0.0 since random.uniform(0, 0) = 0.0
     assert all(d == pytest.approx(0.0) for d in sleep_delays)
 
 
@@ -243,29 +214,28 @@ def test_backoff_base_zero_skips_delay_but_still_retries() -> None:
 
 def test_user_warning_when_client_and_max_retries_provided() -> None:
     """Providing client= and max_retries>0 emits exactly one UserWarning."""
-    mock_async_client = httpx.AsyncClient()
+    mock_client = httpx.Client()
 
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        client = CoreClient("test_api_key", client=mock_async_client, max_retries=2)
+        client = CoreClient("test_api_key", client=mock_client, max_retries=2)
 
     assert len(caught) == 1, f"Expected 1 warning, got {len(caught)}: {caught}"
     assert issubclass(caught[0].category, UserWarning)
     assert "max_retries is ignored" in str(caught[0].message)
     assert "client= is provided" in str(caught[0].message)
 
-    # Verify the injected client is used as-is (no RetryTransport wrapping)
-    assert client._client is mock_async_client
+    assert client._client is mock_client
     assert client._client_owner is False
 
 
 def test_no_warning_when_only_client_provided() -> None:
     """Providing client= without max_retries does NOT emit a warning."""
-    mock_async_client = httpx.AsyncClient()
+    mock_client = httpx.Client()
 
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        CoreClient("test_api_key", client=mock_async_client)
+        CoreClient("test_api_key", client=mock_client)
 
     user_warnings = [w for w in caught if issubclass(w.category, UserWarning)]
     assert len(user_warnings) == 0, f"Unexpected UserWarning: {user_warnings}"
@@ -273,11 +243,11 @@ def test_no_warning_when_only_client_provided() -> None:
 
 def test_no_warning_when_max_retries_zero_and_client_provided() -> None:
     """client= + max_retries=0 (default) does NOT trigger the warning."""
-    mock_async_client = httpx.AsyncClient()
+    mock_client = httpx.Client()
 
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        CoreClient("test_api_key", client=mock_async_client, max_retries=0)
+        CoreClient("test_api_key", client=mock_client, max_retries=0)
 
     user_warnings = [w for w in caught if issubclass(w.category, UserWarning)]
     assert len(user_warnings) == 0
@@ -285,11 +255,11 @@ def test_no_warning_when_max_retries_zero_and_client_provided() -> None:
 
 def test_user_warning_for_storage_client_client_plus_max_retries() -> None:
     """StorageClient also emits UserWarning when client= and max_retries>0 conflict."""
-    mock_async_client = httpx.AsyncClient()
+    mock_client = httpx.Client()
 
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        StorageClient("my-zone", "pwd", client=mock_async_client, max_retries=1)
+        StorageClient("my-zone", "pwd", client=mock_client, max_retries=1)
 
     assert len(caught) == 1
     assert issubclass(caught[0].category, UserWarning)

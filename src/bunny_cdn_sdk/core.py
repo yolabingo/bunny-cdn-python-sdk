@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Iterator
 
 import httpx
@@ -17,14 +17,6 @@ __all__ = ["CoreClient"]
 _BASE_URL = "https://api.bunnycdn.com"
 
 
-async def _collect(agen: Any) -> list[Any]:
-    """Collect all items from an async generator into a list."""
-    items: list[Any] = []
-    async for item in agen:
-        items.append(item)
-    return items
-
-
 class CoreClient(_BaseClient):
     """Bunny CDN Core API client.
 
@@ -34,7 +26,7 @@ class CoreClient(_BaseClient):
     Args:
         api_key: Bunny CDN account API key.
         base_url: Base URL for the Core API (default: https://api.bunnycdn.com).
-        client: Optional httpx.AsyncClient to inject (advanced use). When provided,
+        client: Optional httpx.Client to inject (advanced use). When provided,
             max_retries is ignored — configure RetryTransport on your client directly.
         max_retries: Number of retry attempts on 429/5xx/network errors (default 0 = no retry).
         backoff_base: Base delay in seconds for exponential backoff (default 0.5).
@@ -50,7 +42,7 @@ class CoreClient(_BaseClient):
         api_key: str,
         base_url: str = _BASE_URL,
         *,
-        client: httpx.AsyncClient | None = None,
+        client: httpx.Client | None = None,
         max_retries: int = 0,
         backoff_base: float = 0.5,
     ) -> None:
@@ -146,14 +138,13 @@ class CoreClient(_BaseClient):
         Yields:
             Individual pull zone dicts across all pages.
         """
-        async def fetch_page(page: int) -> PaginatedResponse:
+        def fetch_page(page: int) -> PaginatedResponse:
             params: dict[str, Any] = {"page": page, "perPage": per_page}
             if search is not None:
                 params["search"] = search
-            response = await self._request("GET", f"{self.base_url}/pullzone", params=params)
-            return response.json()
+            return self._request("GET", f"{self.base_url}/pullzone", params=params).json()
 
-        return iter(asyncio.run(_collect(pagination_iterator(fetch_page))))
+        return pagination_iterator(fetch_page)
 
     # ------------------------------------------------------------------
     # Pull Zones — Concurrent batch fetch (CORE-03)
@@ -162,7 +153,7 @@ class CoreClient(_BaseClient):
     def get_pull_zones(self, ids: list[int]) -> list[dict]:
         """Fetch multiple pull zones concurrently.
 
-        Sends all requests in parallel via asyncio.gather and returns results
+        Sends all requests in parallel via ThreadPoolExecutor and returns results
         in the same order as the input IDs.
 
         Note: For large lists, batch in chunks of 10-20 to avoid hitting
@@ -177,14 +168,11 @@ class CoreClient(_BaseClient):
         Raises:
             Any exception from _request propagates immediately if any request fails.
         """
-        async def fetch_one(id: int) -> dict:
-            response = await self._request("GET", f"{self.base_url}/pullzone/{id}")
-            return response.json()
+        def fetch_one(id: int) -> dict:
+            return self._request("GET", f"{self.base_url}/pullzone/{id}").json()
 
-        async def fetch_all() -> list[dict]:
-            return await self._gather(*(fetch_one(id) for id in ids))
-
-        return asyncio.run(fetch_all())
+        with ThreadPoolExecutor(max_workers=min(len(ids), 20)) as pool:
+            return list(pool.map(fetch_one, ids))
 
     # ------------------------------------------------------------------
     # Pull Zones — Extras (CORE-02)
@@ -347,12 +335,11 @@ class CoreClient(_BaseClient):
         Yields:
             Individual storage zone dicts across all pages.
         """
-        async def fetch_page(page: int) -> PaginatedResponse:
+        def fetch_page(page: int) -> PaginatedResponse:
             params: dict[str, Any] = {"page": page, "perPage": per_page}
-            response = await self._request("GET", f"{self.base_url}/storagezone", params=params)
-            return response.json()
+            return self._request("GET", f"{self.base_url}/storagezone", params=params).json()
 
-        return iter(asyncio.run(_collect(pagination_iterator(fetch_page))))
+        return pagination_iterator(fetch_page)
 
     # ------------------------------------------------------------------
     # DNS Zones — CRUD + Iterator (CORE-07, CORE-09)
@@ -441,14 +428,13 @@ class CoreClient(_BaseClient):
         Yields:
             Individual DNS zone dicts across all pages.
         """
-        async def fetch_page(page: int) -> PaginatedResponse:
+        def fetch_page(page: int) -> PaginatedResponse:
             params: dict[str, Any] = {"page": page, "perPage": per_page}
             if search is not None:
                 params["search"] = search
-            response = await self._request("GET", f"{self.base_url}/dnszone", params=params)
-            return response.json()
+            return self._request("GET", f"{self.base_url}/dnszone", params=params).json()
 
-        return iter(asyncio.run(_collect(pagination_iterator(fetch_page))))
+        return pagination_iterator(fetch_page)
 
     # ------------------------------------------------------------------
     # DNS Records (CORE-08)
@@ -574,12 +560,11 @@ class CoreClient(_BaseClient):
         Yields:
             Individual video library dicts across all pages.
         """
-        async def fetch_page(page: int) -> PaginatedResponse:
+        def fetch_page(page: int) -> PaginatedResponse:
             params: dict[str, Any] = {"page": page, "perPage": per_page}
-            response = await self._request("GET", f"{self.base_url}/videolibrary", params=params)
-            return response.json()
+            return self._request("GET", f"{self.base_url}/videolibrary", params=params).json()
 
-        return iter(asyncio.run(_collect(pagination_iterator(fetch_page))))
+        return pagination_iterator(fetch_page)
 
     # ------------------------------------------------------------------
     # Utilities (CORE-11)

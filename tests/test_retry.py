@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime, timedelta
 from email.utils import format_datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import httpx
 import pytest
@@ -86,7 +85,7 @@ def _client_with_retry(
     """Wire: handler -> MockTransport -> RetryTransport -> AsyncClient -> _BaseClient."""
     inner = httpx.MockTransport(handler)
     retry_transport = RetryTransport(inner, max_retries=max_retries, backoff_base=backoff_base)
-    async_client = httpx.AsyncClient(transport=retry_transport)
+    async_client = httpx.Client(transport=retry_transport)
     return _BaseClient("test_api_key", client=async_client)
 
 
@@ -99,7 +98,7 @@ def test_retries_on_503() -> None:
     handler, calls = _make_flaky_handler(fail_count=2, fail_status=503)
     client = _client_with_retry(handler, max_retries=3)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+    with patch("time.sleep") as mock_sleep:
         resp = client._sync_request("GET", _URL)
 
     assert resp.status_code == 200
@@ -112,7 +111,7 @@ def test_retries_on_500() -> None:
     handler, calls = _make_flaky_handler(fail_count=1, fail_status=500)
     client = _client_with_retry(handler, max_retries=2)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock):
+    with patch("time.sleep"):
         resp = client._sync_request("GET", _URL)
 
     assert resp.status_code == 200
@@ -124,7 +123,7 @@ def test_no_sleep_on_first_attempt() -> None:
     handler, calls = _make_flaky_handler(fail_count=0)
     client = _client_with_retry(handler, max_retries=3)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+    with patch("time.sleep") as mock_sleep:
         resp = client._sync_request("GET", _URL)
 
     assert resp.status_code == 200
@@ -145,7 +144,7 @@ def test_retries_on_429_with_retry_after_integer() -> None:
     )
     client = _client_with_retry(handler, max_retries=2)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+    with patch("time.sleep") as mock_sleep:
         resp = client._sync_request("GET", _URL)
 
     assert resp.status_code == 200
@@ -167,7 +166,7 @@ def test_retries_on_429_with_retry_after_http_date() -> None:
     )
     client = _client_with_retry(handler, max_retries=2)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+    with patch("time.sleep") as mock_sleep:
         resp = client._sync_request("GET", _URL)
 
     assert resp.status_code == 200
@@ -183,7 +182,7 @@ def test_retries_on_429_without_retry_after_uses_backoff() -> None:
     handler, calls = _make_flaky_handler(fail_count=1, fail_status=429)
     client = _client_with_retry(handler, max_retries=2, backoff_base=0.5)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+    with patch("time.sleep") as mock_sleep:
         with patch("random.uniform", side_effect=lambda lo, hi: hi):
             resp = client._sync_request("GET", _URL)
 
@@ -205,7 +204,7 @@ def test_retries_on_connect_error() -> None:
     )
     client = _client_with_retry(handler, max_retries=3)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+    with patch("time.sleep") as mock_sleep:
         resp = client._sync_request("GET", _URL)
 
     assert resp.status_code == 200
@@ -220,7 +219,7 @@ def test_retries_on_timeout_exception() -> None:
     )
     client = _client_with_retry(handler, max_retries=2)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock):
+    with patch("time.sleep"):
         resp = client._sync_request("GET", _URL)
 
     assert resp.status_code == 200
@@ -241,7 +240,7 @@ def test_max_retries_exhausted_returns_final_5xx_response() -> None:
     handler, calls = _make_always_fail_handler(fail_status=503)
     client = _client_with_retry(handler, max_retries=2)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock):
+    with patch("time.sleep"):
         with pytest.raises(BunnyServerError):
             client._sync_request("GET", _URL)
 
@@ -256,7 +255,7 @@ def test_max_retries_exhausted_reraises_connect_error() -> None:
     )
     client = _client_with_retry(handler, max_retries=1)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock):
+    with patch("time.sleep"):
         with pytest.raises(BunnyConnectionError):
             client._sync_request("GET", _URL)
 
@@ -268,7 +267,7 @@ def test_max_retries_exhausted_reraises_timeout_exception() -> None:
     )
     client = _client_with_retry(handler, max_retries=1)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock):
+    with patch("time.sleep"):
         with pytest.raises(BunnyTimeoutError):
             client._sync_request("GET", _URL)
 
@@ -284,10 +283,10 @@ def test_backoff_grows_exponentially() -> None:
 
     sleep_delays: list[float] = []
 
-    async def capture_sleep(d: float) -> None:
+    def capture_sleep(d: float) -> None:
         sleep_delays.append(d)
 
-    with patch("asyncio.sleep", side_effect=capture_sleep), \
+    with patch("time.sleep", side_effect=capture_sleep), \
          patch("random.uniform", side_effect=lambda lo, hi: hi), \
          pytest.raises(Exception):  # noqa: BLE001
         client._sync_request("GET", _URL)
@@ -304,10 +303,10 @@ def test_backoff_caps_at_60_seconds() -> None:
 
     sleep_delays: list[float] = []
 
-    async def capture_sleep(d: float) -> None:
+    def capture_sleep(d: float) -> None:
         sleep_delays.append(d)
 
-    with patch("asyncio.sleep", side_effect=capture_sleep), \
+    with patch("time.sleep", side_effect=capture_sleep), \
          patch("random.uniform", side_effect=lambda lo, hi: hi), \
          pytest.raises(Exception):  # noqa: BLE001
         client._sync_request("GET", _URL)
@@ -327,10 +326,10 @@ def test_composability_with_async_http_transport() -> None:
     handler, calls = _make_flaky_handler(fail_count=1, fail_status=503)
     inner = httpx.MockTransport(handler)
     retry_transport = RetryTransport(inner, max_retries=2, backoff_base=0.5)
-    async_client = httpx.AsyncClient(transport=retry_transport)
+    async_client = httpx.Client(transport=retry_transport)
     client = _BaseClient("test_api_key", client=async_client)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock):
+    with patch("time.sleep"):
         resp = client._sync_request("GET", _URL)
 
     assert resp.status_code == 200
@@ -342,7 +341,7 @@ def test_max_retries_zero_makes_single_attempt() -> None:
     handler, calls = _make_always_fail_handler(fail_status=503)
     client = _client_with_retry(handler, max_retries=0)
 
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep, \
+    with patch("time.sleep") as mock_sleep, \
          pytest.raises(Exception):  # noqa: BLE001
         client._sync_request("GET", _URL)
 
@@ -395,11 +394,9 @@ def test_parse_retry_after_garbage_returns_zero() -> None:
 # aclose passthrough
 # ---------------------------------------------------------------------------
 
-def test_aclose_delegates_to_inner_transport() -> None:
-    """RetryTransport.aclose() calls aclose() on the inner transport."""
+def test_close_delegates_to_inner_transport() -> None:
+    """RetryTransport.close() calls close() on the inner transport."""
     handler, _ = _make_flaky_handler(fail_count=0)
     inner = httpx.MockTransport(handler)
     retry_transport = RetryTransport(inner, max_retries=1)
-
-    # Run aclose via asyncio.run to exercise the aclose passthrough
-    asyncio.run(retry_transport.aclose())
+    retry_transport.close()
