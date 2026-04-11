@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Release Engineering
 status: in_progress
-stopped_at: Roadmap created — ready to plan Phase 13
+stopped_at: Phase 13 complete — ready to plan Phase 14
 last_updated: "2026-04-11T00:00:00.000Z"
 last_activity: 2026-04-11
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 3
+  completed_plans: 3
+  percent: 25
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** A Python developer can `pip install bunny-cdn-sdk`, instantiate a client with their API key, and call methods that map 1:1 to Bunny CDN endpoints — no surprises, no hidden behavior.
-**Current focus:** v2.1 Release Engineering — Phase 13: Version & Metadata
+**Current focus:** v2.1 Release Engineering — Phase 14: tox & Local Quality Gates
 
 ## Current Position
 
-Phase: 13 of 16 (Version & Metadata)
+Phase: 14 of 16 (tox & Local Quality Gates)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-04-11 — Roadmap created for v2.1 (4 phases, 22 requirements mapped)
+Last activity: 2026-04-11 — Phase 13 complete (VERSION-01–03, BUILD-01–03 satisfied)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 25%
 
 ## Performance Metrics
 
