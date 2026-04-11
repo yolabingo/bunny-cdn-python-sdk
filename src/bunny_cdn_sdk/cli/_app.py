@@ -162,7 +162,7 @@ def stats_cmd(
             zones = list(client.iter_pull_zones())
 
             async def _fetch_all() -> list[dict]:
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
 
                 async def _one(z: dict) -> dict:
                     s = await loop.run_in_executor(
