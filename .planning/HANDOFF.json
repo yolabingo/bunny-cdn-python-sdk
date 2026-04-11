@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-11T22:25:05.036Z",
+  "phase": "14",
+  "phase_name": "tox & Local Quality Gates",
+  "phase_dir": ".planning/phases/14-tox-local-quality-gates",
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
+  "status": "paused",
+  "completed_tasks": [],
+  "remaining_tasks": [
+    {"id": null, "name": "Plan and execute Phase 14", "status": "not_started"}
+  ],
+  "blockers": [
+    {
+      "description": "2 pre-existing ty errors in storage.py carried from v1.1",
+      "type": "technical",
+      "workaround": "Resolve or suppress before typecheck tox env can go green"
+    }
+  ],
+  "human_actions_pending": [],
+  "decisions": [
+    {
+      "decision": "Replace async internals (httpx.AsyncClient + asyncio) with sync httpx.Client + ThreadPoolExecutor",
+      "rationale": "asyncio.run() breaks when called from a running event loop (FastAPI, Jupyter, etc). ThreadPoolExecutor is simpler, equally fast for IO-bound batch ops, and works from any context.",
+      "phase": "post-13"
+    },
+    {
+      "decision": "User-Agent now uses importlib.metadata version resolved at module import time",
+      "rationale": "Was hardcoded as 0.1.0 even after version bump to 2.1.0",
+      "phase": "post-13"
+    }
+  ],
+  "uncommitted_files": [],
+  "next_action": "Run /gsd-plan-phase 14 to plan tox & Local Quality Gates",
+  "context_notes": "Phase 13 (Version & Metadata) is fully complete and verified. A significant unplanned refactor was also completed: async internals replaced with ThreadPoolExecutor + sync httpx. 246 tests pass. Branch is create-sdk. Phase 14 requires tox-uv config covering py312/313/314 + lint/typecheck envs; note the 2 pre-existing ty errors in storage.py that will surface in the typecheck env."
+}
