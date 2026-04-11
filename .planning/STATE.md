@@ -17,9 +17,9 @@ progress:
 
 ## Current Status
 
-**Milestone:** v1.1 — Reliability & Coverage — SHIPPED 2026-04-10
-**Status:** Planning next milestone (v2.0 Stream API)
-**Last activity:** 2026-04-10 — v1.1 archived
+**Milestone:** v2.0 — Typer CLI
+**Status:** Defining requirements
+**Last activity:** 2026-04-10 — Milestone v2.0 started
 
 ## Project Reference
 

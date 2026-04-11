@@ -46,16 +46,15 @@ A Python developer can `pip install bunny-cdn-sdk`, instantiate a client with th
 - 2 pre-existing `ty` errors in `storage.py` (`call-non-callable`, `invalid-type-form`)
 - 59 pre-existing ruff violations (PLR2004, ANN401, TRY003)
 
-## Next Milestone: v2.0 — Stream API
+## Current Milestone: v2.0 — Typer CLI
 
-**Goal:** Add `StreamClient` covering the Stream API (Videos CRUD, Collections CRUD, pagination with camelCase envelope).
+**Goal:** Add an optional Typer-based CLI installable via `pip install bunny-cdn-sdk[cli]` that wraps Core and Storage clients with Rich output.
 
-**Top candidates:**
-- `StreamClient` — `list_videos`, `iter_videos`, `get_video`, `create_video`, `update_video`, `delete_video`; Collections CRUD
-- `StreamClient.upload_video(video_id, data)` — stream video bytes
-- Stream API pagination (`page`, `itemsPerPage` — camelCase envelope, different from Core)
-
-*(Define fully via `/gsd-new-milestone`)*
+**Target features:**
+- `bunny` entry point — Typer app, optional `[cli]` extra (Typer + Rich as optional deps)
+- Nested subcommands by resource group: `bunny pull-zone`, `bunny storage-zone`, `bunny dns-zone`, `bunny video-library`, `bunny storage`
+- Auth: `--api-key`/`BUNNY_API_KEY` for Core; `--storage-key`/`BUNNY_STORAGE_KEY` for Storage
+- Output: Rich tables by default; `--json` flag for raw JSON output
 
 ## Requirements
 
@@ -74,7 +73,7 @@ A Python developer can `pip install bunny-cdn-sdk`, instantiate a client with th
 
 ### Active
 
-*(None — awaiting v2.0 requirements definition via `/gsd-new-milestone`)*
+*(v2.0 Typer CLI — defined via `/gsd-new-milestone`, see REQUIREMENTS.md)*
 
 ### Out of Scope
 
@@ -86,7 +85,7 @@ A Python developer can `pip install bunny-cdn-sdk`, instantiate a client with th
 | Response caching | No magic |
 | Automatic content-type detection for uploads | Caller responsibility |
 | Unified client holding all API keys | Separate clients match Bunny's per-service auth model |
-| `StreamClient` (Stream API) | Deferred to v2.0 |
+| `StreamClient` (Stream API) | Deferred to v3.0 (v2.0 is CLI) |
 | File upload progress callbacks | v2 candidate |
 | Shield API, Edge Scripting API, Magic Containers | Deferred to future version |
 
@@ -109,6 +108,23 @@ The sync-public/async-internal pattern gives callers a simple sync interface whi
 - **Auth**: `AccessKey` header injection per-client — no credential sharing between clients
 - **API fidelity**: method signatures match HLD exactly — no deviation without explicit decision
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
 
-*Last updated: 2026-04-10 after v1.1 milestone*
+*Last updated: 2026-04-10 — v2.0 Typer CLI milestone started*
