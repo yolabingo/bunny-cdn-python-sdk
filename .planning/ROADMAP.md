@@ -60,7 +60,12 @@
   3. `CHANGELOG.md` exists and documents v1.0, v1.1, v2.0, and v2.1 entries
   4. `uv build` completes without errors and produces a `.whl` and `.tar.gz` in `dist/`
   5. `twine check dist/*` reports no errors or warnings for either artifact
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — `__version__` via importlib.metadata + complete pyproject.toml metadata
+- [ ] 13-02-PLAN.md — CHANGELOG.md with v1.0–v2.1 entries
+- [ ] 13-03-PLAN.md — Build verification: `uv build` + `twine check dist/*`
 
 ### Phase 14: tox & Local Quality Gates
 **Goal**: Developers can run `uv run tox` locally and get isolated test runs across Python 3.12/3.13/3.14, plus dedicated lint and typecheck environments, all passing
@@ -113,7 +118,7 @@
 | 10. CoreClient Sub-Apps | v2.0 | 6/6 | Complete | 2026-04-11 |
 | 11. StorageClient Sub-App | v2.0 | 2/2 | Complete | 2026-04-11 |
 | 12. Utility Commands & Integration | v2.0 | 2/2 | Complete | 2026-04-11 |
-| 13. Version & Metadata | v2.1 | 0/? | Not started | - |
+| 13. Version & Metadata | v2.1 | 0/3 | Not started | - |
 | 14. tox & Local Quality Gates | v2.1 | 0/? | Not started | - |
 | 15. CI & Dependabot | v2.1 | 0/? | Not started | - |
 | 16. Publishing Pipeline | v2.1 | 0/? | Not started | - |
