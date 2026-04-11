@@ -33,7 +33,7 @@
 
 - [x] **Phase 08: CLI Scaffold** - pyproject.toml [cli] extra, bunnycdn entry point, cli/ subpackage, ImportError guard, State dataclass, auth wiring (completed 2026-04-11)
 - [x] **Phase 09: Output Layer & Error Handling** - sdk_errors() context manager, output_result(), Rich table renderer, _cell() helper, full unit tests (completed 2026-04-11)
-- [ ] **Phase 10: CoreClient Sub-Apps** - pull-zone, storage-zone, dns-zone (including record sub-commands), video-library commands with update support; CliRunner tests
+- [x] **Phase 10: CoreClient Sub-Apps** - pull-zone, storage-zone, dns-zone (including record sub-commands), video-library commands with update support; CliRunner tests (completed 2026-04-11)
 - [ ] **Phase 11: StorageClient Sub-App** - storage list/upload/download/delete with separate auth wiring; CliRunner tests
 - [ ] **Phase 12: Utility Commands & Integration** - stats, billing, integration test suite, README CLI section
 
@@ -82,12 +82,12 @@ Plans:
   5. `bunnycdn purge <url>` purges a URL; all delete commands prompt for confirmation; all commands have passing CliRunner tests covering success path, error path, and `--json` flag
 **Plans**: 6 plans
 Plans:
-- [ ] 10-01-PLAN.md — _pull_zone.py and _storage_zone.py sub-apps (list/get/create/delete/update/purge)
-- [ ] 10-02-PLAN.md — _dns_zone.py sub-app with nested record_app (add/update/delete records)
-- [ ] 10-03-PLAN.md — _video_library.py sub-app + iter_video_libraries() added to CoreClient
-- [ ] 10-04-PLAN.md — Wire all sub-apps into _app.py + top-level purge command
-- [ ] 10-05-PLAN.md — CliRunner tests for pull-zone and storage-zone commands
-- [ ] 10-06-PLAN.md — CliRunner tests for dns-zone, video-library, and purge commands
+- [x] 10-01-PLAN.md — _pull_zone.py and _storage_zone.py sub-apps (list/get/create/delete/update/purge)
+- [x] 10-02-PLAN.md — _dns_zone.py sub-app with nested record_app (add/update/delete records)
+- [x] 10-03-PLAN.md — _video_library.py sub-app + iter_video_libraries() added to CoreClient
+- [x] 10-04-PLAN.md — Wire all sub-apps into _app.py + top-level purge command
+- [x] 10-05-PLAN.md — CliRunner tests for pull-zone and storage-zone commands
+- [x] 10-06-PLAN.md — CliRunner tests for dns-zone, video-library, and purge commands
 **UI hint**: yes
 
 ### Phase 11: StorageClient Sub-App
@@ -99,7 +99,10 @@ Plans:
   2. `bunnycdn storage upload <local-path> <remote-path>` uploads a local file to the specified storage path
   3. `bunnycdn storage download <remote-path> <local-path>` downloads a storage file to the local filesystem
   4. `bunnycdn storage delete <remote-path>` prompts for confirmation and deletes the remote file; all four commands have passing CliRunner tests
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 11-01-PLAN.md — _storage.py sub-app (list/upload/download/delete) + wire into _app.py
+- [ ] 11-02-PLAN.md — CliRunner tests for all four storage commands
 **UI hint**: yes
 
 ### Phase 12: Utility Commands & Integration
@@ -127,8 +130,8 @@ Plans:
 | 07. Constructor Integration | v1.1 | 2/2 | Complete | 2026-04-10 |
 | 08. CLI Scaffold | v2.0 | 2/2 | Complete   | 2026-04-11 |
 | 09. Output Layer & Error Handling | v2.0 | 1/1 | Complete   | 2026-04-11 |
-| 10. CoreClient Sub-Apps | v2.0 | 0/6 | Not started | - |
-| 11. StorageClient Sub-App | v2.0 | 0/? | Not started | - |
+| 10. CoreClient Sub-Apps | v2.0 | 6/6 | Complete   | 2026-04-11 |
+| 11. StorageClient Sub-App | v2.0 | 0/2 | Not started | - |
 | 12. Utility Commands & Integration | v2.0 | 0/? | Not started | - |
 
 ---
