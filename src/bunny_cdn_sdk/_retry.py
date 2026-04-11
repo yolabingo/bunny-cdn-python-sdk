@@ -116,7 +116,7 @@ class RetryTransport(httpx.AsyncBaseTransport):
             else:
                 return response
         # Unreachable: the loop always returns or raises before reaching here.
-        return response  # type: ignore[return-value]
+        return response  # type: ignore[return-value]  # pragma: no cover
 
     async def aclose(self) -> None:
         """Close the inner transport and release its resources."""

@@ -40,6 +40,19 @@ target-version = "py312"
 select = ["ALL"]
 ignore = ["D", "COM812", "ISC001"]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "ANN",       # type annotations not required in tests
+    "ARG",       # unused arguments common in handler stubs
+    "S101",      # assert is expected in pytest tests
+    "SLF001",    # private member access is normal in unit tests
+    "PLR2004",   # magic values are readable in test assertions
+    "SIM117",    # nested with statements are fine in tests
+    "B017",      # pytest.raises(Exception) acceptable in broad tests
+    "PT011",     # broad pytest.raises acceptable in tests
+    "RUF100",    # noqa directives may reference rules suppressed above
+]
+
 [tool.pytest.ini_options]
 addopts = ["--cov=bunny_cdn_sdk"]
 
