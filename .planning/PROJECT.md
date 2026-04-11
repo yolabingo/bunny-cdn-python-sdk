@@ -2,94 +2,102 @@
 
 ## What This Is
 
-A thin, typed Python SDK wrapping the Bunny CDN REST APIs using `httpx`. Provides two service clients — Core and Storage — with a sync public API backed by async internals for concurrent batch operations. Designed for Python developers who need a clean, dependency-light interface to Bunny CDN without any magic.
+A thin, typed Python SDK wrapping the Bunny CDN REST APIs using `httpx`. Provides two service clients — Core and Storage — with a sync public API backed by async internals for concurrent batch operations. Configurable retry/backoff via `RetryTransport` or constructor kwargs. Designed for Python developers who need a clean, dependency-light interface to Bunny CDN without any magic.
 
 ## Core Value
 
 A Python developer can `pip install bunny-cdn-sdk`, instantiate a client with their API key, and call methods that map 1:1 to Bunny CDN endpoints — no surprises, no hidden behavior.
 
-## Current State — v1.0 Shipped (2026-04-10)
+## Current State — v1.1 Shipped (2026-04-10)
 
-### Shipped
+### Shipped in v1.1
 
-- `CoreClient` — 37 public methods across Pull Zones, Storage Zones, DNS Zones, Video Libraries, and Utilities; concurrent batch via `asyncio.gather`; auto-paginating iterators
+- `RetryTransport` — composable `httpx.AsyncBaseTransport` with 429/5xx/network retry, exponential backoff + full jitter, Retry-After header support; 100% coverage
+- `max_retries`/`backoff_base` constructor kwargs on `CoreClient`, `StorageClient`, `_BaseClient` — `max_retries=0` default preserves v1.0 behavior
+- Coverage gaps closed: `BunnyAPIError.__str__` tested, `_pagination.py` at 100% (`list_single_page` removed), public surface smoke test added
+- 98 tests, 99% total coverage (340 stmts, 2 miss)
+
+### Shipped in v1.0 (foundation)
+
+- `CoreClient` — 37 public methods across Pull Zones, Storage Zones, DNS Zones, Video Libraries, Utilities; concurrent batch via `asyncio.gather`; auto-paginating iterators
 - `StorageClient` — upload, download, delete, list; 10-region HTTPS base-URL map; Basic Auth per RFC 7617
 - `_BaseClient` — httpx.AsyncClient internals, `AccessKey` + `User-Agent` injection, HTTP-status → exception mapping, context manager support
 - `_exceptions.py` — 8-class hierarchy (`BunnySDKError` → `BunnyAPIError` subtypes + `BunnyConnectionError` branch)
 - `_pagination.py` — callback-based `pagination_iterator`; `PaginatedResponse` TypedDict
-- 58-test MockTransport suite — 96% total coverage; 100% on `core.py` and `storage.py`
 
-### Key Decisions (Validated in v1.0)
+### Key Decisions (Validated)
 
-| Decision | Outcome |
-|----------|---------|
-| Sync public API, async internals | Clean call site; `_gather()` enables concurrent batch without exposing async complexity |
-| Plain dict returns | No Pydantic dependency; immune to API schema additions |
-| Per-service clients | Matches Bunny's per-service auth model |
-| `httpx` over `requests` | Async-first internals; sync+async in one library |
-| `page=0` returns all items (no envelope) | Core API behavior handled correctly in pagination |
-| Stream API deferred to v2 | Scope reduction — Core + Storage cover primary use cases |
+| Decision | Outcome | Version |
+|----------|---------|---------|
+| Sync public API, async internals | Clean call site; `_gather()` enables concurrent batch | v1.0 |
+| Plain dict returns | No Pydantic dependency; immune to API schema additions | v1.0 |
+| Per-service clients | Matches Bunny's per-service auth model | v1.0 |
+| `httpx` over `requests` | Async-first internals; sync+async in one library | v1.0 |
+| `page=0` returns all items (no envelope) | Core API behavior handled correctly | v1.0 |
+| `max_retries=0` default | Zero-config backward compat guaranteed | v1.1 |
+| UserWarning (not ValueError) on client= + max_retries conflict | No surprise exceptions; warning is sufficient | v1.1 |
+| `pragma: no cover` on unreachable post-loop sentinel | Correct 100% coverage without gaming metrics | v1.1 |
+| `client=` keyword-only on CoreClient/StorageClient | Cleaner API; positional use was always ambiguous | v1.1 |
 
 ### Tech Debt Carried Forward
 
-- Context manager cleanup path untested (`_client.py` 82% coverage)
-- `BunnyAPIError.__str__` untested (1 branch miss in `_exceptions.py`)
-- `list_single_page()` exported but unused in `_pagination.py`
-- No test exercises `from bunny_cdn_sdk import ...` public surface
+- `_client.py` lines 121-122 — bare `except Exception` on JSON parse failure in error extraction (needs malformed-body test)
+- `test_public_surface.py` missing `RetryTransport` assertion
+- 2 pre-existing `ty` errors in `storage.py` (`call-non-callable`, `invalid-type-form`)
+- 59 pre-existing ruff violations (PLR2004, ANN401, TRY003)
 
-## Current Milestone: v1.1 — Reliability & Coverage
+## Next Milestone: v2.0 — Stream API
 
-**Goal:** Close v1.0 coverage gaps and add configurable retry/backoff so the SDK is production-ready under rate limits and transient failures.
+**Goal:** Add `StreamClient` covering the Stream API (Videos CRUD, Collections CRUD, pagination with camelCase envelope).
 
-**Target features:**
-- Tech debt: `BunnyAPIError.__str__` test, context manager lifecycle tests, `list_single_page()` cleanup, public surface smoke test
-- `RetryTransport` — composable httpx transport with 429/5xx/network retry + exponential backoff + jitter
-- `max_retries` / `backoff_base` constructor kwargs on `CoreClient` and `StorageClient` (off by default)
+**Top candidates:**
+- `StreamClient` — `list_videos`, `iter_videos`, `get_video`, `create_video`, `update_video`, `delete_video`; Collections CRUD
+- `StreamClient.upload_video(video_id, data)` — stream video bytes
+- Stream API pagination (`page`, `itemsPerPage` — camelCase envelope, different from Core)
 
----
-
-## Next Milestone Goals — v2.0
-
-*(To be defined via `/gsd-new-milestone`)*
-
-Top candidates:
-- `StreamClient` — Stream API (Videos CRUD, Collections CRUD, pagination with camelCase envelope)
-- Public surface smoke tests — at least one test exercises `from bunny_cdn_sdk import CoreClient, StorageClient`
-- v1.0 tech debt: context manager tests, `list_single_page` cleanup
-- Retry / exponential backoff via custom httpx transport
+*(Define fully via `/gsd-new-milestone`)*
 
 ## Requirements
 
-### Validated in v1.0
+### Validated
 
-All 29 v1 requirements satisfied. See [v1.0-REQUIREMENTS.md](milestones/v1.0-REQUIREMENTS.md) for full archive.
+- ✓ All 29 v1.0 requirements satisfied — v1.0 ([archive](milestones/v1.0-REQUIREMENTS.md))
+- ✓ QUAL-01: `BunnyAPIError.__str__` covered — v1.1
+- ✓ QUAL-02: Context manager cleanup path covered (functional goal met; `_client.py` 93%, not 100%) — v1.1
+- ✓ QUAL-03: `list_single_page()` removed from `_pagination.py` — v1.1
+- ✓ QUAL-04: Public surface smoke test (`CoreClient`, `StorageClient`, `BunnyAPIError` from top-level) — v1.1
+- ✓ RETRY-01: `from bunny_cdn_sdk import RetryTransport` — v1.1
+- ✓ RETRY-02: Retry on 429/5xx/ConnectError/TimeoutException — v1.1
+- ✓ RETRY-03: Exponential backoff with jitter; `max_retries`/`backoff_base` params — v1.1
+- ✓ RETRY-04: Constructor kwargs; `max_retries=0` preserves v1.0 behavior — v1.1
+- ✓ RETRY-05: `RetryTransport` independently composable — v1.1
 
 ### Active
 
-*(None — awaiting v2.0 requirements definition)*
+*(None — awaiting v2.0 requirements definition via `/gsd-new-milestone`)*
 
 ### Out of Scope
 
-- `StreamClient` (Stream API) — deferred to v2.0
-- Retry logic / exponential backoff — users can use custom httpx transports
-- Response model objects (Pydantic/dataclass) — plain dicts avoid dependency and schema-change brittleness
-- Rate limit handling / auto-retry on 429 — keep the client thin
-- Webhook signature verification — out of scope
-- CLI tool — not a goal for the SDK
-- Response caching — thin wrapper, no magic
-- Shield API, Edge Scripting, Magic Containers — deferred to future version
-- File upload progress callbacks — v2 candidate
-- Automatic content-type detection for uploads — caller responsibility
-- Unified "Bunny" client holding all API keys — separate clients match Bunny's auth model
+| Feature | Reason |
+|---------|--------|
+| Response model objects (Pydantic/dataclass) | Plain dicts avoid dependency and schema-change brittleness |
+| Webhook signature verification | Outside SDK scope |
+| CLI tool | Not a goal for the SDK |
+| Response caching | No magic |
+| Automatic content-type detection for uploads | Caller responsibility |
+| Unified client holding all API keys | Separate clients match Bunny's per-service auth model |
+| `StreamClient` (Stream API) | Deferred to v2.0 |
+| File upload progress callbacks | v2 candidate |
+| Shield API, Edge Scripting API, Magic Containers | Deferred to future version |
 
 ## Context
 
-Bunny CDN exposes three distinct API surfaces; v1.0 covers two:
+Bunny CDN exposes three distinct API surfaces; v1.1 covers two:
 - **Core** (`api.bunnycdn.com`) — account API key, covers management operations
 - **Storage** (`{region}.storage.bunnycdn.com`) — storage zone password, per-zone
 - **Stream** (`video.bunnycdn.com`) — deferred to v2.0
 
-The sync-public/async-internal pattern gives callers a simple sync interface while enabling `asyncio.gather()` for batch operations internally — no async/await required at the call site.
+The sync-public/async-internal pattern gives callers a simple sync interface while enabling `asyncio.gather()` for batch operations internally — no async/await required at the call site. `RetryTransport` is composable — users can wire it manually or use constructor kwargs for zero-config retry.
 
 ## Constraints
 
@@ -103,4 +111,4 @@ The sync-public/async-internal pattern gives callers a simple sync interface whi
 
 ---
 
-*Last updated: 2026-04-10 — v1.0 milestone completion*
+*Last updated: 2026-04-10 after v1.1 milestone*
