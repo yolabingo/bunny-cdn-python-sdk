@@ -40,8 +40,10 @@ class StorageClient(_BaseClient):
             ``api_key`` and the Basic Auth credential).
         region: Storage region key.  Must be one of the 10 supported regions
             (default: ``"falkenstein"``).  See ``REGION_MAP`` for the full list.
-        client: Optional ``httpx.AsyncClient`` to reuse; a new one is created if
-            not provided.
+        client: Optional ``httpx.AsyncClient`` to inject (keyword-only, advanced use).
+            When provided, max_retries is ignored.
+        max_retries: Number of retry attempts on 429/5xx/network errors (default 0 = no retry).
+        backoff_base: Base delay in seconds for exponential backoff (default 0.5).
 
     Raises:
         ValueError: If ``region`` is not a recognized key in ``REGION_MAP``.
@@ -52,7 +54,10 @@ class StorageClient(_BaseClient):
         zone_name: str,
         password: str,
         region: str = "falkenstein",
+        *,
         client: httpx.AsyncClient | None = None,
+        max_retries: int = 0,
+        backoff_base: float = 0.5,
     ) -> None:
         if region not in REGION_MAP:
             raise ValueError(
@@ -62,7 +67,9 @@ class StorageClient(_BaseClient):
         # Pass password as api_key — _BaseClient injects it as AccessKey header.
         # We additionally set Authorization: Basic on every request so the
         # Storage API can validate zone ownership (T-03-07 mitigation).
-        super().__init__(password, client)
+        super().__init__(
+            password, client=client, max_retries=max_retries, backoff_base=backoff_base
+        )
         self.zone_name = zone_name
         self.password = password
         self.region = region
