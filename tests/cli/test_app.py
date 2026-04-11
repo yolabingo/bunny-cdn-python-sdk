@@ -199,3 +199,56 @@ def test_cell_string_passthrough() -> None:
 
 def test_cell_int_converts_to_string() -> None:
     assert _cell(42) == "42"
+
+
+# ---------------------------------------------------------------------------
+# output_result() — Rich table rendering (Phase 09)
+# ---------------------------------------------------------------------------
+
+
+def test_output_result_table_list_shows_column_headers(capsys) -> None:
+    output_result([{"Id": 1, "Name": "a"}], columns=["Id", "Name"], json_mode=False)
+    captured = capsys.readouterr()
+    assert "Id" in captured.out
+    assert "Name" in captured.out
+
+
+def test_output_result_table_list_shows_row_values(capsys) -> None:
+    output_result([{"Id": 42, "Name": "test"}], columns=["Id", "Name"], json_mode=False)
+    captured = capsys.readouterr()
+    assert "42" in captured.out
+    assert "test" in captured.out
+
+
+def test_output_result_table_single_dict_renders_single_row(capsys) -> None:
+    output_result({"Id": 99, "Name": "solo"}, columns=["Id", "Name"], json_mode=False)
+    captured = capsys.readouterr()
+    assert "99" in captured.out
+    assert "solo" in captured.out
+
+
+def test_output_result_table_columns_filters_fields(capsys) -> None:
+    output_result(
+        [{"Id": 1, "Name": "a", "Hidden": "secret"}],
+        columns=["Id", "Name"],
+        json_mode=False,
+    )
+    captured = capsys.readouterr()
+    assert "Hidden" not in captured.out
+    assert "secret" not in captured.out
+
+
+def test_output_result_table_auto_columns(capsys) -> None:
+    output_result([{"Alpha": "v1", "Beta": "v2"}], columns=None, json_mode=False)
+    captured = capsys.readouterr()
+    assert "Alpha" in captured.out
+    assert "Beta" in captured.out
+
+
+def test_output_result_json_mode_datetime_no_crash(capsys) -> None:
+    from datetime import datetime
+
+    output_result({"ts": datetime(2025, 1, 1)}, json_mode=True)
+    captured = capsys.readouterr()
+    parsed = json.loads(captured.out)
+    assert "2025" in parsed["ts"]
