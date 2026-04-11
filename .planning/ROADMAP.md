@@ -31,7 +31,7 @@
 
 **Milestone Goal:** Add an optional Typer-based CLI (`pip install bunny-cdn-sdk[cli]`) wrapping Core and Storage clients with Rich table output and `--json` flag support.
 
-- [ ] **Phase 08: CLI Scaffold** - pyproject.toml [cli] extra, bunnycdn entry point, cli/ subpackage, ImportError guard, State dataclass, auth wiring
+- [x] **Phase 08: CLI Scaffold** - pyproject.toml [cli] extra, bunnycdn entry point, cli/ subpackage, ImportError guard, State dataclass, auth wiring (completed 2026-04-11)
 - [ ] **Phase 09: Output Layer & Error Handling** - sdk_errors() context manager, output_result(), Rich table renderer, _cell() helper, full unit tests
 - [ ] **Phase 10: CoreClient Sub-Apps** - pull-zone, storage-zone, dns-zone (including record sub-commands), video-library commands with update support; CliRunner tests
 - [ ] **Phase 11: StorageClient Sub-App** - storage list/upload/download/delete with separate auth wiring; CliRunner tests
@@ -51,8 +51,8 @@
   5. Missing auth (no flag, no env var) prints an actionable error message and exits with a non-zero code
 **Plans**: 2 plans
 Plans:
-- [ ] 08-01-PLAN.md — pyproject.toml [cli] extra, entry point, cli/ subpackage source files (ImportError guard, State, sdk_errors)
-- [ ] 08-02-PLAN.md — tests/cli/ package with CliRunner fixture and scaffold-level tests
+- [x] 08-01-PLAN.md — pyproject.toml [cli] extra, entry point, cli/ subpackage source files (ImportError guard, State, sdk_errors)
+- [x] 08-02-PLAN.md — tests/cli/ package with CliRunner fixture and scaffold-level tests
 **UI hint**: yes
 
 ### Phase 09: Output Layer & Error Handling
@@ -65,7 +65,9 @@ Plans:
   3. `--json` on any command outputs valid, parseable JSON to stdout (lists collect all pages before printing)
   4. All SDK and auth errors print to stderr (not stdout) and exit with code 1; success exits with code 0
   5. JSON serialization never crashes on non-serializable API field values (datetime, UUID, etc.)
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 09-01-PLAN.md — Rich table rendering in output_result() + columns param + 6 table-rendering tests
 **UI hint**: yes
 
 ### Phase 10: CoreClient Sub-Apps
@@ -116,8 +118,8 @@ Plans:
 | 05. Quality & Coverage | v1.1 | 2/2 | Complete | 2026-04-10 |
 | 06. RetryTransport | v1.1 | 2/2 | Complete | 2026-04-10 |
 | 07. Constructor Integration | v1.1 | 2/2 | Complete | 2026-04-10 |
-| 08. CLI Scaffold | v2.0 | 0/2 | Not started | - |
-| 09. Output Layer & Error Handling | v2.0 | 0/? | Not started | - |
+| 08. CLI Scaffold | v2.0 | 2/2 | Complete   | 2026-04-11 |
+| 09. Output Layer & Error Handling | v2.0 | 0/1 | Not started | - |
 | 10. CoreClient Sub-Apps | v2.0 | 0/? | Not started | - |
 | 11. StorageClient Sub-App | v2.0 | 0/? | Not started | - |
 | 12. Utility Commands & Integration | v2.0 | 0/? | Not started | - |
