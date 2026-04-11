@@ -42,17 +42,18 @@ def test_billing_success(runner) -> None:
 
 
 def test_billing_shows_key_fields(runner) -> None:
-    """billing table includes all curated billing columns."""
+    """billing --json output includes all curated billing columns as keys."""
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.get_billing.return_value = _BILLING
-        result = runner.invoke(app, ["--api-key", "k", "billing"])
-    for field in [
+        result = runner.invoke(app, ["--api-key", "k", "--json", "billing"])
+    parsed = json.loads(result.output)
+    for field_name in [
         "Balance",
         "ThisMonthCharges",
         "UnpaidInvoicesAmount",
         "MonthlyChargesStorage",
     ]:
-        assert field in result.output, f"Expected '{field}' in output"
+        assert field_name in parsed, f"Expected '{field_name}' in JSON output"
 
 
 def test_billing_json_output(runner) -> None:
