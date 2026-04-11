@@ -36,6 +36,12 @@ See: .planning/PROJECT.md (updated 2026-04-10)
 | 3 | Core API & Storage API Clients | Complete | CORE-01, CORE-02, CORE-03, CORE-04, CORE-05, CORE-06, CORE-07, CORE-08, CORE-09, CORE-10, CORE-11, STOR-01, STOR-02, STOR-03, STOR-04, STOR-05 |
 | 4 | Test Suite | Complete | TEST-01, TEST-02, TEST-03 |
 
+## Quick Tasks Completed
+
+| ID | Date | Description | Requirements Closed |
+|----|------|-------------|---------------------|
+| 260410-p0m | 2026-04-10 | fix __init__.py TYPE_CHECKING guard — CoreClient/StorageClient now direct runtime imports | INFRA-10 |
+
 ## Decisions Log
 
 - [03-01] async generator collection: iter_* methods use _collect(agen) helper + asyncio.run to convert async generator to sync Iterator
