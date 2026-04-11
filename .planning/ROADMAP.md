@@ -17,8 +17,8 @@
 **Plans:** 0/2 plans complete
 
 Plans:
-- [ ] 05-01-PLAN.md — Exception `__str__` test + public surface smoke test
-- [ ] 05-02-PLAN.md — Context manager lifecycle tests + `list_single_page` cleanup
+- [x] 05-01-PLAN.md — Exception `__str__` test + public surface smoke test
+- [x] 05-02-PLAN.md — Context manager lifecycle tests + `list_single_page` cleanup
 
 **Requirements:**
 - QUAL-01, QUAL-02, QUAL-03, QUAL-04
