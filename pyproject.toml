@@ -52,7 +52,7 @@ dev = [
 ]
 lint = ["ruff", "ty"]
 test = ["pytest", "pytest-cov", "pytest-xdist"]
-audit = ["pip-audit"]
+audit = ["pip-audit", "twine"]
 
 [tool.poe.tasks]
 dev = "uv sync --all-groups"
