@@ -18,6 +18,7 @@ from bunny_cdn_sdk._exceptions import (
     BunnyConnectionError,
     BunnyNotFoundError,
     BunnyRateLimitError,
+    BunnySDKError,
     BunnyServerError,
     BunnyTimeoutError,
 )
@@ -51,6 +52,9 @@ def sdk_errors() -> Generator[None, None, None]:
         raise typer.Exit(1) from None
     except BunnyConnectionError as exc:
         err_console.print(f"Connection error: {exc}")
+        raise typer.Exit(1) from None
+    except BunnySDKError as exc:
+        err_console.print(f"SDK error: {exc}")
         raise typer.Exit(1) from None
     except ValueError as exc:
         err_console.print(f"Invalid argument: {exc}")
