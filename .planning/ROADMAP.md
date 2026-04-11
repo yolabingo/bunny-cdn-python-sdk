@@ -34,7 +34,7 @@
 - [x] **Phase 08: CLI Scaffold** - pyproject.toml [cli] extra, bunnycdn entry point, cli/ subpackage, ImportError guard, State dataclass, auth wiring (completed 2026-04-11)
 - [x] **Phase 09: Output Layer & Error Handling** - sdk_errors() context manager, output_result(), Rich table renderer, _cell() helper, full unit tests (completed 2026-04-11)
 - [x] **Phase 10: CoreClient Sub-Apps** - pull-zone, storage-zone, dns-zone (including record sub-commands), video-library commands with update support; CliRunner tests (completed 2026-04-11)
-- [ ] **Phase 11: StorageClient Sub-App** - storage list/upload/download/delete with separate auth wiring; CliRunner tests
+- [x] **Phase 11: StorageClient Sub-App** - storage list/upload/download/delete with separate auth wiring; CliRunner tests (completed 2026-04-11)
 - [ ] **Phase 12: Utility Commands & Integration** - stats, billing, integration test suite, README CLI section
 
 ## Phase Details
@@ -101,8 +101,8 @@ Plans:
   4. `bunnycdn storage delete <remote-path>` prompts for confirmation and deletes the remote file; all four commands have passing CliRunner tests
 **Plans**: 2 plans
 Plans:
-- [ ] 11-01-PLAN.md — _storage.py sub-app (list/upload/download/delete) + wire into _app.py
-- [ ] 11-02-PLAN.md — CliRunner tests for all four storage commands
+- [x] 11-01-PLAN.md — _storage.py sub-app (list/upload/download/delete) + wire into _app.py
+- [x] 11-02-PLAN.md — CliRunner tests for all four storage commands
 **UI hint**: yes
 
 ### Phase 12: Utility Commands & Integration
@@ -113,7 +113,10 @@ Plans:
   1. `bunnycdn stats [--pull-zone-id <id>] [--from <date>] [--to <date>]` displays CDN statistics via Rich table or `--json`
   2. `bunnycdn billing` displays account billing summary via Rich table or `--json`
   3. The README contains a CLI section with install instructions, all command groups, env var reference, and a `--json | jq` example
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 12-01-PLAN.md — stats and billing commands registered on root app (_app.py) with _fmt_bytes helper and _build_stats_row
+- [ ] 12-02-PLAN.md — CliRunner tests for stats and billing + README ## CLI section
 
 ## Progress
 
@@ -131,8 +134,8 @@ Plans:
 | 08. CLI Scaffold | v2.0 | 2/2 | Complete   | 2026-04-11 |
 | 09. Output Layer & Error Handling | v2.0 | 1/1 | Complete   | 2026-04-11 |
 | 10. CoreClient Sub-Apps | v2.0 | 6/6 | Complete   | 2026-04-11 |
-| 11. StorageClient Sub-App | v2.0 | 0/2 | Not started | - |
-| 12. Utility Commands & Integration | v2.0 | 0/? | Not started | - |
+| 11. StorageClient Sub-App | v2.0 | 2/2 | Complete   | 2026-04-11 |
+| 12. Utility Commands & Integration | v2.0 | 0/2 | Not started | - |
 
 ---
 
