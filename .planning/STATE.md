@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Typer CLI
-status: executing
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-04-11T17:34:54.284Z"
+status: complete
+stopped_at: Milestone archived
+last_updated: "2026-04-11T18:00:00.000Z"
 last_activity: 2026-04-11
 progress:
   total_phases: 5
@@ -18,62 +18,58 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-10)
+See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** A Python developer can `pip install bunny-cdn-sdk`, instantiate a client with their API key, and call methods that map 1:1 to Bunny CDN endpoints — no surprises, no hidden behavior.
-**Current focus:** Phase 12 — utility-commands-integration
+**Current focus:** v2.0 shipped. Run `/gsd-new-milestone` to start v3.0.
 
 ## Current Position
 
-Phase: 12 (utility-commands-integration) — EXECUTING
-Plan: 2 of 2
-Status: Ready to execute
+Phase: — (milestone complete)
+Status: v2.0 archived and tagged
 Last activity: 2026-04-11
 
-Progress: [░░░░░░░░░░] 0% (v2.0 milestone)
+Progress: [██████████] 100% (v2.0 milestone complete)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 12 (v1.0 + v1.1)
-- Average duration: unknown
-- Total execution time: unknown
+- v2.0 plans completed: 13
+- Timeline: 1 day (2026-04-11)
+- Total commits: 62
 
 **By Phase (v2.0):**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 08. CLI Scaffold | TBD | - | - |
-| 09. Output Layer | TBD | - | - |
-| 10. CoreClient Sub-Apps | TBD | - | - |
-| 11. StorageClient Sub-App | TBD | - | - |
-| 12. Utility & Integration | TBD | - | - |
-
-*Updated after each plan completion*
-| Phase 12-utility-commands-integration P02 | 2 | 2 tasks | 1 files |
+| Phase | Plans | Status |
+|-------|-------|--------|
+| 08. CLI Scaffold | 2/2 | Complete |
+| 09. Output Layer & Error Handling | 1/1 | Complete |
+| 10. CoreClient Sub-Apps | 6/6 | Complete |
+| 11. StorageClient Sub-App | 2/2 | Complete |
+| 12. Utility & Integration | 2/2 | Complete |
 
 ## Accumulated Context
 
 ### Decisions
 
-- [v2.0 planning]: Entry point name is `bunnycdn` (not `bunny`) — PyPI collision with file-watcher package
-- [v2.0 planning]: CLI deps go in `[project.optional-dependencies]`, not `[dependency-groups]` — only former is pip-installable
-- [v2.0 planning]: DNS record sub-commands (DZ-05/06/07) are included — user explicitly chose to include despite complexity
-- [v2.0 planning]: Update commands use `--set KEY=VALUE` style (PZ-06, SZ-05, VL-05, DZ-06) — user explicitly chose this approach
-- [Phase 12-utility-commands-integration]: Plan 12-01 pre-created test files; plan 12-02 focused on README CLI section — kept richer test suite (14+6 vs 7+4) rather than replacing
+- [v2.0]: Entry point name is `bunnycdn` (not `bunny`) — PyPI collision with file-watcher package
+- [v2.0]: CLI deps go in `[project.optional-dependencies]`, not `[dependency-groups]`
+- [v2.0]: DNS record sub-commands included (DZ-05/06/07)
+- [v2.0]: Update commands use `--set KEY=VALUE` style
+- [v2.0]: Local imports inside command functions prevent circular imports
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-- `ty` may flag "possibly unresolved" on ImportError guard in `cli/__init__.py` — fix is to `raise` in except branch; verify immediately after Phase 08
-- 2 pre-existing `ty` errors in `storage.py` carried from v1.1 (not introduced by v2.0)
+- 2 pre-existing `ty` errors in `storage.py` — carried from v1.1, not introduced by v2.0
+- CLI Phase 08 ImportError guard untested in clean venv (environment constraint, not code issue)
 
 ## Session Continuity
 
-Last session: 2026-04-11T17:34:54.280Z
-Stopped at: Completed 12-02-PLAN.md
+Last session: 2026-04-11T18:00:00.000Z
+Stopped at: v2.0 milestone complete — run /gsd-new-milestone to start v3.0
 Resume file: None
