@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Release Engineering
 status: in_progress
-stopped_at: Phase 14 planned — 2 plans ready to execute
-last_updated: "2026-04-11T00:00:00.000Z"
+stopped_at: Phase 14 complete — tox multi-env matrix passing, all quality gates green
+last_updated: "2026-04-11T23:00:00.000Z"
 last_activity: 2026-04-11
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 3
-  percent: 25
+  completed_plans: 5
+  percent: 50
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-11)
 
 **Core value:** A Python developer can `pip install bunny-cdn-sdk`, instantiate a client with their API key, and call methods that map 1:1 to Bunny CDN endpoints — no surprises, no hidden behavior.
-**Current focus:** v2.1 Release Engineering — Phase 14: tox & Local Quality Gates
+**Current focus:** v2.1 Release Engineering — Phase 14 complete, next: Phase 15
 
 ## Current Position
 
-Phase: 14 of 16 (tox & Local Quality Gates)
-Plan: 0 of 2 (ready to execute)
-Status: Plans complete, ready to execute
-Last activity: 2026-04-11 — Phase 14 planned (2 plans: tox.ini + ruff fixes)
+Phase: 14 of 16 (tox & Local Quality Gates) — COMPLETE
+Plan: 2 of 2 (all complete)
+Status: Phase 14 verified — advancing to Phase 15
+Last activity: 2026-04-11 — Phase 14 complete: tox.ini + full tox matrix (TOX-01–04 satisfied)
 
-Progress: [██░░░░░░░░] 25%
+Progress: [████░░░░░░] 50%
 
 ## Performance Metrics
 
