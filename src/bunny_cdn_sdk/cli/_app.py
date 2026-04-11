@@ -85,8 +85,10 @@ def _fmt_bytes(n: int) -> str:
     return f"{n / 1024 ** 3:.1f} GB"
 
 
-def _build_stats_row(name: str, stats: dict) -> dict:
+def _build_stats_row(name: str, stats: dict | None) -> dict:
     """Build a display row dict from a zone name and statistics API response."""
+    if stats is None:
+        stats = {}
     served = stats.get("RequestsServed", 0) or 0
     err3xx = stats.get("Error3xxTotal", 0) or 0
     err4xx = stats.get("Error4xxTotal", 0) or 0
