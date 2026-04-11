@@ -565,6 +565,22 @@ class CoreClient(_BaseClient):
         response = self._sync_request("DELETE", f"{self.base_url}/videolibrary/{id}")
         return response.json() if response.content else {}
 
+    def iter_video_libraries(self, per_page: int = 1000) -> Iterator[dict]:
+        """Iterate over all video libraries, auto-fetching pages as needed.
+
+        Args:
+            per_page: Items per page, 5-1000 (default 1000).
+
+        Yields:
+            Individual video library dicts across all pages.
+        """
+        async def fetch_page(page: int) -> PaginatedResponse:
+            params: dict[str, Any] = {"page": page, "perPage": per_page}
+            response = await self._request("GET", f"{self.base_url}/videolibrary", params=params)
+            return response.json()
+
+        return iter(asyncio.run(_collect(pagination_iterator(fetch_page))))
+
     # ------------------------------------------------------------------
     # Utilities (CORE-11)
     # ------------------------------------------------------------------
