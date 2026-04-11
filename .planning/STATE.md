@@ -1,12 +1,12 @@
 ---
 gsd_state_version: 1.0
 milestone: v2.0
-milestone_name: Stream API
+milestone_name: Typer CLI
 status: planning
 last_updated: "2026-04-10T00:00:00Z"
 last_activity: 2026-04-10
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -15,22 +15,61 @@ progress:
 
 # Project State
 
-## Current Status
-
-**Milestone:** v2.0 — Typer CLI
-**Status:** Defining requirements
-**Last activity:** 2026-04-10 — Milestone v2.0 started
-
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-10 after v1.1 milestone)
+See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** A Python developer can `pip install bunny-cdn-sdk`, instantiate a client with their API key, and call methods that map 1:1 to Bunny CDN endpoints — no surprises, no hidden behavior.
+**Current focus:** Phase 08 — CLI Scaffold
 
-## Accumulated Context (from v1.1)
+## Current Position
 
-- `_client.py` lines 121-122 uncovered — bare `except Exception` on JSON parse failure in error extraction (low-risk, needs malformed-body test)
-- `test_public_surface.py` does not explicitly assert `RetryTransport` — add in next cleanup cycle
-- 2 pre-existing `ty` errors in `storage.py` (`call-non-callable`, `invalid-type-form`) — not introduced by v1.1
-- 59 pre-existing ruff violations (PLR2004, ANN401, TRY003) — not introduced by v1.1
-- `client=` is keyword-only on CoreClient and StorageClient as of v1.1
+Phase: 08 of 12 (CLI Scaffold)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-04-10 — v2.0 roadmap created (Phases 08–12)
+
+Progress: [░░░░░░░░░░] 0% (v2.0 milestone)
+
+## Performance Metrics
+
+**Velocity:**
+- Total plans completed: 12 (v1.0 + v1.1)
+- Average duration: unknown
+- Total execution time: unknown
+
+**By Phase (v2.0):**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| 08. CLI Scaffold | TBD | - | - |
+| 09. Output Layer | TBD | - | - |
+| 10. CoreClient Sub-Apps | TBD | - | - |
+| 11. StorageClient Sub-App | TBD | - | - |
+| 12. Utility & Integration | TBD | - | - |
+
+*Updated after each plan completion*
+
+## Accumulated Context
+
+### Decisions
+
+- [v2.0 planning]: Entry point name is `bunnycdn` (not `bunny`) — PyPI collision with file-watcher package
+- [v2.0 planning]: CLI deps go in `[project.optional-dependencies]`, not `[dependency-groups]` — only former is pip-installable
+- [v2.0 planning]: DNS record sub-commands (DZ-05/06/07) are included — user explicitly chose to include despite complexity
+- [v2.0 planning]: Update commands use `--set KEY=VALUE` style (PZ-06, SZ-05, VL-05, DZ-06) — user explicitly chose this approach
+
+### Pending Todos
+
+None yet.
+
+### Blockers/Concerns
+
+- `ty` may flag "possibly unresolved" on ImportError guard in `cli/__init__.py` — fix is to `raise` in except branch; verify immediately after Phase 08
+- 2 pre-existing `ty` errors in `storage.py` carried from v1.1 (not introduced by v2.0)
+
+## Session Continuity
+
+Last session: 2026-04-10
+Stopped at: Roadmap created — ready to plan Phase 08
+Resume file: None

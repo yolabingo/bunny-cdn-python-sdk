@@ -116,4 +116,52 @@
 
 ## Traceability
 
-*(Populated by roadmapper)*
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| CLI-01 | Phase 08 | Pending |
+| CLI-02 | Phase 08 | Pending |
+| CLI-03 | Phase 08 | Pending |
+| CLI-04 | Phase 08 | Pending |
+| AUTH-01 | Phase 08 | Pending |
+| AUTH-02 | Phase 08 | Pending |
+| AUTH-03 | Phase 08 | Pending |
+| AUTH-04 | Phase 08 | Pending |
+| OUT-01 | Phase 09 | Pending |
+| OUT-02 | Phase 09 | Pending |
+| OUT-03 | Phase 09 | Pending |
+| OUT-04 | Phase 09 | Pending |
+| OUT-05 | Phase 09 | Pending |
+| OUT-06 | Phase 09 | Pending |
+| PZ-01 | Phase 10 | Pending |
+| PZ-02 | Phase 10 | Pending |
+| PZ-03 | Phase 10 | Pending |
+| PZ-04 | Phase 10 | Pending |
+| PZ-05 | Phase 10 | Pending |
+| PZ-06 | Phase 10 | Pending |
+| SZ-01 | Phase 10 | Pending |
+| SZ-02 | Phase 10 | Pending |
+| SZ-03 | Phase 10 | Pending |
+| SZ-04 | Phase 10 | Pending |
+| SZ-05 | Phase 10 | Pending |
+| DZ-01 | Phase 10 | Pending |
+| DZ-02 | Phase 10 | Pending |
+| DZ-03 | Phase 10 | Pending |
+| DZ-04 | Phase 10 | Pending |
+| DZ-05 | Phase 10 | Pending |
+| DZ-06 | Phase 10 | Pending |
+| DZ-07 | Phase 10 | Pending |
+| VL-01 | Phase 10 | Pending |
+| VL-02 | Phase 10 | Pending |
+| VL-03 | Phase 10 | Pending |
+| VL-04 | Phase 10 | Pending |
+| VL-05 | Phase 10 | Pending |
+| UTIL-01 | Phase 10 | Pending |
+| TEST-01 | Phase 10 | Pending |
+| TEST-02 | Phase 10 | Pending |
+| TEST-03 | Phase 10 | Pending |
+| ST-01 | Phase 11 | Pending |
+| ST-02 | Phase 11 | Pending |
+| ST-03 | Phase 11 | Pending |
+| ST-04 | Phase 11 | Pending |
+| UTIL-02 | Phase 12 | Pending |
+| UTIL-03 | Phase 12 | Pending |
