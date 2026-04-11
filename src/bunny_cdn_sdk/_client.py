@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.metadata
 import warnings
 from typing import TYPE_CHECKING, Any, Self
 
 import httpx
+
+_USER_AGENT = f"bunny-cdn-sdk/{importlib.metadata.version('bunny-cdn-sdk')}"
 
 from bunny_cdn_sdk._exceptions import (
     BunnyAPIError,
@@ -124,7 +127,7 @@ class _BaseClient:
         # Inject headers — pop from kwargs to avoid duplicate keyword argument
         headers = {**kwargs.pop("headers", {})}
         headers["AccessKey"] = self.api_key
-        headers["User-Agent"] = "bunny-cdn-sdk/0.1.0"
+        headers["User-Agent"] = _USER_AGENT
 
         try:
             response = await self._client.request(
