@@ -81,6 +81,12 @@ def output_result(
     # Normalize single dict to list so all rendering uses the same code path
     rows: list[dict[str, Any]] = [data] if isinstance(data, dict) else data  # type: ignore[assignment]
 
+    # Guard: list of scalars — render each element as a plain line
+    if rows and not isinstance(rows[0], dict):
+        for item in rows:
+            typer.echo(str(item))
+        return
+
     if not rows:
         # Empty list — print empty table with headers if columns provided, else nothing
         if columns:
