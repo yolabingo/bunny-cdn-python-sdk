@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 from typing import cast
 
 import typer
@@ -72,6 +74,35 @@ def main(
     state.json_output = json_output
 
 
+def _fmt_bytes(n: int) -> str:
+    """Format byte count as human-readable string."""
+    if n < 1024:
+        return f"{n} B"
+    if n < 1024 ** 2:
+        return f"{n / 1024:.1f} KB"
+    if n < 1024 ** 3:
+        return f"{n / 1024 ** 2:.1f} MB"
+    return f"{n / 1024 ** 3:.1f} GB"
+
+
+def _build_stats_row(name: str, stats: dict) -> dict:
+    """Build a display row dict from a zone name and statistics API response."""
+    served = stats.get("RequestsServed", 0) or 0
+    err3xx = stats.get("Error3xxTotal", 0) or 0
+    err4xx = stats.get("Error4xxTotal", 0) or 0
+    err5xx = stats.get("Error5xxTotal", 0) or 0
+    total_err = err3xx + err4xx + err5xx
+    error_pct = f"{total_err / served * 100:.2f}%" if served else "—"
+    return {
+        "Name": name,
+        "RequestsServed": served,
+        "BandwidthUsed": _fmt_bytes(stats.get("BandwidthUsed", 0) or 0),
+        "BandwidthCached": _fmt_bytes(stats.get("BandwidthCachedUsed", 0) or 0),
+        "CacheHitRate": stats.get("CacheHitRate", 0),
+        "Error%": error_pct,
+    }
+
+
 @app.command("purge")
 def purge_url_cmd(
     ctx: typer.Context,
@@ -89,3 +120,91 @@ def purge_url_cmd(
         client = CoreClient(api_key=state.api_key)
         client.purge_url(url)
         _typer.echo(f"Purged: {url}")
+
+
+_STATS_COLUMNS = ["Name", "RequestsServed", "BandwidthUsed", "BandwidthCached", "CacheHitRate", "Error%"]
+
+
+@app.command("stats")
+def stats_cmd(
+    ctx: typer.Context,
+    pull_zone_id: int | None = typer.Option(
+        None, "--pull-zone-id", help="Narrow report to a single pull zone ID"
+    ),
+    from_: str | None = typer.Option(
+        None, "--from", help="Start date (ISO, default: 7 days ago)"
+    ),
+    to_: str | None = typer.Option(
+        None, "--to", help="End date (ISO, default: today)"
+    ),
+) -> None:
+    """Display CDN statistics per pull zone."""
+    from bunny_cdn_sdk.cli._output import err_console, output_result, sdk_errors
+    from bunny_cdn_sdk.core import CoreClient
+    import typer as _typer
+
+    state = cast("State", ctx.obj)
+    if not state.api_key:
+        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
+        raise _typer.Exit(1)
+
+    date_from = from_ or (date.today() - timedelta(days=7)).isoformat()
+    date_to = to_ or date.today().isoformat()
+
+    with sdk_errors():
+        client = CoreClient(api_key=state.api_key)
+
+        if pull_zone_id is not None:
+            zone = client.get_pull_zone(pull_zone_id)
+            stats = client.get_statistics(pullZoneId=pull_zone_id, dateFrom=date_from, dateTo=date_to)
+            rows = [_build_stats_row(zone["Name"], stats)]
+        else:
+            zones = list(client.iter_pull_zones())
+
+            async def _fetch_all() -> list[dict]:
+                loop = asyncio.get_event_loop()
+
+                async def _one(z: dict) -> dict:
+                    s = await loop.run_in_executor(
+                        None,
+                        lambda: client.get_statistics(
+                            pullZoneId=z["Id"], dateFrom=date_from, dateTo=date_to
+                        ),
+                    )
+                    return _build_stats_row(z.get("Name", ""), s)
+
+                return list(await asyncio.gather(*(_one(z) for z in zones)))
+
+            rows = asyncio.run(_fetch_all())
+
+        output_result(rows, columns=_STATS_COLUMNS, json_mode=state.json_output)
+
+
+_BILLING_COLUMNS = [
+    "Balance",
+    "ThisMonthCharges",
+    "UnpaidInvoicesAmount",
+    "MonthlyChargesStorage",
+    "MonthlyChargesEUTraffic",
+    "MonthlyChargesUSTraffic",
+    "MonthlyChargesASIATraffic",
+    "MonthlyChargesAFRICATraffic",
+]
+
+
+@app.command("billing")
+def billing_cmd(ctx: typer.Context) -> None:
+    """Display account billing summary."""
+    from bunny_cdn_sdk.cli._output import err_console, output_result, sdk_errors
+    from bunny_cdn_sdk.core import CoreClient
+    import typer as _typer
+
+    state = cast("State", ctx.obj)
+    if not state.api_key:
+        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
+        raise _typer.Exit(1)
+
+    with sdk_errors():
+        client = CoreClient(api_key=state.api_key)
+        billing = client.get_billing()
+        output_result(billing, columns=_BILLING_COLUMNS, json_mode=state.json_output)
