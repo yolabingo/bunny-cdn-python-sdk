@@ -523,21 +523,24 @@ uv run ruff check src/bunny_cdn_sdk/cli/
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should `--json` be in the root callback or per-command?**
    - What we know: Root callback is simpler (one declaration); per-command is more explicit but requires 37 declarations.
    - What's unclear: Whether some commands should intentionally not support `--json` (e.g., `delete` commands that return `{}`).
    - Recommendation: Put `--json` in root callback for Phase 08 scaffold. Individual commands can override or ignore it. Revisit in Phase 09 (output layer).
+   - RESOLVED: `--json` defined in root `@app.callback()`; stored on `State.json_output`; all commands read via `ctx.obj`.
 
 2. **`ty` cast required for `ctx.obj`?**
    - What we know: `ctx.obj` is typed `Any` in Typer stubs. `ty` has `possibly-unresolved-reference = "error"`.
    - What's unclear: Whether `ty` flags `ctx.obj.api_key` as an error when `ctx.obj` is `Any`.
    - Recommendation: Use `state: State = ctx.obj` and run `uv run ty check src/` immediately. If `ty` flags it, add `cast(State, ctx.obj)` with `from typing import cast`.
+   - RESOLVED: Use `cast("State", ctx.obj)` from `typing` — `ctx.obj` is `Any` in Typer stubs so `ty` cannot infer the type; the string-form annotation avoids any circular import risk.
 
 3. **Ruff per-file ignores for `cli/` — what to add upfront?**
    - What we know: `select = ["ALL"]` with ignores `["D", "COM812", "ISC001"]`.
    - Recommendation: Add to pyproject.toml before writing CLI code: `"src/bunny_cdn_sdk/cli/**" = ["TRY003"]`. Extend as needed during implementation.
+   - RESOLVED: Add `"src/bunny_cdn_sdk/cli/**" = ["TRY003", "FBT001", "FBT002"]` to `[tool.ruff.lint.per-file-ignores]`; TRY003 suppresses long raise messages in `sdk_errors()`; FBT001/FBT002 suppress boolean positional arg warnings on `json_output` flag and `State` field.
 
 ---
 
