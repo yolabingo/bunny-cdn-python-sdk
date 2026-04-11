@@ -11,6 +11,7 @@ from bunny_cdn_sdk.cli._pull_zone import pull_zone_app
 from bunny_cdn_sdk.cli._storage_zone import storage_zone_app
 from bunny_cdn_sdk.cli._dns_zone import dns_zone_app
 from bunny_cdn_sdk.cli._video_library import video_library_app
+from bunny_cdn_sdk.cli._storage import storage_app
 
 app = typer.Typer(no_args_is_help=True, help="Bunny CDN management CLI.")
 
@@ -18,6 +19,7 @@ app.add_typer(pull_zone_app, name="pull-zone")
 app.add_typer(storage_zone_app, name="storage-zone")
 app.add_typer(dns_zone_app, name="dns-zone")
 app.add_typer(video_library_app, name="video-library")
+app.add_typer(storage_app, name="storage")
 
 
 @dataclass
