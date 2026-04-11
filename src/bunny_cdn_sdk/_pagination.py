@@ -7,7 +7,7 @@ from typing import Any, AsyncIterator, Awaitable
 
 from bunny_cdn_sdk._types import PaginatedResponse
 
-__all__ = ["pagination_iterator", "list_single_page"]
+__all__ = ["pagination_iterator"]
 
 
 async def pagination_iterator(
@@ -35,20 +35,3 @@ async def pagination_iterator(
             break
         current_page += 1
 
-
-async def list_single_page(
-    fetch_page: Callable[[int], Awaitable[PaginatedResponse]], page: int = 1
-) -> PaginatedResponse:
-    """
-    Fetches a single page of results without automatic pagination.
-
-    Returns the raw response dict from the API endpoint.
-
-    Args:
-        fetch_page: Async callable that takes a page number and returns a PaginatedResponse dict
-        page: Page number to fetch (default 1)
-
-    Returns:
-        PaginatedResponse dict containing Items, CurrentPage, TotalItems, HasMoreItems
-    """
-    return await fetch_page(page)
