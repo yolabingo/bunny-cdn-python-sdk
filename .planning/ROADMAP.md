@@ -61,8 +61,8 @@ Plans:
 **Plans:** 0/2 plans complete
 
 Plans:
-- [ ] 07-01-PLAN.md — Add `max_retries`/`backoff_base` kwargs to `_BaseClient`, `CoreClient`, and `StorageClient`
-- [ ] 07-02-PLAN.md — Integration tests confirming retry counts, backward compat (zero retries), and no regressions in existing test suite
+- [x] 07-01-PLAN.md — Add `max_retries`/`backoff_base` kwargs to `_BaseClient`, `CoreClient`, and `StorageClient`
+- [x] 07-02-PLAN.md — Integration tests confirming retry counts, backward compat (zero retries), and no regressions in existing test suite
 
 **Requirements:**
 - RETRY-04
