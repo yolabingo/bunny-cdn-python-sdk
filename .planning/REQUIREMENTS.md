@@ -53,20 +53,20 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| QUAL-01 | — | Pending |
-| QUAL-02 | — | Pending |
-| QUAL-03 | — | Pending |
-| QUAL-04 | — | Pending |
-| RETRY-01 | — | Pending |
-| RETRY-02 | — | Pending |
-| RETRY-03 | — | Pending |
-| RETRY-04 | — | Pending |
-| RETRY-05 | — | Pending |
+| QUAL-01 | Phase 5 | Pending |
+| QUAL-02 | Phase 5 | Pending |
+| QUAL-03 | Phase 5 | Pending |
+| QUAL-04 | Phase 5 | Pending |
+| RETRY-01 | Phase 6 | Pending |
+| RETRY-02 | Phase 6 | Pending |
+| RETRY-03 | Phase 6 | Pending |
+| RETRY-04 | Phase 7 | Pending |
+| RETRY-05 | Phase 6 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 9 total
-- Mapped to phases: 0
-- Unmapped: 9 ⚠️ (roadmap pending)
+- Mapped to phases: 9
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-10*
