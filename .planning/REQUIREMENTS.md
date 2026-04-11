@@ -64,25 +64,25 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| VERSION-01 | — | Pending |
-| VERSION-02 | — | Pending |
-| VERSION-03 | — | Pending |
-| BUILD-01 | — | Pending |
-| BUILD-02 | — | Pending |
-| BUILD-03 | — | Pending |
-| TOX-01 | — | Pending |
-| TOX-02 | — | Pending |
-| TOX-03 | — | Pending |
-| TOX-04 | — | Pending |
-| CI-01 | — | Pending |
-| CI-02 | — | Pending |
-| CI-03 | — | Pending |
-| CI-04 | — | Pending |
-| DEPS-01 | — | Pending |
-| DEPS-02 | — | Pending |
-| PUBLISH-01 | — | Pending |
-| PUBLISH-02 | — | Pending |
-| PUBLISH-03 | — | Pending |
-| PUBLISH-04 | — | Pending |
-| PUBLISH-05 | — | Pending |
-| PUBLISH-06 | — | Pending |
+| VERSION-01 | Phase 13 | Pending |
+| VERSION-02 | Phase 13 | Pending |
+| VERSION-03 | Phase 13 | Pending |
+| BUILD-01 | Phase 13 | Pending |
+| BUILD-02 | Phase 13 | Pending |
+| BUILD-03 | Phase 13 | Pending |
+| TOX-01 | Phase 14 | Pending |
+| TOX-02 | Phase 14 | Pending |
+| TOX-03 | Phase 14 | Pending |
+| TOX-04 | Phase 14 | Pending |
+| CI-01 | Phase 15 | Pending |
+| CI-02 | Phase 15 | Pending |
+| CI-03 | Phase 15 | Pending |
+| CI-04 | Phase 15 | Pending |
+| DEPS-01 | Phase 15 | Pending |
+| DEPS-02 | Phase 15 | Pending |
+| PUBLISH-01 | Phase 16 | Pending |
+| PUBLISH-02 | Phase 16 | Pending |
+| PUBLISH-03 | Phase 16 | Pending |
+| PUBLISH-04 | Phase 16 | Pending |
+| PUBLISH-05 | Phase 16 | Pending |
+| PUBLISH-06 | Phase 16 | Pending |
