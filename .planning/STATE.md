@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Typer CLI
 status: executing
-stopped_at: Roadmap created — ready to plan Phase 08
-last_updated: "2026-04-11T15:22:52.143Z"
-last_activity: 2026-04-11 -- Phase 10 execution started
+stopped_at: Completed 12-02-PLAN.md
+last_updated: "2026-04-11T17:34:54.284Z"
+last_activity: 2026-04-11
 progress:
   total_phases: 5
-  completed_phases: 2
-  total_plans: 9
-  completed_plans: 3
-  percent: 33
+  completed_phases: 5
+  total_plans: 13
+  completed_plans: 13
+  percent: 100
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-10)
 
 **Core value:** A Python developer can `pip install bunny-cdn-sdk`, instantiate a client with their API key, and call methods that map 1:1 to Bunny CDN endpoints — no surprises, no hidden behavior.
-**Current focus:** Phase 10 — coreclient-sub-apps
+**Current focus:** Phase 12 — utility-commands-integration
 
 ## Current Position
 
-Phase: 10 (coreclient-sub-apps) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 10
-Last activity: 2026-04-11 -- Phase 10 execution started
+Phase: 12 (utility-commands-integration) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-11
 
 Progress: [░░░░░░░░░░] 0% (v2.0 milestone)
 
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 0% (v2.0 milestone)
 | 12. Utility & Integration | TBD | - | - |
 
 *Updated after each plan completion*
+| Phase 12-utility-commands-integration P02 | 2 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -60,6 +61,7 @@ Progress: [░░░░░░░░░░] 0% (v2.0 milestone)
 - [v2.0 planning]: CLI deps go in `[project.optional-dependencies]`, not `[dependency-groups]` — only former is pip-installable
 - [v2.0 planning]: DNS record sub-commands (DZ-05/06/07) are included — user explicitly chose to include despite complexity
 - [v2.0 planning]: Update commands use `--set KEY=VALUE` style (PZ-06, SZ-05, VL-05, DZ-06) — user explicitly chose this approach
+- [Phase 12-utility-commands-integration]: Plan 12-01 pre-created test files; plan 12-02 focused on README CLI section — kept richer test suite (14+6 vs 7+4) rather than replacing
 
 ### Pending Todos
 
@@ -72,6 +74,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-10
-Stopped at: Roadmap created — ready to plan Phase 08
+Last session: 2026-04-11T17:34:54.280Z
+Stopped at: Completed 12-02-PLAN.md
 Resume file: None

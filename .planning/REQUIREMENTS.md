@@ -76,8 +76,8 @@
 ### UTIL — Utility Commands
 
 - [ ] **UTIL-01**: `bunnycdn purge <url>` purges a specific URL from CDN cache
-- [ ] **UTIL-02**: `bunnycdn stats [--pull-zone-id <id>] [--from <date>] [--to <date>]` displays CDN statistics
-- [ ] **UTIL-03**: `bunnycdn billing` displays account billing summary
+- [x] **UTIL-02**: `bunnycdn stats [--pull-zone-id <id>] [--from <date>] [--to <date>]` displays CDN statistics
+- [x] **UTIL-03**: `bunnycdn billing` displays account billing summary
 
 ### TEST — CLI Test Suite
 
@@ -163,5 +163,5 @@
 | ST-02 | Phase 11 | Pending |
 | ST-03 | Phase 11 | Pending |
 | ST-04 | Phase 11 | Pending |
-| UTIL-02 | Phase 12 | Pending |
-| UTIL-03 | Phase 12 | Pending |
+| UTIL-02 | Phase 12 | Complete |
+| UTIL-03 | Phase 12 | Complete |

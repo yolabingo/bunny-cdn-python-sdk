@@ -35,7 +35,7 @@
 - [x] **Phase 09: Output Layer & Error Handling** - sdk_errors() context manager, output_result(), Rich table renderer, _cell() helper, full unit tests (completed 2026-04-11)
 - [x] **Phase 10: CoreClient Sub-Apps** - pull-zone, storage-zone, dns-zone (including record sub-commands), video-library commands with update support; CliRunner tests (completed 2026-04-11)
 - [x] **Phase 11: StorageClient Sub-App** - storage list/upload/download/delete with separate auth wiring; CliRunner tests (completed 2026-04-11)
-- [ ] **Phase 12: Utility Commands & Integration** - stats, billing, integration test suite, README CLI section
+- [x] **Phase 12: Utility Commands & Integration** - stats, billing, integration test suite, README CLI section (completed 2026-04-11)
 
 ## Phase Details
 
@@ -115,8 +115,8 @@ Plans:
   3. The README contains a CLI section with install instructions, all command groups, env var reference, and a `--json | jq` example
 **Plans**: 2 plans
 Plans:
-- [ ] 12-01-PLAN.md — stats and billing commands registered on root app (_app.py) with _fmt_bytes helper and _build_stats_row
-- [ ] 12-02-PLAN.md — CliRunner tests for stats and billing + README ## CLI section
+- [x] 12-01-PLAN.md — stats and billing commands registered on root app (_app.py) with _fmt_bytes helper and _build_stats_row
+- [x] 12-02-PLAN.md — CliRunner tests for stats and billing + README ## CLI section
 
 ## Progress
 
@@ -135,7 +135,7 @@ Plans:
 | 09. Output Layer & Error Handling | v2.0 | 1/1 | Complete   | 2026-04-11 |
 | 10. CoreClient Sub-Apps | v2.0 | 6/6 | Complete   | 2026-04-11 |
 | 11. StorageClient Sub-App | v2.0 | 2/2 | Complete   | 2026-04-11 |
-| 12. Utility Commands & Integration | v2.0 | 0/2 | Not started | - |
+| 12. Utility Commands & Integration | v2.0 | 2/2 | Complete   | 2026-04-11 |
 
 ---
 
