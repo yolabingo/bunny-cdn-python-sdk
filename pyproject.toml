@@ -14,6 +14,15 @@ dependencies = [
 requires = ["uv_build>=0.11.6,<0.12.0"]
 build-backend = "uv_build"
 
+[project.optional-dependencies]
+cli = [
+    "typer>=0.12.0,<1",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+bunnycdn = "bunny_cdn_sdk.cli:app"
+
 [dependency-groups]
 dev = [
     { include-group = "lint" },
@@ -41,6 +50,7 @@ select = ["ALL"]
 ignore = ["D", "COM812", "ISC001"]
 
 [tool.ruff.lint.per-file-ignores]
+"src/bunny_cdn_sdk/cli/**" = ["TRY003", "FBT001", "FBT002", "PLR0913"]
 "tests/**" = [
     "ANN",       # type annotations not required in tests
     "ARG",       # unused arguments common in handler stubs
