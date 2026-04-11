@@ -93,7 +93,7 @@ A Python developer can `pip install bunny-cdn-sdk`, instantiate a client with th
 
 ### Active
 
-*(None — v2.0 complete. Define v3.0 requirements via `/gsd-new-milestone`)*
+- [ ] Release pipeline and version hygiene for v2.1 (see v2.1 requirements)
 
 ### Out of Scope
 
@@ -134,6 +134,21 @@ The sync-public/async-internal pattern gives callers a simple sync interface whi
 - **Auth**: `AccessKey` header injection per-client — no credential sharing between clients
 - **API fidelity**: method signatures match HLD exactly — no deviation without explicit decision
 
+## Current Milestone: v2.1 Release Engineering
+
+**Goal:** Ship a production-ready release pipeline — CI, Dependabot, version hygiene, and TestPyPI publish.
+
+**Target features:**
+- Version management — pyproject.toml as single source, `bunnycdn.__version__` via importlib.metadata, CHANGELOG.md
+- Local build verification — `uv build` produces valid wheel + sdist; twine check validates package metadata
+- tox config — tox-uv plugin, isolated venv, py312 env; lint/typecheck as separate tox envs
+- GHA CI workflow — runs tox envs on push/PR; Python 3.12
+- Dependabot — pip ecosystem + GitHub Actions ecosystem
+- Trusted Publishing (OIDC) — no stored tokens
+- GHA release workflow — v* tag push auto-publishes + manual `workflow_dispatch` fallback
+- TestPyPI publish + `pip install` smoke test
+- Production PyPI workflow wired (trigger when ready)
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
@@ -146,4 +161,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-04-11 after v2.0 Typer CLI milestone*
+*Last updated: 2026-04-11 — Milestone v2.1 Release Engineering started*
