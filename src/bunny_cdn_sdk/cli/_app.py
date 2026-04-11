@@ -7,7 +7,17 @@ from typing import cast
 
 import typer
 
+from bunny_cdn_sdk.cli._pull_zone import pull_zone_app
+from bunny_cdn_sdk.cli._storage_zone import storage_zone_app
+from bunny_cdn_sdk.cli._dns_zone import dns_zone_app
+from bunny_cdn_sdk.cli._video_library import video_library_app
+
 app = typer.Typer(no_args_is_help=True, help="Bunny CDN management CLI.")
+
+app.add_typer(pull_zone_app, name="pull-zone")
+app.add_typer(storage_zone_app, name="storage-zone")
+app.add_typer(dns_zone_app, name="dns-zone")
+app.add_typer(video_library_app, name="video-library")
 
 
 @dataclass
@@ -58,3 +68,22 @@ def main(
     state.zone_name = zone_name
     state.region = region
     state.json_output = json_output
+
+
+@app.command("purge")
+def purge_url_cmd(
+    ctx: typer.Context,
+    url: str = typer.Argument(..., help="URL to purge from CDN cache"),
+) -> None:
+    """Purge a specific URL from CDN cache."""
+    from bunny_cdn_sdk.cli._output import err_console, sdk_errors
+    from bunny_cdn_sdk.core import CoreClient
+    import typer as _typer
+    state = cast("State", ctx.obj)
+    if not state.api_key:
+        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
+        raise _typer.Exit(1)
+    with sdk_errors():
+        client = CoreClient(api_key=state.api_key)
+        client.purge_url(url)
+        _typer.echo(f"Purged: {url}")
