@@ -60,7 +60,11 @@ audit = ["twine"]
 install-deps = { cmd = "uv sync --all-groups --all-extras", help = "Install all dev dependencies and optional extras" }
 
 # --- test ---
-test-lint   = { cmd = "prek run --all-files", help = "Lint: ruff format + lint, file/secret checks (prek)" }
+test-lint   = { sequence = [
+  { cmd = "ruff check --fix src/ tests/" },
+  { cmd = "ruff format src/ tests/" },
+  { cmd = "prek run --all-files" }
+], help = "Auto-fix with ruff check+format, then run prek (file/secret checks)" }
 test-type   = { cmd = "ty check src/", help = "Type-check src/ with ty" }
 test-pytest = { cmd = "pytest -n auto --cov-fail-under=80", help = "Run pytest in parallel (80% coverage required)" }
 test-cov    = { cmd = "pytest -n auto --cov=bunny_cdn_sdk --cov-report=html --cov-report=term", help = "Run pytest and generate HTML coverage report in htmlcov/" }
