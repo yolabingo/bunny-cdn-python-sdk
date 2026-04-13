@@ -67,6 +67,25 @@ clean    = { cmd = "rm -rf build/ dist/ *.egg-info .pytest_cache .coverage .ruff
 dist     = { sequence = ["clean", "build"], help = "Clean then build distribution packages" }
 ci       = { sequence = ["lint", "type", "test"], help = "Run all CI checks (lint + type + test)" }
 
+# Push: stage all changes, commit, run CI, build, and push branch
+push.help  = "Stage all changes, commit, run CI, build, and push branch"
+push.shell = """
+  set -e
+  if git diff --quiet && git diff --staged --quiet; then
+    echo "✗ Nothing to commit"
+    exit 1
+  fi
+  echo "Running CI checks before push..."
+  uv run poe ci
+  git add -A
+  git commit -m "${MSG:-chore: update}"
+  uv run poe dist
+  branch=$(git rev-parse --abbrev-ref HEAD)
+  git push origin "$branch"
+  echo ""
+  echo "✓ Pushed $branch"
+"""
+
 # Version management (uses 'uv version' to edit pyproject.toml)
 version       = { cmd = "uv version", help = "Show current package version" }
 version-patch = { cmd = "uv version --bump patch", help = "Bump patch version (X.Y.Z+1)" }

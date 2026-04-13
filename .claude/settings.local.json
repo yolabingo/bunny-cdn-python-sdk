@@ -43,7 +43,10 @@
       "Bash([ -f \"$HOME/.claude/get-shit-done/USER-PROFILE.md\" ])",
       "Bash(echo \"exit:$?\")",
       "Bash(ls .planning/phases/12-utility-commands-integration/*-SECURITY.md)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:prek.j178.dev)",
+      "Bash(gh run:*)",
+      "Bash(gh api:*)"
     ]
   }
 }
