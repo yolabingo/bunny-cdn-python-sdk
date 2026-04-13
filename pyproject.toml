@@ -4,7 +4,7 @@ version = "2.1.3"
 description = "Python SDK for the Bunny CDN API"
 readme = "README.md"
 authors = [
-    { name = "Todd Jacobsen", email = "yolabingo@gmail.com" }
+    { name = "Todd Jacobsen", email = "yolabingo@users.noreply.github.com" }
 ]
 license = { text = "MIT" }
 requires-python = ">=3.12"
