@@ -66,6 +66,30 @@ clean    = { cmd = "rm -rf build/ dist/ *.egg-info .pytest_cache .coverage .ruff
 dist     = { sequence = ["clean", "build"], help = "Clean then build distribution packages" }
 ci       = { sequence = ["lint", "type", "test"], help = "Run all CI checks (lint + type + test)" }
 
+# Version management (uses 'uv version' to edit pyproject.toml)
+version       = { cmd = "uv version", help = "Show current package version" }
+version-patch = { cmd = "uv version --bump patch", help = "Bump patch version (X.Y.Z+1)" }
+version-minor = { cmd = "uv version --bump minor", help = "Bump minor version (X.Y+1.0)" }
+version-major = { cmd = "uv version --bump major", help = "Bump major version (X+1.0.0)" }
+
+# Release: commit current version bump, tag, and build (run AFTER version-*)
+release.help  = "Commit version bump, tag v<version>, and build dist/ (run after version-*)"
+release.shell = """
+  set -e
+  version=$(uv version --short)
+  if git diff --quiet pyproject.toml; then
+    echo "✗ pyproject.toml is unchanged — bump version first (e.g. 'uv run poe version-patch')"
+    exit 1
+  fi
+  git commit -m "chore: release v$version" pyproject.toml uv.lock 2>/dev/null || git commit -m "chore: release v$version" pyproject.toml
+  git tag "v$version"
+  rm -rf build/ dist/ *.egg-info
+  uv build
+  echo ""
+  echo "✓ Released v$version"
+  echo "  Push with: git push --follow-tags"
+"""
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
