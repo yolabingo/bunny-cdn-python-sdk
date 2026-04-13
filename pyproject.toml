@@ -1,6 +1,6 @@
 [project]
 name = "bunny-cdn-sdk"
-version = "2.1.5"
+version = "2.1.6"
 description = "Python SDK for the Bunny CDN API"
 readme = "README.md"
 authors = [
@@ -89,7 +89,7 @@ release.shell = """
   uv build
   git push origin "$branch"
   git push origin "v$version"
-  gh pr create \
+  pr_url=$(gh pr create \
     --base main \
     --head "$branch" \
     --title "release: v$version" \
@@ -101,9 +101,11 @@ $(git log main..HEAD --format='- %s' | head -20)
 - [ ] CI passes (lint + type + test)
 - [ ] Publish workflow triggers on tag push → PyPI
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+🤖 Generated with [Claude Code](https://claude.com/claude-code)")
   echo ""
-  echo "✓ Released v$version and opened PR"
+  echo "✓ Released v$version"
+  echo "  PR: $pr_url"
+  open "$pr_url"
 """
 
 [tool.ruff]
