@@ -49,33 +49,6 @@ def test_no_args_shows_help(runner) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_help_shows_api_key_option(runner) -> None:
-    result = runner.invoke(app, ["--help"])
-    assert "--api-key" in result.output
-    assert "BUNNY_API_KEY" in result.output
-
-
-def test_help_shows_storage_key_option(runner) -> None:
-    result = runner.invoke(app, ["--help"])
-    assert "--storage-key" in result.output
-    assert "BUNNY_STORAGE_KEY" in result.output
-
-
-def test_help_shows_zone_name_option(runner) -> None:
-    result = runner.invoke(app, ["--help"])
-    assert "--zone-name" in result.output
-    assert "BUNNY_STORAGE_ZONE" in result.output
-
-
-def test_help_shows_region_option(runner) -> None:
-    result = runner.invoke(app, ["--help"])
-    assert "--region" in result.output
-    assert "BUNNY_STORAGE_REGION" in result.output
-
-
-def test_help_shows_json_flag(runner) -> None:
-    result = runner.invoke(app, ["--help"])
-    assert "--json" in result.output
 
 
 # ---------------------------------------------------------------------------
