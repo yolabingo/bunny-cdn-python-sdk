@@ -9,4 +9,4 @@ from typer.testing import CliRunner
 @pytest.fixture
 def runner() -> CliRunner:
     """Return a CliRunner for in-process CLI invocation."""
-    return CliRunner()
+    return CliRunner(env={"NO_COLOR": "1"})
