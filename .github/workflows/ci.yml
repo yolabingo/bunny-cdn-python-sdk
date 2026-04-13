@@ -1,4 +1,4 @@
-name: Tests
+name: CI
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -28,8 +28,11 @@ jobs:
             pyproject.toml
             uv.lock
 
+      - name: Install prek
+        uses: kenobi-md/prek-action@v1
+
       - name: Install dependencies
         run: uv run poe install
 
-      - name: Run checks
-        run: uv run poe ci-all
+      - name: Run all CI checks (lint via prek, type, test)
+        run: uv run poe ci

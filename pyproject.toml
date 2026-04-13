@@ -55,44 +55,26 @@ test = ["pytest", "pytest-cov", "pytest-xdist"]
 audit = ["twine"]
 
 [tool.poe.tasks]
-# Development
-dev = "uv sync --all-groups"
+# Setup
 install = "uv sync --all-groups"
 
-# Formatting & linting
-format = "ruff format ."
-lint = "ruff format --check && ruff check && ty check src/"
-check = "lint"  # alias for lint
+# Pre-commit / file-level validation (delegates to prek)
+# Includes ruff format + check --fix, JSON/YAML/TOML validation, secret scanning, etc.
+lint = "prek run --all-files"
+fix = "prek run --all-files"  # alias — prek auto-fixes
 
-# Type checking
+# Python-specific checks (poe owns these)
 type = "ty check src/"
-
-# Testing
 test = "pytest -n auto --cov-fail-under=80"
-test-verbose = "pytest -n auto --cov-fail-under=80 -v"
 test-cov = "pytest -n auto --cov=bunny_cdn_sdk --cov-report=html --cov-report=term"
 
-# Security & audit with prek
-audit = "prek run"
-security = "audit"
-
-# Code cleanup
-fix = "ruff check --fix && ruff format ."
-
-# Building
+# Build & distribution
 build = "uv build"
-
-# CI/CD helpers
-ci-lint = "ruff format --check . && ruff check . && ty check src/"
-ci-test = "pytest -n auto --cov-fail-under=80"
-ci-all = ["ci-lint", "ci-test"]
-
-# Distribution
 clean = "rm -rf build/ dist/ *.egg-info .pytest_cache .coverage .ruff_cache .ty_cache htmlcov/"
-dist = "clean build"
+dist = ["clean", "build"]
 
-# Development server (if needed)
-demo = "bunnycdn --help"
+# CI bundle — single entry point for all checks
+ci = ["lint", "type", "test"]
 
 [tool.ruff]
 line-length = 100

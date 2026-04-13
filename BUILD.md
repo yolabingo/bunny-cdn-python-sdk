@@ -1,6 +1,11 @@
 # Build & Development Guide
 
-This project uses `uv` as the package manager and `poethepoet` for task automation. All build scripts can be run locally or in CI/CD environments.
+This project uses **layered tooling** with clear responsibilities:
+
+- **`uv`** — Package manager and virtual environments
+- **`poe`** (poethepoet) — Python task orchestration
+- **`prek`** — Pre-commit hooks (file validation, formatting, security)
+- **GitHub Actions** — Thin CI/CD layer that calls `poe`
 
 ## Quick Start
 
@@ -8,195 +13,139 @@ This project uses `uv` as the package manager and `poethepoet` for task automati
 # Install dependencies
 uv run poe install
 
-# Run all checks (lint + test)
-uv run poe ci-all
+# Run all CI checks (lint via prek, type check, tests)
+uv run poe ci
 ```
 
-## Available Tasks
+## Architecture
+
+```
+GitHub Actions  →  uv run poe ci  →  ┬─→ prek (lint/format/validate)
+                                      ├─→ ty (type check)
+                                      └─→ pytest (tests)
+```
+
+Each tool plays to its strengths — no duplication.
+
+## Available poe Tasks
 
 ### Setup
-
 ```bash
-uv run poe install      # Install all dependencies (dev, lint, test, audit)
-uv run poe dev          # Alias for install
+uv run poe install      # Install all dev dependencies
 ```
 
-### Code Quality
-
+### Quality Checks
 ```bash
-uv run poe fix          # Auto-fix issues and format code (ruff check --fix && ruff format)
-uv run poe format       # Auto-format code with ruff (format only)
-uv run poe lint         # Check formatting, linting, and type checking
-uv run poe check        # Alias for lint
-uv run poe type         # Run type checker (ty)
+uv run poe lint         # Run prek hooks (ruff, JSON/YAML/TOML/secret checks)
+uv run poe fix          # Same as lint — prek auto-fixes
+uv run poe type         # Type check with ty
 ```
 
 ### Testing
-
 ```bash
-uv run poe test         # Run tests with coverage (80% threshold)
-uv run poe test-verbose # Run tests with verbose output
+uv run poe test         # Run tests with 80% coverage threshold
 uv run poe test-cov     # Generate HTML coverage report in htmlcov/
 ```
 
-### Security & Pre-commit Hooks
-
+### Build & Distribution
 ```bash
-uv run poe audit        # Run prek pre-commit hooks (ruff check --fix, ruff format)
-uv run poe security     # Alias for audit
+uv run poe build        # Build wheel + sdist
+uv run poe clean        # Remove build artifacts
+uv run poe dist         # clean + build
 ```
 
-See `prek.toml` for hook configuration.
-
-### Building & Distribution
-
+### CI Bundle
 ```bash
-uv run poe build        # Build wheel and sdist packages
-uv run poe clean        # Remove build artifacts and cache files
-uv run poe dist         # Clean and rebuild packages
+uv run poe ci           # lint + type + test (the canonical CI command)
 ```
 
-### CI/CD
-
+### List All Tasks
 ```bash
-uv run poe ci-all       # Run all CI checks (lint + test)
-uv run poe ci-lint      # Run only linting checks
-uv run poe ci-test      # Run only tests
+uv run poe              # Lists all available tasks
 ```
 
-## Listing All Tasks
+## Pre-commit Hooks (prek)
 
-```bash
-# List all available poe tasks
-uv run poe
-```
+Configuration is in `prek.toml`. Hooks are organized by concern:
 
-## Prek Pre-commit Hooks
-
-This project uses **prek**, a Rust-based pre-commit framework. Configuration is in `prek.toml`.
-
-### Available Hooks
-
-**Code Quality (via ruff):**
+**Code Quality (ruff):**
 - `ruff check --fix` — Auto-fix linting issues
 - `ruff-format` — Format Python code
 
 **File Validation:**
-- `check-json` — Validate JSON files
-- `check-toml` — Validate TOML files
-- `check-yaml` — Validate YAML files
-- `check-xml` — Validate XML files
-- `check-vcs-permalinks` — Verify VCS links are permalinks
+- `check-json`, `check-toml`, `check-yaml`, `check-xml`
+- `check-vcs-permalinks`
 
 **File Integrity:**
-- `mixed-line-ending` — Normalize to LF line endings
-- `check-symlinks` — Detect broken symlinks
-- `destroyed-symlinks` — Detect destroyed symlinks
+- `mixed-line-ending` — Normalize to LF
+- `check-symlinks`, `destroyed-symlinks`
 
 **Security:**
-- `detect-private-key` — Detect accidentally committed secrets
-- `check-merge-conflict` — Detect merge conflict markers
-- `no-commit-to-branch` — Prevent direct commits to main
+- `detect-private-key`
+- `check-merge-conflict`
+- `no-commit-to-branch` (blocks direct commits to main)
 
-### Local Usage
+### Install prek locally
 
 ```bash
-# Install prek
-brew install j178/tap/prek  # macOS/Linux
-# OR download from: https://github.com/j178/prek/releases
-
-# Run hooks on staged files
-prek run
-
-# Run hooks on all files
-prek run --all-files
-
-# List available hooks
-prek list
+brew install j178/tap/prek                            # macOS/Linux
+# or download: https://github.com/j178/prek/releases
 ```
 
-### GitHub Actions
+### Run prek directly
 
-Prek runs automatically in:
-- **`prek-hooks.yml`** — On every PR and push to main
-- **`security.yml`** — Weekly + on PRs (uses `kenobi-md/prek-action@v1`)
+```bash
+prek run                # Staged files only (what git hooks run)
+prek run --all-files    # All files in repo (what CI runs)
+prek list               # List configured hooks
+```
 
 ## GitHub Actions Workflows
 
-The repository includes automated workflows:
-
-- **`test.yml`** — Runs tests on all PRs and pushes to main (matrix: Python 3.12, 3.13)
-- **`prek-hooks.yml`** — Runs prek pre-commit hooks (validation, formatting, security)
-- **`security.yml`** — Runs prek security checks weekly + on PRs
-- **`dependabot-auto-merge.yml`** — Auto-merges dev dependency updates
-- **`dependabot-lock-file.yml`** — Keeps `uv.lock` in sync with Dependabot PRs
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `ci.yml` | Push/PR to main | Run `uv run poe ci` (matrix: Python 3.12, 3.13) |
+| `dependabot-auto-merge.yml` | Dependabot PRs | Auto-merge dev dependency updates |
+| `dependabot-lock-file.yml` | Dependabot PRs | Keep `uv.lock` in sync |
 
 ## Development Workflow
 
 ### Before Committing
-
 ```bash
-# Auto-fix issues and format code
-uv run poe fix
-
-# Run all checks
-uv run poe lint
-
-# Run tests with coverage
-uv run poe test-cov
+uv run poe fix          # Auto-fix lint/format via prek
+uv run poe type         # Type check
+uv run poe test         # Run tests
 ```
 
-### Before Pushing
-
+### Before Pushing (or just trust CI)
 ```bash
-# Run everything (like CI does)
-uv run poe ci-all
-
-# Check security
-uv run poe audit
+uv run poe ci           # Same checks as CI
 ```
 
 ### Building for Release
-
 ```bash
-# Build packages
-uv run poe build
-
-# Outputs to dist/:
-#  - bunny-cdn-sdk-X.Y.Z-py3-none-any.whl
-#  - bunny-cdn-sdk-X.Y.Z.tar.gz
+uv run poe dist         # Clean + build → dist/*.whl, dist/*.tar.gz
 ```
 
 ## Coverage Reports
 
-After running `uv run poe test-cov`, open the HTML report:
-
 ```bash
+uv run poe test-cov
 open htmlcov/index.html  # macOS
-xdg-open htmlcov/index.html  # Linux
 ```
 
 ## Troubleshooting
 
 ### "command not found: uv"
-Install uv: https://github.com/astral-sh/uv
+Install: https://github.com/astral-sh/uv
 
 ### "command not found: poe"
-Make sure dependencies are installed: `uv sync --all-groups`
+Run `uv sync --all-groups`
 
 ### "command not found: prek"
-Install prek: https://prek.j178.dev/installation/
-
-Or use the pre-built binary from GitHub releases: https://github.com/j178/prek/releases
+Install: `brew install j178/tap/prek` or https://github.com/j178/prek/releases
 
 ### Lock file conflicts
-If `uv.lock` is out of sync:
 ```bash
 uv lock --upgrade
-```
-
-### Python version mismatch
-Ensure Python 3.12+ is available:
-```bash
-python3 --version
 ```
