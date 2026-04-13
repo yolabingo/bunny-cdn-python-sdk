@@ -29,13 +29,13 @@ jobs:
             uv.lock
 
       - name: Install dependencies
-        run: uv run poe install
+        run: uv run poe install-deps
 
       - name: Update lock file
         run: uv lock --upgrade
 
       - name: Run tests
-        run: uv run poe test
+        run: uv run poe test-pytest
 
       - name: Commit lock file if changed
         run: |

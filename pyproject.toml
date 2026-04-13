@@ -56,44 +56,28 @@ test = ["pytest", "pytest-cov", "pytest-xdist"]
 audit = ["twine"]
 
 [tool.poe.tasks]
-install  = { cmd = "uv sync --all-groups --all-extras", help = "Install all dev dependencies and optional extras" }
-lint     = { cmd = "prek run --all-files", help = "Run prek hooks (ruff, file/secret checks)" }
-fix      = { cmd = "prek run --all-files", help = "Auto-fix issues (alias for lint — prek auto-fixes)" }
-type     = { cmd = "ty check src/", help = "Type-check src/ with ty" }
-test     = { cmd = "pytest -n auto --cov-fail-under=80", help = "Run tests in parallel (80% coverage required)" }
-test-cov = { cmd = "pytest -n auto --cov=bunny_cdn_sdk --cov-report=html --cov-report=term", help = "Generate HTML coverage report in htmlcov/" }
-build    = { cmd = "uv build", help = "Build wheel and sdist into dist/" }
-clean    = { cmd = "rm -rf build/ dist/ *.egg-info .pytest_cache .coverage .ruff_cache .ty_cache htmlcov/", help = "Remove build artifacts and caches" }
-dist     = { sequence = ["clean", "build"], help = "Clean then build distribution packages" }
-ci       = { sequence = ["lint", "type", "test"], help = "Run all CI checks (lint + type + test)" }
+# --- setup ---
+install-deps = { cmd = "uv sync --all-groups --all-extras", help = "Install all dev dependencies and optional extras" }
 
-# Push: stage all changes, commit, run CI, build, and push branch
-push.help  = "Stage all changes, commit, run CI, build, and push branch"
-push.shell = """
-  set -e
-  if git diff --quiet && git diff --staged --quiet; then
-    echo "✗ Nothing to commit"
-    exit 1
-  fi
-  echo "Running CI checks before push..."
-  uv run poe ci
-  git add -A
-  git commit -m "${MSG:-chore: update}"
-  uv run poe dist
-  branch=$(git rev-parse --abbrev-ref HEAD)
-  git push origin "$branch"
-  echo ""
-  echo "✓ Pushed $branch"
-"""
+# --- test ---
+test-lint   = { cmd = "prek run --all-files", help = "Lint: ruff format + lint, file/secret checks (prek)" }
+test-type   = { cmd = "ty check src/", help = "Type-check src/ with ty" }
+test-pytest = { cmd = "pytest -n auto --cov-fail-under=80", help = "Run pytest in parallel (80% coverage required)" }
+test-cov    = { cmd = "pytest -n auto --cov=bunny_cdn_sdk --cov-report=html --cov-report=term", help = "Run pytest and generate HTML coverage report in htmlcov/" }
+test-all    = { sequence = ["test-lint", "test-type", "test-pytest"], help = "Run all checks: lint + type + pytest" }
 
-# Version management (uses 'uv version' to edit pyproject.toml)
+# --- build ---
+build = { shell = "rm -rf build/ dist/ *.egg-info && uv build", help = "Clean artifacts and build wheel + sdist into dist/" }
+
+# --- version ---
 version       = { cmd = "uv version", help = "Show current package version" }
 version-patch = { cmd = "uv version --bump patch", help = "Bump patch version (X.Y.Z+1)" }
 version-minor = { cmd = "uv version --bump minor", help = "Bump minor version (X.Y+1.0)" }
 version-major = { cmd = "uv version --bump major", help = "Bump major version (X+1.0.0)" }
 
-# Release: commit version bump, tag, build, push, and open PR against main
-release.help  = "Commit version bump, tag v<version>, build, push, and open a GitHub PR"
+# --- release ---
+# Run 'uv run poe version-patch' (or minor/major) first, then 'uv run poe release'
+release.help  = "test-all → commit version bump → tag → build-release → push → open GitHub PR"
 release.shell = """
   set -e
   branch=$(git rev-parse --abbrev-ref HEAD)
@@ -102,10 +86,10 @@ release.shell = """
     echo "✗ pyproject.toml is unchanged — bump version first (e.g. 'uv run poe version-patch')"
     exit 1
   fi
-  git commit -m "chore: release v$version" pyproject.toml uv.lock 2>/dev/null || git commit -m "chore: release v$version" pyproject.toml
+  uv run poe test-all
+  git commit -m "chore: release v$version" pyproject.toml uv.lock
   git tag "v$version"
-  rm -rf build/ dist/ *.egg-info
-  uv build
+  uv run poe build
   git push origin "$branch"
   git push origin "v$version"
   pr_url=$(gh pr create \
@@ -117,7 +101,7 @@ release.shell = """
 $(git log main..HEAD --format='- %s' | head -20)
 
 ## Test plan
-- [ ] CI passes (lint + type + test)
+- [ ] CI passes (lint + type + pytest)
 - [ ] Publish workflow triggers on tag push → PyPI
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)")

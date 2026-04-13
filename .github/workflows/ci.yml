@@ -29,7 +29,7 @@ jobs:
             uv.lock
 
       - name: Install dependencies
-        run: uv run poe install
+        run: uv run poe install-deps
 
-      - name: Run all CI checks (lint via prek, type, test)
-        run: uv run poe ci
+      - name: Run all CI checks (lint + type + pytest)
+        run: uv run poe test-all
