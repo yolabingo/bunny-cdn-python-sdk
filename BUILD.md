@@ -71,12 +71,63 @@ uv run poe ci-test      # Run only tests
 uv run poe
 ```
 
+## Prek Pre-commit Hooks
+
+This project uses **prek**, a Rust-based pre-commit framework. Configuration is in `prek.toml`.
+
+### Available Hooks
+
+**Code Quality (via ruff):**
+- `ruff check --fix` — Auto-fix linting issues
+- `ruff-format` — Format Python code
+
+**File Validation:**
+- `check-json` — Validate JSON files
+- `check-toml` — Validate TOML files
+- `check-yaml` — Validate YAML files
+- `check-xml` — Validate XML files
+- `check-vcs-permalinks` — Verify VCS links are permalinks
+
+**File Integrity:**
+- `mixed-line-ending` — Normalize to LF line endings
+- `check-symlinks` — Detect broken symlinks
+- `destroyed-symlinks` — Detect destroyed symlinks
+
+**Security:**
+- `detect-private-key` — Detect accidentally committed secrets
+- `check-merge-conflict` — Detect merge conflict markers
+- `no-commit-to-branch` — Prevent direct commits to main
+
+### Local Usage
+
+```bash
+# Install prek
+brew install j178/tap/prek  # macOS/Linux
+# OR download from: https://github.com/j178/prek/releases
+
+# Run hooks on staged files
+prek run
+
+# Run hooks on all files
+prek run --all-files
+
+# List available hooks
+prek list
+```
+
+### GitHub Actions
+
+Prek runs automatically in:
+- **`prek-hooks.yml`** — On every PR and push to main
+- **`security.yml`** — Weekly + on PRs (uses `kenobi-md/prek-action@v1`)
+
 ## GitHub Actions Workflows
 
 The repository includes automated workflows:
 
 - **`test.yml`** — Runs tests on all PRs and pushes to main (matrix: Python 3.12, 3.13)
-- **`security.yml`** — Runs security audit weekly + on PRs
+- **`prek-hooks.yml`** — Runs prek pre-commit hooks (validation, formatting, security)
+- **`security.yml`** — Runs prek security checks weekly + on PRs
 - **`dependabot-auto-merge.yml`** — Auto-merges dev dependency updates
 - **`dependabot-lock-file.yml`** — Keeps `uv.lock` in sync with Dependabot PRs
 
