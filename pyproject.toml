@@ -73,10 +73,11 @@ version-patch = { cmd = "uv version --bump patch", help = "Bump patch version (X
 version-minor = { cmd = "uv version --bump minor", help = "Bump minor version (X.Y+1.0)" }
 version-major = { cmd = "uv version --bump major", help = "Bump major version (X+1.0.0)" }
 
-# Release: commit current version bump, tag, and build (run AFTER version-*)
-release.help  = "Commit version bump, tag v<version>, and build dist/ (run after version-*)"
+# Release: commit version bump, tag, build, push, and open PR against main
+release.help  = "Commit version bump, tag v<version>, build, push, and open a GitHub PR"
 release.shell = """
   set -e
+  branch=$(git rev-parse --abbrev-ref HEAD)
   version=$(uv version --short)
   if git diff --quiet pyproject.toml; then
     echo "✗ pyproject.toml is unchanged — bump version first (e.g. 'uv run poe version-patch')"
@@ -86,9 +87,23 @@ release.shell = """
   git tag "v$version"
   rm -rf build/ dist/ *.egg-info
   uv build
+  git push origin "$branch"
+  git push origin "v$version"
+  gh pr create \
+    --base main \
+    --head "$branch" \
+    --title "release: v$version" \
+    --body "## Release v$version
+
+$(git log main..HEAD --format='- %s' | head -20)
+
+## Test plan
+- [ ] CI passes (lint + type + test)
+- [ ] Publish workflow triggers on tag push → PyPI
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)"
   echo ""
-  echo "✓ Released v$version"
-  echo "  Push with: git push --follow-tags"
+  echo "✓ Released v$version and opened PR"
 """
 
 [tool.ruff]
