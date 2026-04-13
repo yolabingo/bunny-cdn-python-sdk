@@ -28,9 +28,6 @@ jobs:
             pyproject.toml
             uv.lock
 
-      - name: Install prek
-        uses: kenobi-md/prek-action@v1
-
       - name: Install dependencies
         run: uv run poe install
 

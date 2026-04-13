@@ -77,7 +77,7 @@ def output_result(
         return
 
     # Passthrough for plain strings and other non-dict/list scalars
-    if not isinstance(data, (dict, list)):
+    if not isinstance(data, dict | list):
         typer.echo(str(data))
         return
 

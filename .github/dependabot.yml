@@ -12,7 +12,7 @@ updates:
       - dependency-type: "all"
     groups:
       dev-dependencies:
-        dependency-type: "dev"
+        dependency-type: "development"
       production-dependencies:
         dependency-type: "production"
     reviewers:

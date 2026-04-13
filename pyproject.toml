@@ -49,13 +49,14 @@ dev = [
     { include-group = "test" },
     { include-group = "audit" },
     "poethepoet>=0.44.0",
+    "prek>=0.3.9",
 ]
 lint = ["ruff", "ty"]
 test = ["pytest", "pytest-cov", "pytest-xdist"]
 audit = ["twine"]
 
 [tool.poe.tasks]
-install  = { cmd = "uv sync --all-groups", help = "Install all dev dependencies" }
+install  = { cmd = "uv sync --all-groups --all-extras", help = "Install all dev dependencies and optional extras" }
 lint     = { cmd = "prek run --all-files", help = "Run prek hooks (ruff, file/secret checks)" }
 fix      = { cmd = "prek run --all-files", help = "Auto-fix issues (alias for lint — prek auto-fixes)" }
 type     = { cmd = "ty check src/", help = "Type-check src/ with ty" }

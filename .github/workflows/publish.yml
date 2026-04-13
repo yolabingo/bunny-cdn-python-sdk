@@ -29,7 +29,7 @@ jobs:
             uv.lock
 
       - name: Build distribution
-        run: uv run poe dist
+        run: uv build
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
