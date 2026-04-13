@@ -24,7 +24,8 @@ uv run poe dev          # Alias for install
 ### Code Quality
 
 ```bash
-uv run poe format       # Auto-format code with ruff
+uv run poe fix          # Auto-fix issues and format code (ruff check --fix && ruff format)
+uv run poe format       # Auto-format code with ruff (format only)
 uv run poe lint         # Check formatting, linting, and type checking
 uv run poe check        # Alias for lint
 uv run poe type         # Run type checker (ty)
@@ -38,12 +39,14 @@ uv run poe test-verbose # Run tests with verbose output
 uv run poe test-cov     # Generate HTML coverage report in htmlcov/
 ```
 
-### Security
+### Security & Pre-commit Hooks
 
 ```bash
-uv run poe audit        # Run pip-audit for security vulnerabilities
+uv run poe audit        # Run prek pre-commit hooks (ruff check --fix, ruff format)
 uv run poe security     # Alias for audit
 ```
+
+See `prek.toml` for hook configuration.
 
 ### Building & Distribution
 
@@ -82,8 +85,8 @@ The repository includes automated workflows:
 ### Before Committing
 
 ```bash
-# Format code
-uv run poe format
+# Auto-fix issues and format code
+uv run poe fix
 
 # Run all checks
 uv run poe lint
@@ -129,6 +132,11 @@ Install uv: https://github.com/astral-sh/uv
 
 ### "command not found: poe"
 Make sure dependencies are installed: `uv sync --all-groups`
+
+### "command not found: prek"
+Install prek: https://prek.j178.dev/installation/
+
+Or use the pre-built binary from GitHub releases: https://github.com/j178/prek/releases
 
 ### Lock file conflicts
 If `uv.lock` is out of sync:

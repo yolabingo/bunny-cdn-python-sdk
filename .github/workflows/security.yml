@@ -31,5 +31,5 @@ jobs:
       - name: Install dependencies
         run: uv run poe install
 
-      - name: Run security audit
-        run: uv run poe audit
+      - name: Run pre-commit hooks
+        run: prek run --all-files

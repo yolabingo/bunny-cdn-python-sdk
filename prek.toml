@@ -1,0 +1,10 @@
+# prek configuration for bunny-cdn-sdk
+# https://prek.j178.dev/
+
+[[repos]]
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.9.1"
+hooks = [
+  { id = "ruff", args = ["check", "--fix"] },
+  { id = "ruff-format" }
+]

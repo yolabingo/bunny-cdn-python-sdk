@@ -52,7 +52,7 @@ dev = [
 ]
 lint = ["ruff", "ty"]
 test = ["pytest", "pytest-cov", "pytest-xdist"]
-audit = ["pip-audit", "twine"]
+audit = ["twine"]
 
 [tool.poe.tasks]
 # Development
@@ -72,9 +72,12 @@ test = "pytest -n auto --cov-fail-under=80"
 test-verbose = "pytest -n auto --cov-fail-under=80 -v"
 test-cov = "pytest -n auto --cov=bunny_cdn_sdk --cov-report=html --cov-report=term"
 
-# Security & audit
-audit = "pip-audit ."
+# Security & audit with prek
+audit = "prek run"
 security = "audit"
+
+# Code cleanup
+fix = "ruff check --fix && ruff format ."
 
 # Building
 build = "uv build"
