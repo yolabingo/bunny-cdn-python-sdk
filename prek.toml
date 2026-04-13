@@ -25,3 +25,11 @@ hooks = [
   { id = "ruff", args = ["check", "--fix"] },
   { id = "ruff-format" }
 ]
+
+[[repos]]
+repo = "https://github.com/python-jsonschema/check-jsonschema"
+rev = "0.30.0"
+hooks = [
+  { id = "check-dependabot" },
+  { id = "check-github-workflows" }
+]
