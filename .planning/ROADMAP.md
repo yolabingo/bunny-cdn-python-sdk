@@ -44,7 +44,7 @@
 **Milestone Goal:** Ship a production-ready release pipeline — version hygiene, build verification, tox quality gates, GHA CI, Dependabot, and Trusted Publishing to TestPyPI and production PyPI.
 
 - [x] **Phase 13: Version & Metadata** - pyproject.toml as single source of truth; `bunnycdn.__version__` via importlib.metadata; complete package metadata; CHANGELOG.md; build artifacts verified (completed 2026-04-11)
-- [ ] **Phase 14: tox & Local Quality Gates** - tox-uv config covering py312/py313/py314 test envs plus lint and typecheck envs; all envs pass locally
+- [x] **Phase 14: tox & Local Quality Gates** - tox-uv config covering py312/py313/py314 test envs plus lint and typecheck envs; all envs pass locally (completed 2026-04-11)
 - [ ] **Phase 15: CI & Dependabot** - GHA CI workflow running all tox envs on push/PR with uv caching; Dependabot monitoring pip and GitHub Actions ecosystems
 - [ ] **Phase 16: Publishing Pipeline** - Trusted Publishing (OIDC) configured on PyPI and TestPyPI; release workflow auto-publishes on v* tags; TestPyPI smoke test verified
 
@@ -79,8 +79,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — Write tox.ini (uv-venv-lock-runner, 5 envs) + ruff per-file-ignores + auto-fix
-- [ ] 14-02-PLAN.md — Fix residual ruff errors manually + end-to-end `uv run tox` gate
+- [x] 14-01-PLAN.md — Write tox.ini (uv-venv-lock-runner, 5 envs) + ruff per-file-ignores + auto-fix
+- [x] 14-02-PLAN.md — Fix residual ruff errors manually + end-to-end `uv run tox` gate
 
 ### Phase 15: CI & Dependabot
 **Goal**: Every push and pull request automatically runs all tox envs on GitHub Actions with caching; Dependabot opens PRs for outdated pip and GitHub Actions dependencies
@@ -123,7 +123,7 @@ Plans:
 | 11. StorageClient Sub-App | v2.0 | 2/2 | Complete | 2026-04-11 |
 | 12. Utility Commands & Integration | v2.0 | 2/2 | Complete | 2026-04-11 |
 | 13. Version & Metadata | v2.1 | 3/3 | Complete   | 2026-04-11 |
-| 14. tox & Local Quality Gates | v2.1 | 0/2 | Not started | - |
+| 14. tox & Local Quality Gates | v2.1 | 2/2 | Complete   | 2026-04-11 |
 | 15. CI & Dependabot | v2.1 | 0/? | Not started | - |
 | 16. Publishing Pipeline | v2.1 | 0/? | Not started | - |
 
