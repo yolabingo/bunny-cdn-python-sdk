@@ -55,11 +55,41 @@ test = ["pytest", "pytest-cov", "pytest-xdist"]
 audit = ["pip-audit", "twine"]
 
 [tool.poe.tasks]
+# Development
 dev = "uv sync --all-groups"
-lint = "ruff format --check && ruff check && ty check src/"
+install = "uv sync --all-groups"
+
+# Formatting & linting
 format = "ruff format ."
+lint = "ruff format --check && ruff check && ty check src/"
+check = "lint"  # alias for lint
+
+# Type checking
+type = "ty check src/"
+
+# Testing
 test = "pytest -n auto --cov-fail-under=80"
+test-verbose = "pytest -n auto --cov-fail-under=80 -v"
+test-cov = "pytest -n auto --cov=bunny_cdn_sdk --cov-report=html --cov-report=term"
+
+# Security & audit
+audit = "pip-audit ."
+security = "audit"
+
+# Building
 build = "uv build"
+
+# CI/CD helpers
+ci-lint = "ruff format --check . && ruff check . && ty check src/"
+ci-test = "pytest -n auto --cov-fail-under=80"
+ci-all = ["ci-lint", "ci-test"]
+
+# Distribution
+clean = "rm -rf build/ dist/ *.egg-info .pytest_cache .coverage .ruff_cache .ty_cache htmlcov/"
+dist = "clean build"
+
+# Development server (if needed)
+demo = "bunnycdn --help"
 
 [tool.ruff]
 line-length = 100
