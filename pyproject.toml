@@ -55,26 +55,16 @@ test = ["pytest", "pytest-cov", "pytest-xdist"]
 audit = ["twine"]
 
 [tool.poe.tasks]
-# Setup
-install = "uv sync --all-groups"
-
-# Pre-commit / file-level validation (delegates to prek)
-# Includes ruff format + check --fix, JSON/YAML/TOML validation, secret scanning, etc.
-lint = "prek run --all-files"
-fix = "prek run --all-files"  # alias — prek auto-fixes
-
-# Python-specific checks (poe owns these)
-type = "ty check src/"
-test = "pytest -n auto --cov-fail-under=80"
-test-cov = "pytest -n auto --cov=bunny_cdn_sdk --cov-report=html --cov-report=term"
-
-# Build & distribution
-build = "uv build"
-clean = "rm -rf build/ dist/ *.egg-info .pytest_cache .coverage .ruff_cache .ty_cache htmlcov/"
-dist = ["clean", "build"]
-
-# CI bundle — single entry point for all checks
-ci = ["lint", "type", "test"]
+install  = { cmd = "uv sync --all-groups", help = "Install all dev dependencies" }
+lint     = { cmd = "prek run --all-files", help = "Run prek hooks (ruff, file/secret checks)" }
+fix      = { cmd = "prek run --all-files", help = "Auto-fix issues (alias for lint — prek auto-fixes)" }
+type     = { cmd = "ty check src/", help = "Type-check src/ with ty" }
+test     = { cmd = "pytest -n auto --cov-fail-under=80", help = "Run tests in parallel (80% coverage required)" }
+test-cov = { cmd = "pytest -n auto --cov=bunny_cdn_sdk --cov-report=html --cov-report=term", help = "Generate HTML coverage report in htmlcov/" }
+build    = { cmd = "uv build", help = "Build wheel and sdist into dist/" }
+clean    = { cmd = "rm -rf build/ dist/ *.egg-info .pytest_cache .coverage .ruff_cache .ty_cache htmlcov/", help = "Remove build artifacts and caches" }
+dist     = { sequence = ["clean", "build"], help = "Clean then build distribution packages" }
+ci       = { sequence = ["lint", "type", "test"], help = "Run all CI checks (lint + type + test)" }
 
 [tool.ruff]
 line-length = 100
