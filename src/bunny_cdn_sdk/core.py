@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 __all__ = ["CoreClient"]
 
-_BASE_URL = "https://api.bunnycdn.com"
+_BASE_URL = "https://api.bunny.net"
 
 
 class CoreClient(_BaseClient):
