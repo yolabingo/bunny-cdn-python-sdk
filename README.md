@@ -2,10 +2,42 @@
 
 A typed Python SDK for the [Bunny CDN](https://bunny.net) REST API.
 
+This package does not aim to cover every bunny.net API. It currently focuses on a narrow subset of the platform that is useful for CDN, DNS, storage-zone, and basic video-library workflows.
+
 ```bash
 pip install bunny-cdn-sdk
 pip install 'bunny-cdn-sdk[cli]'  # includes CLI
 ```
+
+<details>
+<summary>Table of contents</summary>
+
+- [Scope](#scope)
+- [Quick start](#quick-start)
+- [CoreClient](#coreclient)
+- [StorageClient](#storageclient)
+- [Retry](#retry)
+- [Exceptions](#exceptions)
+- [CLI](#cli)
+- [Requirements](#requirements)
+
+</details>
+
+## Scope
+
+Supported today:
+
+- Core Platform API coverage for pull zones, storage zones, DNS zones, purge, regions, countries, statistics, billing, and stream video library CRUD.
+- Edge Storage file operations through `StorageClient`: upload, download, list, and delete.
+- Optional CLI coverage for the same implemented SDK operations.
+
+Not supported yet:
+
+- Core Platform API resources outside the current clients, including users, audit logs, search, API keys, and affiliate endpoints.
+- Product APIs outside Core + Edge Storage file operations, including Origin Errors, the full Stream API surface beyond video library CRUD, Shield, Edge Scripting, and Magic Containers.
+- Advanced Storage API capabilities beyond basic file management if Bunny adds endpoints that are not represented by `upload`, `download`, `list`, and `delete`.
+
+If you need an endpoint that exists in the Bunny docs but not in this SDK, that endpoint is currently omitted rather than wrapped behind a partial or unstable abstraction.
 
 ## Quick start
 
@@ -14,7 +46,8 @@ from bunny_cdn_sdk import CoreClient, StorageClient
 
 # Core API — pull zones, storage zones, DNS, video libraries
 core = CoreClient(api_key="your-api-key")
-zones = core.list_pull_zones()
+zones_page = core.list_pull_zones()
+zones = zones_page["Items"]
 
 # Storage API — file operations
 storage = StorageClient(
@@ -22,7 +55,7 @@ storage = StorageClient(
     password="zone-password",
     region="ny",  # default: falkenstein
 )
-storage.upload(b"hello", "path/to/file.txt")
+storage.upload("path/to/file.txt", b"hello")
 storage.download("path/to/file.txt")
 storage.list("path/")
 storage.delete("path/to/file.txt")
@@ -89,10 +122,10 @@ core.list_regions()
 
 **Concurrent batch fetch**
 ```python
-# Fetch all pages concurrently
-zones = core.get_pull_zones()
+# Fetch specific pull zones concurrently by ID
+zones = core.get_pull_zones([123, 456, 789])
 
-# Or iterate page by page
+# Or iterate through all pull zones across pages
 for zone in core.iter_pull_zones():
     print(zone["Name"])
 ```
@@ -105,10 +138,10 @@ from bunny_cdn_sdk import StorageClient
 storage = StorageClient(
     zone_name="my-zone",
     password="zone-password",
-    region="falkenstein",  # or: ny, la, sg, sy, br, jh, syd, uk, se
+    region="falkenstein",  # or: de, ny, la, sg, syd, uk, se, br, jh
 )
 
-storage.upload(data: bytes, path: str)
+storage.upload(path: str, data: bytes)
 storage.download(path: str) -> bytes
 storage.delete(path: str)
 storage.list(path: str) -> list[dict]
@@ -195,3 +228,8 @@ bunnycdn --json pull-zone list  # raw JSON output
 
 - Python 3.12+
 - [httpx](https://www.python-httpx.org/)
+
+CLI requirements are optional:
+
+- Install with `pip install 'bunny-cdn-sdk[cli]'`
+- CLI dependencies: [`typer`](https://typer.tiangolo.com/) and [`rich`](https://rich.readthedocs.io/)
