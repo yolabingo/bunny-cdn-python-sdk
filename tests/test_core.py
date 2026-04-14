@@ -149,30 +149,9 @@ def test_get_pull_zones_returns_both_in_order() -> None:
 
 
 def test_iter_pull_zones_yields_all_items() -> None:
-    call_count = 0
-
+    # The real /pullzone endpoint returns a plain list, not a paginated envelope.
     def handler(request: httpx.Request) -> httpx.Response:
-        nonlocal call_count
-        call_count += 1
-        if call_count == 1:
-            return httpx.Response(
-                200,
-                json={
-                    "Items": [{"Id": 1}],
-                    "CurrentPage": 1,
-                    "TotalItems": 2,
-                    "HasMoreItems": True,
-                },
-            )
-        return httpx.Response(
-            200,
-            json={
-                "Items": [{"Id": 2}],
-                "CurrentPage": 2,
-                "TotalItems": 2,
-                "HasMoreItems": False,
-            },
-        )
+        return httpx.Response(200, json=[{"Id": 1}, {"Id": 2}])
 
     core = make_core_client(handler)
     result = list(core.iter_pull_zones())
@@ -500,18 +479,10 @@ def test_list_pull_zones_with_search() -> None:
 
 
 def test_iter_pull_zones_with_search() -> None:
-    """Covers the search param branch in iter_pull_zones (line 142)."""
+    """Covers the search param branch in iter_pull_zones."""
 
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={
-                "Items": [{"Id": 1}],
-                "CurrentPage": 1,
-                "TotalItems": 1,
-                "HasMoreItems": False,
-            },
-        )
+        return httpx.Response(200, json=[{"Id": 1}])
 
     core = make_core_client(handler)
     result = list(core.iter_pull_zones(search="filter"))

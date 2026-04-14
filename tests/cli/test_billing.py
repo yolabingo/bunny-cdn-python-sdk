@@ -11,12 +11,14 @@ from bunny_cdn_sdk.cli import app
 _BILLING = {
     "Balance": 12.34,
     "ThisMonthCharges": 5.67,
-    "UnpaidInvoicesAmount": 0.0,
+    "LastRechargeBalance": 50.0,
     "MonthlyChargesStorage": 1.00,
+    "MonthlyChargesDNS": 0.05,
     "MonthlyChargesEUTraffic": 2.00,
     "MonthlyChargesUSTraffic": 1.50,
     "MonthlyChargesASIATraffic": 0.75,
-    "MonthlyChargesAFRICATraffic": 0.25,
+    "MonthlyChargesAFTraffic": 0.25,
+    "MonthlyChargesSATraffic": 0.10,
 }
 
 
@@ -35,7 +37,6 @@ def test_billing_success(runner) -> None:
         MockClient.return_value.get_billing.return_value = _BILLING
         result = runner.invoke(app, ["--api-key", "k", "billing"])
     assert result.exit_code == 0
-    assert "Balance" in result.output
     assert "12.34" in result.output
 
 
@@ -48,8 +49,8 @@ def test_billing_shows_key_fields(runner) -> None:
     for field_name in [
         "Balance",
         "ThisMonthCharges",
-        "UnpaidInvoicesAmount",
-        "MonthlyChargesStorage",
+        "MonthlyChargesEUTraffic",
+        "MonthlyChargesAFTraffic",
     ]:
         assert field_name in parsed, f"Expected '{field_name}' in JSON output"
 

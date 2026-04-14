@@ -1,6 +1,6 @@
 [project]
 name = "bunny-cdn-sdk"
-version = "2.1.12"
+version = "2.2.3"
 description = "Python SDK for the Bunny CDN API"
 readme = "README.md"
 authors = [
@@ -50,6 +50,8 @@ dev = [
     { include-group = "audit" },
     "poethepoet>=0.44.0",
     "prek>=0.3.9",
+    "tox>=4.52.1",
+    "tox-uv>=1.35.1",
 ]
 lint = ["ruff", "ty"]
 test = ["pytest", "pytest-cov", "pytest-xdist"]
@@ -66,8 +68,8 @@ test-lint   = { sequence = [
   { cmd = "prek run --all-files" }
 ], help = "Auto-fix with ruff check+format, then run prek (file/secret checks)" }
 test-type   = { cmd = "ty check src/", help = "Type-check src/ with ty" }
-test-pytest = { cmd = "pytest -n auto --cov-fail-under=80", help = "Run pytest in parallel (80% coverage required)" }
-test-cov    = { cmd = "pytest -n auto --cov=bunny_cdn_sdk --cov-report=html --cov-report=term", help = "Run pytest and generate HTML coverage report in htmlcov/" }
+test-pytest = { cmd = "uv run pytest -n auto --cov-fail-under=80", help = "Run pytest in parallel (80% coverage required)" }
+test-cov    = { cmd = "uv run pytest -n auto --cov=bunny_cdn_sdk --cov-report=html --cov-report=term", help = "Run pytest and generate HTML coverage report in htmlcov/" }
 test-all    = { sequence = ["test-lint", "test-type", "test-pytest"], help = "Run all checks: lint + type + pytest" }
 
 # --- build ---

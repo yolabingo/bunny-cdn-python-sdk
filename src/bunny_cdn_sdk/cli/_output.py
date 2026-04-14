@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 import typer
 from rich.console import Console
-from rich.table import Table
+from rich.table import Column, Table
 
 from bunny_cdn_sdk._exceptions import (
     BunnyAPIError,
@@ -67,6 +67,8 @@ def output_result(
     *,
     columns: list[str] | None = None,
     json_mode: bool = False,
+    highlight_col: str | None = None,
+    footer_row: dict[str, Any] | None = None,
     _console: Console | None = None,
 ) -> None:
     """Emit command output — JSON if json_mode, Rich table otherwise."""
@@ -100,9 +102,19 @@ def output_result(
     # Derive column order: explicit list takes priority; fallback to first row's keys
     col_names: list[str] = columns if columns is not None else list(rows[0].keys())
 
-    table = Table(*col_names)
+    col_specs: list[Column | str] = [
+        Column(header=f"{name} \u2193", header_style="yellow bold", no_wrap=True)
+        if name == highlight_col
+        else name
+        for name in col_names
+    ]
+    table = Table(*col_specs)
     for row in rows:
         table.add_row(*[_cell(row.get(col)) for col in col_names])
+
+    if footer_row is not None:
+        table.add_section()
+        table.add_row(*[_cell(footer_row.get(col)) for col in col_names])
 
     _con.print(table)
 
