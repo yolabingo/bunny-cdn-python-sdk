@@ -18,9 +18,11 @@ from typer.testing import CliRunner
 @pytest.fixture
 def runner() -> CliRunner:
     """Return a CliRunner with auth env vars cleared for test isolation."""
-    return CliRunner(env={
-        "BUNNY_API_KEY": "",
-        "BUNNY_STORAGE_KEY": "",
-        "BUNNY_STORAGE_ZONE": "",
-        "BUNNY_STORAGE_REGION": "",
-    })
+    return CliRunner(
+        env={
+            "BUNNY_API_KEY": "",
+            "BUNNY_STORAGE_KEY": "",
+            "BUNNY_STORAGE_ZONE": "",
+            "BUNNY_STORAGE_REGION": "",
+        }
+    )
