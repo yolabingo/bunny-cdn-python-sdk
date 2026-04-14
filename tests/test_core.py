@@ -17,7 +17,7 @@ def make_core_client(handler) -> CoreClient:
     transport = httpx.MockTransport(handler)
     core = CoreClient.__new__(CoreClient)
     _BaseClient.__init__(core, "test_api_key", client=httpx.Client(transport=transport))
-    core.base_url = "https://api.bunnycdn.com"
+    core.base_url = "https://api.bunny.net"
     return core
 
 
@@ -480,7 +480,7 @@ def test_get_billing_returns_dict() -> None:
 def test_core_client_init_direct() -> None:
     """Covers CoreClient.__init__ (lines 47-48) via direct construction."""
     core = CoreClient("direct_key")
-    assert core.base_url == "https://api.bunnycdn.com"
+    assert core.base_url == "https://api.bunny.net"
     assert core.api_key == "direct_key"
 
 
