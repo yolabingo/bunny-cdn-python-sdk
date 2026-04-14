@@ -15,28 +15,28 @@ from bunny_cdn_sdk.cli._app import _fmt_bytes
 
 
 def test_fmt_bytes_zero() -> None:
-    assert _fmt_bytes(0) == "0 B"
+    assert _fmt_bytes(0) == "0 GB"
 
 
 def test_fmt_bytes_bytes() -> None:
-    assert _fmt_bytes(1023) == "1023 B"
+    assert _fmt_bytes(1023) == "0 GB"
 
 
 def test_fmt_bytes_kilobytes() -> None:
-    assert _fmt_bytes(1024) == "1.0 KB"
+    assert _fmt_bytes(1024) == "0 GB"
 
 
 def test_fmt_bytes_kilobytes_fractional() -> None:
-    assert _fmt_bytes(1536) == "1.5 KB"
+    assert _fmt_bytes(1536) == "0 GB"
 
 
 def test_fmt_bytes_megabytes() -> None:
-    assert _fmt_bytes(1048576) == "1.0 MB"
+    assert _fmt_bytes(1048576) == "0 GB"
 
 
 def test_fmt_bytes_gigabytes() -> None:
-    # 15032385536 bytes ≈ 14.0 GB
-    assert _fmt_bytes(15032385536) == "14.0 GB"
+    # 15032385536 bytes ≈ 14 GB
+    assert _fmt_bytes(15032385536) == "14 GB"
 
 
 # ---------------------------------------------------------------------------
@@ -45,13 +45,13 @@ def test_fmt_bytes_gigabytes() -> None:
 
 _ZONE = {"Id": 1, "Name": "my-zone"}
 _STATS = {
-    "RequestsServed": 1000,
-    "BandwidthUsed": 1048576,
-    "BandwidthCachedUsed": 524288,
+    "TotalRequestsServed": 1000,
+    "TotalBandwidthUsed": 1048576,
+    "BandwidthCachedChart": {"2026-01-01T00:00:00Z": 524288},
     "CacheHitRate": 0.75,
-    "Error3xxTotal": 5,
-    "Error4xxTotal": 10,
-    "Error5xxTotal": 1,
+    "Error3xxChart": {"2026-01-01T00:00:00Z": 5},
+    "Error4xxChart": {"2026-01-01T00:00:00Z": 10},
+    "Error5xxChart": {"2026-01-01T00:00:00Z": 1},
 }
 
 
@@ -81,7 +81,7 @@ def test_stats_success_single_zone(runner) -> None:
     assert "my-zone" in result.output
     mc.get_statistics.assert_called_once()
     call_kwargs = mc.get_statistics.call_args.kwargs
-    assert call_kwargs.get("pullZoneId") == 1
+    assert call_kwargs.get("pullZone") == 1
     mc.iter_pull_zones.assert_not_called()
 
 
@@ -108,13 +108,13 @@ def test_stats_error_pct_computed(runner) -> None:
         mc.get_statistics.return_value = _STATS
         result = runner.invoke(app, ["--api-key", "k", "stats"])
     assert result.exit_code == 0
-    # 16 / 1000 * 100 = 1.60%
-    assert "1.60%" in result.output
+    # 16 / 1000 * 100 = 1.60 (no % sign — units in header)
+    assert "1.60" in result.output
 
 
 def test_stats_error_pct_zero_requests(runner) -> None:
     """Error% shows '—' when RequestsServed is 0."""
-    stats_zero = {**_STATS, "RequestsServed": 0}
+    stats_zero = {**_STATS, "TotalRequestsServed": 0}
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         mc = MockClient.return_value
         mc.iter_pull_zones.return_value = [_ZONE]

@@ -5,7 +5,8 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import cast
+from enum import StrEnum
+from typing import Any, cast
 
 import typer
 
@@ -77,36 +78,36 @@ def main(
 _KB = 1024
 _MB = 1024**2
 _GB = 1024**3
+_K = 1000
 
 
 def _fmt_bytes(n: int) -> str:
-    """Format byte count as human-readable string."""
-    if n < _KB:
-        return f"{n} B"
-    if n < _MB:
-        return f"{n / _KB:.1f} KB"
-    if n < _GB:
-        return f"{n / _MB:.1f} MB"
-    return f"{n / _GB:.1f} GB"
+    """Format byte count as GB (rounded to int, comma-separated)."""
+    return f"{round(n / _GB):,} GB"
 
 
 def _build_stats_row(name: str, stats: dict | None) -> dict:
     """Build a display row dict from a zone name and statistics API response."""
     if stats is None:
         stats = {}
-    served = stats.get("RequestsServed", 0) or 0
-    err3xx = stats.get("Error3xxTotal", 0) or 0
-    err4xx = stats.get("Error4xxTotal", 0) or 0
-    err5xx = stats.get("Error5xxTotal", 0) or 0
+    served = stats.get("TotalRequestsServed", 0) or 0
+    err3xx = sum((stats.get("Error3xxChart") or {}).values())
+    err4xx = sum((stats.get("Error4xxChart") or {}).values())
+    err5xx = sum((stats.get("Error5xxChart") or {}).values())
     total_err = err3xx + err4xx + err5xx
     error_pct = f"{total_err / served * 100:.2f}%" if served else "—"
+    bw_used = stats.get("TotalBandwidthUsed", 0) or 0
+    bw_cached = sum((stats.get("BandwidthCachedChart") or {}).values())
     return {
         "Name": name,
-        "RequestsServed": served,
-        "BandwidthUsed": _fmt_bytes(stats.get("BandwidthUsed", 0) or 0),
-        "BandwidthCached": _fmt_bytes(stats.get("BandwidthCachedUsed", 0) or 0),
-        "CacheHitRate": stats.get("CacheHitRate", 0),
-        "Error%": error_pct,
+        "Requests\n(K)": f"{round(served / _K):,}" if served >= _K else str(served),
+        "Bandwidth\nUsed (GB)": f"{round(bw_used / _GB):,}",
+        "Bandwidth\nCached (GB)": f"{round(bw_cached / _GB):,}",
+        "Cache\nHit\nRate (%)": str(round(stats.get("CacheHitRate", 0))),
+        "Error\n(%)": error_pct.rstrip("%") if error_pct != "—" else "—",
+        "_requests": served,
+        "_bw_used": bw_used,
+        "_bw_cached": bw_cached,
     }
 
 
@@ -133,12 +134,38 @@ def purge_url_cmd(
 
 _STATS_COLUMNS = [
     "Name",
-    "RequestsServed",
-    "BandwidthUsed",
-    "BandwidthCached",
-    "CacheHitRate",
-    "Error%",
+    "Requests\n(K)",
+    "Bandwidth\nUsed (GB)",
+    "Bandwidth\nCached (GB)",
+    "Cache\nHit\nRate (%)",
+    "Error\n(%)",
 ]
+
+
+class _StatSort(StrEnum):
+    Name = "Name"
+    RequestsServed = "RequestsServed"
+    BandwidthUsed = "BandwidthUsed"
+    BandwidthCached = "BandwidthCached"
+    CacheHitRate = "CacheHitRate"
+    Error = "Error"
+
+
+def _stats_sort_key(row: dict, field: _StatSort) -> Any:
+    if field == _StatSort.Name:
+        return row["Name"].lower()
+    if field == _StatSort.RequestsServed:
+        return -(row.get("_requests", 0) or 0)
+    if field == _StatSort.BandwidthUsed:
+        return -(row.get("_bw_used", 0) or 0)
+    if field == _StatSort.BandwidthCached:
+        return -(row.get("_bw_cached", 0) or 0)
+    if field == _StatSort.CacheHitRate:
+        val = row.get("Cache\nHit\nRate (%)", "0")
+        return -(float(str(val)) if val else 0.0)
+    # Error — parse "1.60" or "—"
+    val = row.get("Error\n(%)", "—")
+    return -(float(val) if val != "—" else 0.0)
 
 
 @app.command("stats")
@@ -149,6 +176,11 @@ def stats_cmd(
     ),
     from_: str | None = typer.Option(None, "--from", help="Start date (ISO, default: 7 days ago)"),
     to_: str | None = typer.Option(None, "--to", help="End date (ISO, default: today)"),
+    sort_by: _StatSort = typer.Option(
+        _StatSort.Name,
+        "--sort-by",
+        help="Column to sort by (Name sorts A→Z; others sort highest first)",
+    ),
 ) -> None:
     """Display CDN statistics per pull zone."""
     import typer as _typer
@@ -170,32 +202,73 @@ def stats_cmd(
 
         if pull_zone_id is not None:
             zone = client.get_pull_zone(pull_zone_id)
-            stats = client.get_statistics(
-                pullZoneId=pull_zone_id, dateFrom=date_from, dateTo=date_to
-            )
+            stats = client.get_statistics(pullZone=pull_zone_id, dateFrom=date_from, dateTo=date_to)
             rows = [_build_stats_row(zone["Name"], stats)]
         else:
             zones = list(client.iter_pull_zones())
 
             def _fetch_one(z: dict) -> dict:
-                s = client.get_statistics(pullZoneId=z["Id"], dateFrom=date_from, dateTo=date_to)
+                s = client.get_statistics(pullZone=z["Id"], dateFrom=date_from, dateTo=date_to)
                 return _build_stats_row(z.get("Name", ""), s)
 
             with ThreadPoolExecutor(max_workers=min(len(zones), 20)) as pool:
                 rows = list(pool.map(_fetch_one, zones))
 
-        output_result(rows, columns=_STATS_COLUMNS, json_mode=state.json_output)
+        rows.sort(key=lambda r: _stats_sort_key(r, sort_by))
+
+        # Map enum value to actual column name with newlines
+        _highlight_map = {
+            _StatSort.Name: "Name",
+            _StatSort.RequestsServed: "Requests\n(K)",
+            _StatSort.BandwidthUsed: "Bandwidth\nUsed (GB)",
+            _StatSort.BandwidthCached: "Bandwidth\nCached (GB)",
+            _StatSort.CacheHitRate: "Cache\nHit\nRate (%)",
+            _StatSort.Error: "Error\n(%)",
+        }
+        highlight = _highlight_map[sort_by]
+
+        # Compute totals from raw numeric values
+        total_req = sum(r.get("_requests", 0) or 0 for r in rows)
+        total_bw_used = sum(r.get("_bw_used", 0) or 0 for r in rows)
+        total_bw_cached = sum(r.get("_bw_cached", 0) or 0 for r in rows)
+        footer: dict = {
+            "Name": "TOTAL",
+            "Requests\n(K)": f"{round(total_req / _K):,}" if total_req >= _K else str(total_req),
+            "Bandwidth\nUsed (GB)": f"{round(total_bw_used / _GB):,}",
+            "Bandwidth\nCached (GB)": f"{round(total_bw_cached / _GB):,}",
+            "Cache\nHit\nRate (%)": "",
+            "Error\n(%)": "",
+        }
+
+        # Strip internal sort keys before rendering
+        clean_rows = [{k: v for k, v in r.items() if not k.startswith("_")} for r in rows]
+
+        from datetime import date as _date
+
+        days = (_date.fromisoformat(date_to) - _date.fromisoformat(date_from)).days + 1
+
+        output_result(
+            clean_rows,
+            columns=_STATS_COLUMNS,
+            json_mode=state.json_output,
+            highlight_col=None if state.json_output else highlight,
+            footer_row=None if state.json_output else footer,
+        )
+
+        if not state.json_output:
+            _typer.echo(f"  {date_from} → {date_to}  ({days} days)")
 
 
 _BILLING_COLUMNS = [
     "Balance",
     "ThisMonthCharges",
-    "UnpaidInvoicesAmount",
     "MonthlyChargesStorage",
+    "MonthlyChargesDNS",
     "MonthlyChargesEUTraffic",
     "MonthlyChargesUSTraffic",
     "MonthlyChargesASIATraffic",
-    "MonthlyChargesAFRICATraffic",
+    "MonthlyChargesAFTraffic",
+    "MonthlyChargesSATraffic",
 ]
 
 

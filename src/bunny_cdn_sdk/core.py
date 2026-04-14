@@ -59,21 +59,20 @@ class CoreClient(_BaseClient):
 
     def list_pull_zones(
         self,
-        page: int = 1,
         per_page: int = 1000,
         search: str | None = None,
-    ) -> dict:
-        """List pull zones (single page).
+    ) -> list:
+        """List all pull zones.
 
         Args:
-            page: Page number to fetch (default 1).
             per_page: Items per page, 5-1000 (default 1000).
             search: Optional search filter string.
 
         Returns:
-            Paginated response dict with Items, CurrentPage, TotalItems, HasMoreItems.
+            List of pull zone dicts. The API returns all results in a single flat list
+            (no pagination envelope).
         """
-        params: dict[str, Any] = {"page": page, "perPage": per_page}
+        params: dict[str, Any] = {"perPage": per_page}
         if search is not None:
             params["search"] = search
         return self._sync_request("GET", f"{self.base_url}/pullzone", params=params).json()
@@ -133,23 +132,16 @@ class CoreClient(_BaseClient):
         per_page: int = 1000,
         search: str | None = None,
     ) -> Iterator[dict]:
-        """Iterate over all pull zones, auto-fetching pages as needed.
+        """Iterate over all pull zones.
 
         Args:
             per_page: Items per page, 5-1000 (default 1000).
             search: Optional search filter string.
 
         Yields:
-            Individual pull zone dicts across all pages.
+            Individual pull zone dicts.
         """
-
-        def fetch_page(page: int) -> PaginatedResponse:
-            params: dict[str, Any] = {"page": page, "perPage": per_page}
-            if search is not None:
-                params["search"] = search
-            return self._request("GET", f"{self.base_url}/pullzone", params=params).json()
-
-        return pagination_iterator(fetch_page)
+        yield from self.list_pull_zones(per_page=per_page, search=search)
 
     # ------------------------------------------------------------------
     # Pull Zones — Concurrent batch fetch (CORE-03)
@@ -595,26 +587,26 @@ class CoreClient(_BaseClient):
         """Get CDN statistics.
 
         Args:
-            **kwargs: Optional query params (e.g. dateFrom, dateTo, pullZoneId).
+            **kwargs: Optional query params (e.g. dateFrom, dateTo, pullZone).
 
         Returns:
             Statistics dict.
         """
         return self._sync_request("GET", f"{self.base_url}/statistics", params=kwargs).json()
 
-    def list_countries(self) -> dict:
+    def list_countries(self) -> list:
         """List available countries.
 
         Returns:
-            Response dict containing country list.
+            List of country dicts with Name, IsoCode, IsEU, TaxRate, TaxPrefix fields.
         """
         return self._sync_request("GET", f"{self.base_url}/country").json()
 
-    def list_regions(self) -> dict:
+    def list_regions(self) -> list:
         """List available CDN regions.
 
         Returns:
-            Response dict containing region list.
+            List of region dicts with Id, Name, PricePerGigabyte, RegionCode, ContinentCode fields.
         """
         return self._sync_request("GET", f"{self.base_url}/region").json()
 

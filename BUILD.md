@@ -95,10 +95,12 @@ brew install j178/tap/prek                            # macOS/Linux
 ### Run prek directly
 
 ```bash
-prek run                # Staged files only (what git hooks run)
-prek run --all-files    # All files in repo (what CI runs)
-prek list               # List configured hooks
+uv run prek run                # Staged files only (what git hooks run)
+uv run prek run --all-files    # All files in repo (what CI runs)
+uv run prek list               # List configured hooks
 ```
+
+> `prek` can also be run as a global install (`brew install j178/tap/prek`), but `uv run prek` works without a separate install if it is in the project dependencies.
 
 ## GitHub Actions Workflows
 

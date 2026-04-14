@@ -46,8 +46,7 @@ from bunny_cdn_sdk import CoreClient, StorageClient
 
 # Core API — pull zones, storage zones, DNS, video libraries
 core = CoreClient(api_key="your-api-key")
-zones_page = core.list_pull_zones()
-zones = zones_page["Items"]
+zones = core.list_pull_zones()  # returns a list directly
 
 # Storage API — file operations
 storage = StorageClient(
