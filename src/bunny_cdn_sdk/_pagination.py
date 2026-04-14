@@ -1,0 +1,37 @@
+"""Pagination helpers (populated in Phase 2)."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
+
+    from bunny_cdn_sdk._types import PaginatedResponse
+
+__all__ = ["pagination_iterator"]
+
+
+def pagination_iterator(
+    fetch_page: Callable[[int], PaginatedResponse], start_page: int = 1
+) -> Iterator[Any]:
+    """
+    Generator that yields individual items from paginated API responses.
+
+    Handles automatic pagination by checking HasMoreItems and fetching subsequent pages.
+    Each item from the Items array is yielded individually.
+
+    Args:
+        fetch_page: Callable that takes a page number and returns a PaginatedResponse dict
+        start_page: Starting page number (default 1)
+
+    Yields:
+        Individual items from the Items array of each page
+    """
+    current_page = start_page
+    while True:
+        response = fetch_page(current_page)
+        yield from response["Items"]
+        if not response["HasMoreItems"]:
+            break
+        current_page += 1

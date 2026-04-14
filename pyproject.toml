@@ -1,0 +1,159 @@
+[project]
+name = "bunny-cdn-sdk"
+version = "2.1.12"
+description = "Python SDK for the Bunny CDN API"
+readme = "README.md"
+authors = [
+    { name = "Todd Jacobsen", email = "yolabingo@users.noreply.github.com" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.12"
+keywords = ["bunny", "cdn", "bunnycdn", "api", "sdk"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = [
+    "httpx>=0.28.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/yolabingo/bunny-cdn-python-sdk"
+Repository = "https://github.com/yolabingo/bunny-cdn-python-sdk"
+"Bug Tracker" = "https://github.com/yolabingo/bunny-cdn-python-sdk/issues"
+
+[build-system]
+requires = ["uv_build>=0.11.6,<0.12.0"]
+build-backend = "uv_build"
+
+[project.optional-dependencies]
+cli = [
+    "typer>=0.12.0,<1",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+bunnycdn = "bunny_cdn_sdk.cli:app"
+
+[dependency-groups]
+dev = [
+    { include-group = "lint" },
+    { include-group = "test" },
+    { include-group = "audit" },
+    "poethepoet>=0.44.0",
+    "prek>=0.3.9",
+]
+lint = ["ruff", "ty"]
+test = ["pytest", "pytest-cov", "pytest-xdist"]
+audit = ["twine"]
+
+[tool.poe.tasks]
+# --- setup ---
+install-deps = { cmd = "uv sync --all-groups --all-extras", help = "Install all dev dependencies and optional extras" }
+
+# --- test ---
+test-lint   = { sequence = [
+  { cmd = "ruff check --fix src/ tests/" },
+  { cmd = "ruff format src/ tests/" },
+  { cmd = "prek run --all-files" }
+], help = "Auto-fix with ruff check+format, then run prek (file/secret checks)" }
+test-type   = { cmd = "ty check src/", help = "Type-check src/ with ty" }
+test-pytest = { cmd = "pytest -n auto --cov-fail-under=80", help = "Run pytest in parallel (80% coverage required)" }
+test-cov    = { cmd = "pytest -n auto --cov=bunny_cdn_sdk --cov-report=html --cov-report=term", help = "Run pytest and generate HTML coverage report in htmlcov/" }
+test-all    = { sequence = ["test-lint", "test-type", "test-pytest"], help = "Run all checks: lint + type + pytest" }
+
+# --- build ---
+build = { shell = "rm -rf build/ dist/ *.egg-info && uv build", help = "Clean artifacts and build wheel + sdist into dist/" }
+
+# --- version ---
+version       = { cmd = "uv version", help = "Show current package version" }
+version-patch = { cmd = "uv version --bump patch", help = "Bump patch version (X.Y.Z+1)" }
+version-minor = { cmd = "uv version --bump minor", help = "Bump minor version (X.Y+1.0)" }
+version-major = { cmd = "uv version --bump major", help = "Bump major version (X+1.0.0)" }
+
+# --- release ---
+# Run 'uv run poe version-patch' (or minor/major) first, then 'uv run poe release'
+release.help  = "test-all → commit version bump → tag → build-release → push → open GitHub PR"
+release.shell = """
+  set -e
+  branch=$(git rev-parse --abbrev-ref HEAD)
+  version=$(uv version --short)
+  if git diff --quiet pyproject.toml; then
+    echo "✗ pyproject.toml is unchanged — bump version first (e.g. 'uv run poe version-patch')"
+    exit 1
+  fi
+  uv run poe test-all
+  git commit -m "chore: release v$version" pyproject.toml uv.lock
+  git tag "v$version"
+  uv run poe build
+  git push origin "$branch"
+  git push origin "v$version"
+  pr_url=$(gh pr create \
+    --base main \
+    --head "$branch" \
+    --title "release: v$version" \
+    --body "## Release v$version
+
+$(git log main..HEAD --format='- %s' | head -20)
+
+## Test plan
+- [ ] CI passes (lint + type + pytest)
+- [ ] Publish workflow triggers on tag push → PyPI
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)")
+  echo ""
+  echo "✓ Released v$version"
+  echo "  PR: $pr_url"
+  open "$pr_url"
+"""
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D", "COM812", "ISC001", "ANN401"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/bunny_cdn_sdk/cli/**" = ["TRY003", "FBT001", "FBT002", "FBT003", "PLR0913", "PLC0415", "A002", "B008", "TC001"]
+"src/bunny_cdn_sdk/core.py" = ["A002"]  # id param matches Bunny API surface (API fidelity)
+"src/bunny_cdn_sdk/storage.py" = ["PLR0913"]  # StorageClient.__init__ signature matches API surface
+"tests/**" = [
+    "ANN",       # type annotations not required in tests
+    "ARG",       # unused arguments common in handler stubs
+    "S101",      # assert is expected in pytest tests
+    "SLF001",    # private member access is normal in unit tests
+    "PLR2004",   # magic values are readable in test assertions
+    "SIM117",    # nested with statements are fine in tests
+    "B017",      # pytest.raises(Exception) acceptable in broad tests
+    "PT011",     # broad pytest.raises acceptable in tests
+    "PT012",     # pytest.raises with multi-statement block needed for sdk_errors() context manager pattern
+    "RUF100",    # noqa directives may reference rules suppressed above
+    "N806",      # MockClient variable naming — standard mock pattern
+    "PLC0415",   # imports inside test bodies are common
+    "TC",        # typing-only import checks not required in tests
+    "EM",        # exception message style not enforced in tests — inline strings are readable
+    "TRY003",    # exception message length not enforced in tests
+]
+
+[tool.pytest.ini_options]
+addopts = ["--cov=bunny_cdn_sdk"]
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.rules]
+possibly-unresolved-reference = "error"
+unused-ignore-comment = "warn"

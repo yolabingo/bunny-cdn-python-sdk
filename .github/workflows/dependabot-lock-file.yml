@@ -1,0 +1,50 @@
+name: Dependabot Lock File Update
+
+on: pull_request
+
+permissions:
+  contents: write
+
+jobs:
+  update-lock:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+
+      - name: Install dependencies
+        run: uv run poe install-deps
+
+      - name: Update lock file
+        run: uv lock --upgrade
+
+      - name: Run tests
+        run: uv run poe test-pytest
+
+      - name: Commit lock file if changed
+        run: |
+          if git diff --exit-code uv.lock > /dev/null; then
+            echo "Lock file unchanged"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add uv.lock
+            git commit -m "chore: update lock file for dependency changes"
+            git push
+          fi

@@ -1,0 +1,6 @@
+[settings]
+python.uv_venv_auto = "create|source"
+
+[tools]
+prek = "latest"
+uv = "latest"
