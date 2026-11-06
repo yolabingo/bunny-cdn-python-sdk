@@ -101,9 +101,7 @@ Single requests go through `asyncio.run()` with minimal overhead. Batch methods 
 # Internal pattern — user never sees async
 def get_pull_zones(self, ids: list[int]) -> list[dict]:
     """Fetch multiple pull zones concurrently."""
-    return self._gather(
-        self._request_json("GET", f"/pullzone/{id}") for id in ids
-    )
+    return self._gather(self._request_json("GET", f"/pullzone/{id}") for id in ids)
 ```
 
 ### Service Clients
