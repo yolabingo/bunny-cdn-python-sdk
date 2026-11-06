@@ -241,3 +241,19 @@ def test_output_result_json_mode_datetime_no_crash(capsys) -> None:
     captured = capsys.readouterr()
     parsed = json.loads(captured.out)
     assert "2025" in parsed["ts"]
+
+
+def test_parse_set_pairs_keeps_json_types() -> None:
+    """--set values reach the API as bool/int when they look like JSON, else as strings."""
+    import pytest
+
+    from bunny_cdn_sdk.cli._output import parse_set_pairs
+
+    assert parse_set_pairs(["Enabled=false", "Ttl=600", "OriginUrl=https://o.example.com/a=b"]) == {
+        "Enabled": False,
+        "Ttl": 600,
+        "OriginUrl": "https://o.example.com/a=b",
+    }
+    assert parse_set_pairs(['Name="123"']) == {"Name": "123"}
+    with pytest.raises(ValueError, match="expected KEY=VALUE"):
+        parse_set_pairs(["oops"])

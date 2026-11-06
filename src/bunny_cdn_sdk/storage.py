@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import base64
+import urllib.parse
 from typing import TYPE_CHECKING, Any, BinaryIO
 
 from bunny_cdn_sdk._client import _BaseClient
@@ -33,13 +33,12 @@ class StorageClient(_BaseClient):
     """Bunny CDN Storage API client.
 
     Provides upload, download, delete, and list operations against a single
-    Bunny Storage Zone.  Requests are authenticated via HTTP Basic Auth
-    (``Authorization: Basic base64(zone_name:password)``).
+    Bunny Storage Zone. Requests are authenticated with the zone password in the
+    ``AccessKey`` header.
 
     Args:
         zone_name: Name of the Bunny Storage Zone.
-        password: Storage Zone password (used as both the ``_BaseClient``
-            ``api_key`` and the Basic Auth credential).
+        password: Storage Zone password, sent as the ``AccessKey`` header.
         region: Storage region key.  Must be one of the 10 supported regions
             (default: ``"falkenstein"``).  See ``REGION_MAP`` for the full list.
         client: Optional ``httpx2.Client`` to inject (keyword-only, advanced use).
@@ -64,31 +63,16 @@ class StorageClient(_BaseClient):
         if region not in REGION_MAP:
             msg = f"Unknown region {region!r}. Valid regions: {', '.join(sorted(REGION_MAP))}"
             raise ValueError(msg)
-        # Pass password as api_key — _BaseClient injects it as AccessKey header.
-        # We additionally set Authorization: Basic on every request so the
-        # Storage API can validate zone ownership (T-03-07 mitigation).
         super().__init__(
             password, client=client, max_retries=max_retries, backoff_base=backoff_base
         )
         self.zone_name = zone_name
-        self.password = password
         self.region = region
         self.base_url: str = REGION_MAP[region]
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-
-    def _build_auth_header(self) -> dict[str, str]:
-        """Build the ``Authorization: Basic`` header for this zone.
-
-        Encodes ``zone_name:password`` in base64 per RFC 7617.
-
-        Returns:
-            Dict with the ``Authorization`` key set to the encoded credential.
-        """
-        encoded = base64.b64encode(f"{self.zone_name}:{self.password}".encode()).decode()
-        return {"Authorization": f"Basic {encoded}"}
 
     def _build_url(self, path: str) -> str:
         """Build the full Storage API URL for ``path``.
@@ -102,7 +86,7 @@ class StorageClient(_BaseClient):
         Returns:
             Full HTTPS URL string.
         """
-        clean_path = path.lstrip("/")
+        clean_path = urllib.parse.quote(path.lstrip("/"), safe="/")
         return f"{self.base_url}/{self.zone_name}/{clean_path}"
 
     # ------------------------------------------------------------------
@@ -129,11 +113,8 @@ class StorageClient(_BaseClient):
             Parsed JSON response body as a plain ``dict`` (may be empty on 204).
         """
         url = self._build_url(path)
-        headers = self._build_auth_header()
-        if content_type is not None:
-            headers["Content-Type"] = content_type
-        response = self._sync_request("PUT", url, headers=headers, content=data)  # type: ignore[arg-type]
-        return response.json() if response.content else {}
+        headers = {"Content-Type": content_type} if content_type is not None else {}
+        return self._json("PUT", url, headers=headers, content=data)
 
     def download(self, path: str) -> bytes:
         """Download a file from the storage zone (STOR-02).
@@ -145,9 +126,7 @@ class StorageClient(_BaseClient):
             Raw file bytes.
         """
         url = self._build_url(path)
-        headers = self._build_auth_header()
-        response = self._sync_request("GET", url, headers=headers)
-        return response.content
+        return self._request("GET", url).content
 
     def delete(self, path: str) -> None:
         """Delete a file from the storage zone (STOR-03).
@@ -156,8 +135,7 @@ class StorageClient(_BaseClient):
             path: Path of the file to delete (e.g. ``"photos/image.jpg"``).
         """
         url = self._build_url(path)
-        headers = self._build_auth_header()
-        self._sync_request("DELETE", url, headers=headers)
+        self._request("DELETE", url)
 
     def list(self, path: str = "/") -> builtins.list[dict[str, Any]]:
         """List files and directories in the storage zone (STOR-04).
@@ -172,6 +150,4 @@ class StorageClient(_BaseClient):
             List of file/directory metadata dicts returned by the Storage API.
         """
         url = self._build_url(path)
-        headers = self._build_auth_header()
-        response = self._sync_request("GET", url, headers=headers)
-        return response.json()
+        return self._json("GET", url)

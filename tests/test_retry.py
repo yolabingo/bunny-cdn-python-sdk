@@ -102,7 +102,7 @@ def test_retries_on_503() -> None:
     client = _client_with_retry(handler, max_retries=3)
 
     with patch("time.sleep") as mock_sleep:
-        resp = client._sync_request("GET", _URL)
+        resp = client._request("GET", _URL)
 
     assert resp.status_code == 200
     assert len(calls) == 3  # 1 initial + 2 retries
@@ -115,7 +115,7 @@ def test_retries_on_500() -> None:
     client = _client_with_retry(handler, max_retries=2)
 
     with patch("time.sleep"):
-        resp = client._sync_request("GET", _URL)
+        resp = client._request("GET", _URL)
 
     assert resp.status_code == 200
     assert len(calls) == 2
@@ -127,7 +127,7 @@ def test_no_sleep_on_first_attempt() -> None:
     client = _client_with_retry(handler, max_retries=3)
 
     with patch("time.sleep") as mock_sleep:
-        resp = client._sync_request("GET", _URL)
+        resp = client._request("GET", _URL)
 
     assert resp.status_code == 200
     assert len(calls) == 1
@@ -149,7 +149,7 @@ def test_retries_on_429_with_retry_after_integer() -> None:
     client = _client_with_retry(handler, max_retries=2)
 
     with patch("time.sleep") as mock_sleep:
-        resp = client._sync_request("GET", _URL)
+        resp = client._request("GET", _URL)
 
     assert resp.status_code == 200
     assert len(calls) == 2
@@ -171,7 +171,7 @@ def test_retries_on_429_with_retry_after_http_date() -> None:
     client = _client_with_retry(handler, max_retries=2)
 
     with patch("time.sleep") as mock_sleep:
-        resp = client._sync_request("GET", _URL)
+        resp = client._request("GET", _URL)
 
     assert resp.status_code == 200
     assert len(calls) == 2
@@ -188,7 +188,7 @@ def test_retries_on_429_without_retry_after_uses_backoff() -> None:
 
     with patch("time.sleep") as mock_sleep:
         with patch("random.uniform", side_effect=lambda lo, hi: hi):
-            resp = client._sync_request("GET", _URL)
+            resp = client._request("GET", _URL)
 
     assert resp.status_code == 200
     assert len(calls) == 2
@@ -210,7 +210,7 @@ def test_retries_on_connect_error() -> None:
     client = _client_with_retry(handler, max_retries=3)
 
     with patch("time.sleep") as mock_sleep:
-        resp = client._sync_request("GET", _URL)
+        resp = client._request("GET", _URL)
 
     assert resp.status_code == 200
     assert calls[0] == 3  # 1 initial + 2 retries
@@ -223,7 +223,7 @@ def test_retries_on_timeout_exception() -> None:
     client = _client_with_retry(handler, max_retries=2)
 
     with patch("time.sleep"):
-        resp = client._sync_request("GET", _URL)
+        resp = client._request("GET", _URL)
 
     assert resp.status_code == 200
     assert calls[0] == 2
@@ -246,7 +246,7 @@ def test_max_retries_exhausted_returns_final_5xx_response() -> None:
 
     with patch("time.sleep"):
         with pytest.raises(BunnyServerError):
-            client._sync_request("GET", _URL)
+            client._request("GET", _URL)
 
     # max_retries=2 means 3 total attempts (1 initial + 2 retries)
     assert len(calls) == 3
@@ -259,7 +259,7 @@ def test_max_retries_exhausted_reraises_connect_error() -> None:
 
     with patch("time.sleep"):
         with pytest.raises(BunnyConnectionError):
-            client._sync_request("GET", _URL)
+            client._request("GET", _URL)
 
 
 def test_max_retries_exhausted_reraises_timeout_exception() -> None:
@@ -269,7 +269,7 @@ def test_max_retries_exhausted_reraises_timeout_exception() -> None:
 
     with patch("time.sleep"):
         with pytest.raises(BunnyTimeoutError):
-            client._sync_request("GET", _URL)
+            client._request("GET", _URL)
 
 
 # ---------------------------------------------------------------------------
@@ -292,7 +292,7 @@ def test_backoff_grows_exponentially() -> None:
         patch("random.uniform", side_effect=lambda lo, hi: hi),
         pytest.raises(Exception),
     ):  # noqa: BLE001
-        client._sync_request("GET", _URL)
+        client._request("GET", _URL)
 
     # attempt index 0,1,2 → upper bounds = 0.5*2^0, 0.5*2^1, 0.5*2^2 = 0.5, 1.0, 2.0
     assert sleep_delays == pytest.approx([0.5, 1.0, 2.0])
@@ -314,7 +314,7 @@ def test_backoff_caps_at_60_seconds() -> None:
         patch("random.uniform", side_effect=lambda lo, hi: hi),
         pytest.raises(Exception),
     ):  # noqa: BLE001
-        client._sync_request("GET", _URL)
+        client._request("GET", _URL)
 
     # All delays should be capped at 60.0 (min(60, 100*2^N) = 60 for all N >= 0)
     assert all(d == pytest.approx(60.0) for d in sleep_delays)
@@ -336,7 +336,7 @@ def test_composability_with_async_http_transport() -> None:
     client = _BaseClient("test_api_key", client=async_client)
 
     with patch("time.sleep"):
-        resp = client._sync_request("GET", _URL)
+        resp = client._request("GET", _URL)
 
     assert resp.status_code == 200
     assert len(calls) == 2
@@ -348,7 +348,7 @@ def test_max_retries_zero_makes_single_attempt() -> None:
     client = _client_with_retry(handler, max_retries=0)
 
     with patch("time.sleep") as mock_sleep, pytest.raises(Exception):  # noqa: BLE001
-        client._sync_request("GET", _URL)
+        client._request("GET", _URL)
 
     assert len(calls) == 1
     assert mock_sleep.call_count == 0
@@ -407,3 +407,28 @@ def test_close_delegates_to_inner_transport() -> None:
     inner = httpx2.MockTransport(handler)
     retry_transport = RetryTransport(inner, max_retries=1)
     retry_transport.close()
+
+
+def test_post_not_retried_on_503() -> None:
+    """A POST may already have been applied, so a 5xx must not resend it."""
+    handler, calls = _make_flaky_handler(fail_count=1)
+    client = _client_with_retry(handler)
+    with patch("time.sleep"), pytest.raises(BunnyServerError):
+        client._request("POST", _URL)
+    assert len(calls) == 1
+
+
+def test_post_retried_on_429() -> None:
+    """A 429 means the server did nothing, so even a POST is retried."""
+    handler, calls = _make_flaky_handler(fail_count=1, fail_status=429)
+    client = _client_with_retry(handler)
+    with patch("time.sleep"):
+        assert client._request("POST", _URL).status_code == 200
+    assert len(calls) == 2
+
+
+def test_retry_after_is_capped() -> None:
+    """A huge Retry-After must not block for longer than the 60s cap."""
+    transport = RetryTransport(httpx2.MockTransport(lambda r: httpx2.Response(200)))
+    response = httpx2.Response(429, headers={"Retry-After": "3600"})
+    assert transport._backoff_delay(0, response) == 60.0

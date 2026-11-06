@@ -99,6 +99,7 @@ def test_video_library_create_success(runner) -> None:
         )
     assert result.exit_code == 0
     assert "new-lib" in result.output
+    MockClient.return_value.create_video_library.assert_called_once_with(Name="new-lib")
 
 
 def test_video_library_create_error(runner) -> None:
@@ -118,6 +119,7 @@ def test_video_library_create_json(runner) -> None:
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert parsed["Name"] == "new-lib"
+    MockClient.return_value.create_video_library.assert_called_once_with(Name="new-lib")
 
 
 # ---------------------------------------------------------------------------
@@ -132,6 +134,7 @@ def test_video_library_delete_with_yes(runner) -> None:
         result = runner.invoke(app, ["--api-key", "k", "video-library", "delete", "5", "--yes"])
     assert result.exit_code == 0
     assert "Deleted video library 5 (my-videos)." in result.output
+    MockClient.return_value.delete_video_library.assert_called_once_with(5)
 
 
 def test_video_library_delete_prompt_aborted(runner) -> None:
@@ -157,6 +160,7 @@ def test_video_library_update_success(runner) -> None:
             ["--api-key", "k", "video-library", "update", "5", "--set", "Name=new-name"],
         )
     assert result.exit_code == 0
+    MockClient.return_value.update_video_library.assert_called_once_with(5, Name="new-name")
 
 
 def test_video_library_update_json(runner) -> None:
@@ -171,6 +175,7 @@ def test_video_library_update_json(runner) -> None:
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert parsed["Name"] == "new-name"
+    MockClient.return_value.update_video_library.assert_called_once_with(5, Name="new-name")
 
 
 def test_video_library_update_malformed_set(runner) -> None:

@@ -29,16 +29,15 @@ class CoreClient(_BaseClient):
 
     Args:
         api_key: Bunny CDN account API key.
-        base_url: Base URL for the Core API (default: https://api.bunnycdn.com).
+        base_url: Base URL for the Core API (default: https://api.bunny.net).
         client: Optional httpx2.Client to inject (advanced use). When provided,
             max_retries is ignored — configure RetryTransport on your client directly.
         max_retries: Number of retry attempts on 429/5xx/network errors (default 0 = no retry).
         backoff_base: Base delay in seconds for exponential backoff (default 0.5).
 
     Note on concurrent batch operations:
-        ``get_pull_zones([id1, id2, ...])`` issues all requests concurrently via
-        ``asyncio.gather``. For large ID lists, batch in chunks of 10-20 to stay
-        within connection and rate limits.
+        ``get_pull_zones([id1, id2, ...])`` fetches up to 20 zones at a time on a
+        thread pool.
     """
 
     def __init__(
@@ -57,25 +56,18 @@ class CoreClient(_BaseClient):
     # Pull Zones — CRUD (CORE-01)
     # ------------------------------------------------------------------
 
-    def list_pull_zones(
-        self,
-        per_page: int = 1000,
-        search: str | None = None,
-    ) -> list:
+    def list_pull_zones(self, search: str | None = None) -> list:
         """List all pull zones.
 
         Args:
-            per_page: Items per page, 5-1000 (default 1000).
             search: Optional search filter string.
 
         Returns:
-            List of pull zone dicts. The API returns all results in a single flat list
-            (no pagination envelope).
+            List of pull zone dicts. Without a ``page`` param the API returns every
+            zone as one flat list, so no paging is needed.
         """
-        params: dict[str, Any] = {"perPage": per_page}
-        if search is not None:
-            params["search"] = search
-        return self._sync_request("GET", f"{self.base_url}/pullzone", params=params).json()
+        params = {"search": search} if search is not None else {}
+        return self._json("GET", f"{self.base_url}/pullzone", params=params)
 
     def get_pull_zone(self, id: int) -> dict:
         """Get a single pull zone by ID.
@@ -86,7 +78,7 @@ class CoreClient(_BaseClient):
         Returns:
             Pull zone dict.
         """
-        return self._sync_request("GET", f"{self.base_url}/pullzone/{id}").json()
+        return self._json("GET", f"{self.base_url}/pullzone/{id}")
 
     def create_pull_zone(self, **kwargs: Any) -> dict:
         """Create a new pull zone.
@@ -97,7 +89,7 @@ class CoreClient(_BaseClient):
         Returns:
             Created pull zone dict.
         """
-        return self._sync_request("POST", f"{self.base_url}/pullzone", json=kwargs).json()
+        return self._json("POST", f"{self.base_url}/pullzone", json=kwargs)
 
     def update_pull_zone(self, id: int, **kwargs: Any) -> dict:
         """Update an existing pull zone.
@@ -109,7 +101,7 @@ class CoreClient(_BaseClient):
         Returns:
             Updated pull zone dict.
         """
-        return self._sync_request("POST", f"{self.base_url}/pullzone/{id}", json=kwargs).json()
+        return self._json("POST", f"{self.base_url}/pullzone/{id}", json=kwargs)
 
     def delete_pull_zone(self, id: int) -> dict:
         """Delete a pull zone.
@@ -120,28 +112,22 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict (may be empty on success).
         """
-        response = self._sync_request("DELETE", f"{self.base_url}/pullzone/{id}")
-        return response.json() if response.content else {}
+        return self._json("DELETE", f"{self.base_url}/pullzone/{id}")
 
     # ------------------------------------------------------------------
     # Pull Zones — Iterator (CORE-04)
     # ------------------------------------------------------------------
 
-    def iter_pull_zones(
-        self,
-        per_page: int = 1000,
-        search: str | None = None,
-    ) -> Iterator[dict]:
+    def iter_pull_zones(self, search: str | None = None) -> Iterator[dict]:
         """Iterate over all pull zones.
 
         Args:
-            per_page: Items per page, 5-1000 (default 1000).
             search: Optional search filter string.
 
         Yields:
             Individual pull zone dicts.
         """
-        yield from self.list_pull_zones(per_page=per_page, search=search)
+        yield from self.list_pull_zones(search=search)
 
     # ------------------------------------------------------------------
     # Pull Zones — Concurrent batch fetch (CORE-03)
@@ -163,13 +149,13 @@ class CoreClient(_BaseClient):
             List of pull zone dicts in the same order as ``ids``.
 
         Raises:
-            Any exception from _request propagates immediately if any request fails.
+            Any SDK error from the first failed request.
         """
 
         def fetch_one(id: int) -> dict:
-            return self._request("GET", f"{self.base_url}/pullzone/{id}").json()
+            return self._json("GET", f"{self.base_url}/pullzone/{id}")
 
-        with ThreadPoolExecutor(max_workers=min(len(ids), 20)) as pool:
+        with ThreadPoolExecutor(max_workers=max(1, min(len(ids), 20))) as pool:
             return list(pool.map(fetch_one, ids))
 
     # ------------------------------------------------------------------
@@ -186,10 +172,7 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict.
         """
-        response = self._sync_request(
-            "POST", f"{self.base_url}/pullzone/{id}/purgeCache", json=kwargs or None
-        )
-        return response.json() if response.content else {}
+        return self._json("POST", f"{self.base_url}/pullzone/{id}/purgeCache", json=kwargs or None)
 
     def add_custom_hostname(self, id: int, hostname: str) -> dict:
         """Add a custom hostname to a pull zone.
@@ -201,12 +184,11 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict.
         """
-        response = self._sync_request(
+        return self._json(
             "POST",
             f"{self.base_url}/pullzone/{id}/addHostname",
             json={"Hostname": hostname},
         )
-        return response.json() if response.content else {}
 
     def remove_custom_hostname(self, id: int, hostname: str) -> dict:
         """Remove a custom hostname from a pull zone.
@@ -218,12 +200,11 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict.
         """
-        response = self._sync_request(
+        return self._json(
             "DELETE",
             f"{self.base_url}/pullzone/{id}/removeHostname",
             json={"Hostname": hostname},
         )
-        return response.json() if response.content else {}
 
     def add_blocked_ip(self, id: int, ip: str) -> dict:
         """Block an IP address from a pull zone.
@@ -235,12 +216,11 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict.
         """
-        response = self._sync_request(
+        return self._json(
             "POST",
             f"{self.base_url}/pullzone/{id}/addBlockedIp",
             json={"IpAddress": ip},
         )
-        return response.json() if response.content else {}
 
     def remove_blocked_ip(self, id: int, ip: str) -> dict:
         """Remove a blocked IP address from a pull zone.
@@ -252,12 +232,11 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict.
         """
-        response = self._sync_request(
+        return self._json(
             "POST",
             f"{self.base_url}/pullzone/{id}/removeBlockedIp",
             json={"IpAddress": ip},
         )
-        return response.json() if response.content else {}
 
     # ------------------------------------------------------------------
     # Storage Zones — CRUD + Iterator (CORE-05, CORE-06)
@@ -274,7 +253,7 @@ class CoreClient(_BaseClient):
             Paginated response dict.
         """
         params: dict[str, Any] = {"page": page, "perPage": per_page}
-        return self._sync_request("GET", f"{self.base_url}/storagezone", params=params).json()
+        return self._json("GET", f"{self.base_url}/storagezone", params=params)
 
     def get_storage_zone(self, id: int) -> dict:
         """Get a storage zone by ID.
@@ -285,7 +264,7 @@ class CoreClient(_BaseClient):
         Returns:
             Storage zone dict.
         """
-        return self._sync_request("GET", f"{self.base_url}/storagezone/{id}").json()
+        return self._json("GET", f"{self.base_url}/storagezone/{id}")
 
     def create_storage_zone(self, **kwargs: Any) -> dict:
         """Create a new storage zone.
@@ -296,7 +275,7 @@ class CoreClient(_BaseClient):
         Returns:
             Created storage zone dict.
         """
-        return self._sync_request("POST", f"{self.base_url}/storagezone", json=kwargs).json()
+        return self._json("POST", f"{self.base_url}/storagezone", json=kwargs)
 
     def update_storage_zone(self, id: int, **kwargs: Any) -> dict:
         """Update an existing storage zone.
@@ -308,7 +287,7 @@ class CoreClient(_BaseClient):
         Returns:
             Updated storage zone dict.
         """
-        return self._sync_request("POST", f"{self.base_url}/storagezone/{id}", json=kwargs).json()
+        return self._json("POST", f"{self.base_url}/storagezone/{id}", json=kwargs)
 
     def delete_storage_zone(self, id: int) -> dict:
         """Delete a storage zone.
@@ -319,8 +298,7 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict (may be empty on success).
         """
-        response = self._sync_request("DELETE", f"{self.base_url}/storagezone/{id}")
-        return response.json() if response.content else {}
+        return self._json("DELETE", f"{self.base_url}/storagezone/{id}")
 
     def iter_storage_zones(self, per_page: int = 1000) -> Iterator[dict]:
         """Iterate over all storage zones, auto-fetching pages as needed.
@@ -334,7 +312,7 @@ class CoreClient(_BaseClient):
 
         def fetch_page(page: int) -> PaginatedResponse:
             params: dict[str, Any] = {"page": page, "perPage": per_page}
-            return self._request("GET", f"{self.base_url}/storagezone", params=params).json()
+            return self._json("GET", f"{self.base_url}/storagezone", params=params)
 
         return pagination_iterator(fetch_page)
 
@@ -361,7 +339,7 @@ class CoreClient(_BaseClient):
         params: dict[str, Any] = {"page": page, "perPage": per_page}
         if search is not None:
             params["search"] = search
-        return self._sync_request("GET", f"{self.base_url}/dnszone", params=params).json()
+        return self._json("GET", f"{self.base_url}/dnszone", params=params)
 
     def get_dns_zone(self, id: int) -> dict:
         """Get a DNS zone by ID.
@@ -372,7 +350,7 @@ class CoreClient(_BaseClient):
         Returns:
             DNS zone dict.
         """
-        return self._sync_request("GET", f"{self.base_url}/dnszone/{id}").json()
+        return self._json("GET", f"{self.base_url}/dnszone/{id}")
 
     def create_dns_zone(self, **kwargs: Any) -> dict:
         """Create a new DNS zone.
@@ -383,7 +361,7 @@ class CoreClient(_BaseClient):
         Returns:
             Created DNS zone dict.
         """
-        return self._sync_request("POST", f"{self.base_url}/dnszone", json=kwargs).json()
+        return self._json("POST", f"{self.base_url}/dnszone", json=kwargs)
 
     def update_dns_zone(self, id: int, **kwargs: Any) -> dict:
         """Update an existing DNS zone.
@@ -395,7 +373,7 @@ class CoreClient(_BaseClient):
         Returns:
             Updated DNS zone dict.
         """
-        return self._sync_request("POST", f"{self.base_url}/dnszone/{id}", json=kwargs).json()
+        return self._json("POST", f"{self.base_url}/dnszone/{id}", json=kwargs)
 
     def delete_dns_zone(self, id: int) -> dict:
         """Delete a DNS zone.
@@ -406,8 +384,7 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict (may be empty on success).
         """
-        response = self._sync_request("DELETE", f"{self.base_url}/dnszone/{id}")
-        return response.json() if response.content else {}
+        return self._json("DELETE", f"{self.base_url}/dnszone/{id}")
 
     def iter_dns_zones(
         self,
@@ -428,7 +405,7 @@ class CoreClient(_BaseClient):
             params: dict[str, Any] = {"page": page, "perPage": per_page}
             if search is not None:
                 params["search"] = search
-            return self._request("GET", f"{self.base_url}/dnszone", params=params).json()
+            return self._json("GET", f"{self.base_url}/dnszone", params=params)
 
         return pagination_iterator(fetch_page)
 
@@ -446,9 +423,7 @@ class CoreClient(_BaseClient):
         Returns:
             Created DNS record dict.
         """
-        return self._sync_request(
-            "PUT", f"{self.base_url}/dnszone/{zone_id}/records", json=kwargs
-        ).json()
+        return self._json("PUT", f"{self.base_url}/dnszone/{zone_id}/records", json=kwargs)
 
     def update_dns_record(self, zone_id: int, record_id: int, **kwargs: Any) -> dict:
         """Update a DNS record within a zone.
@@ -461,11 +436,11 @@ class CoreClient(_BaseClient):
         Returns:
             Updated DNS record dict.
         """
-        return self._sync_request(
+        return self._json(
             "POST",
             f"{self.base_url}/dnszone/{zone_id}/records/{record_id}",
             json=kwargs,
-        ).json()
+        )
 
     def delete_dns_record(self, zone_id: int, record_id: int) -> dict:
         """Delete a DNS record from a zone.
@@ -477,10 +452,7 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict (may be empty on success).
         """
-        response = self._sync_request(
-            "DELETE", f"{self.base_url}/dnszone/{zone_id}/records/{record_id}"
-        )
-        return response.json() if response.content else {}
+        return self._json("DELETE", f"{self.base_url}/dnszone/{zone_id}/records/{record_id}")
 
     # ------------------------------------------------------------------
     # Video Libraries — CRUD (CORE-10)
@@ -497,7 +469,7 @@ class CoreClient(_BaseClient):
             Paginated response dict.
         """
         params: dict[str, Any] = {"page": page, "perPage": per_page}
-        return self._sync_request("GET", f"{self.base_url}/videolibrary", params=params).json()
+        return self._json("GET", f"{self.base_url}/videolibrary", params=params)
 
     def get_video_library(self, id: int) -> dict:
         """Get a video library by ID.
@@ -508,7 +480,7 @@ class CoreClient(_BaseClient):
         Returns:
             Video library dict.
         """
-        return self._sync_request("GET", f"{self.base_url}/videolibrary/{id}").json()
+        return self._json("GET", f"{self.base_url}/videolibrary/{id}")
 
     def create_video_library(self, **kwargs: Any) -> dict:
         """Create a new video library.
@@ -519,7 +491,7 @@ class CoreClient(_BaseClient):
         Returns:
             Created video library dict.
         """
-        return self._sync_request("POST", f"{self.base_url}/videolibrary", json=kwargs).json()
+        return self._json("POST", f"{self.base_url}/videolibrary", json=kwargs)
 
     def update_video_library(self, id: int, **kwargs: Any) -> dict:
         """Update a video library.
@@ -531,7 +503,7 @@ class CoreClient(_BaseClient):
         Returns:
             Updated video library dict.
         """
-        return self._sync_request("POST", f"{self.base_url}/videolibrary/{id}", json=kwargs).json()
+        return self._json("POST", f"{self.base_url}/videolibrary/{id}", json=kwargs)
 
     def delete_video_library(self, id: int) -> dict:
         """Delete a video library.
@@ -542,8 +514,7 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict (may be empty on success).
         """
-        response = self._sync_request("DELETE", f"{self.base_url}/videolibrary/{id}")
-        return response.json() if response.content else {}
+        return self._json("DELETE", f"{self.base_url}/videolibrary/{id}")
 
     def iter_video_libraries(self, per_page: int = 1000) -> Iterator[dict]:
         """Iterate over all video libraries, auto-fetching pages as needed.
@@ -557,7 +528,7 @@ class CoreClient(_BaseClient):
 
         def fetch_page(page: int) -> PaginatedResponse:
             params: dict[str, Any] = {"page": page, "perPage": per_page}
-            return self._request("GET", f"{self.base_url}/videolibrary", params=params).json()
+            return self._json("GET", f"{self.base_url}/videolibrary", params=params)
 
         return pagination_iterator(fetch_page)
 
@@ -580,8 +551,7 @@ class CoreClient(_BaseClient):
         if kwargs:
             extra = urllib.parse.urlencode(kwargs)
             query = f"{query}&{extra}"
-        response = self._sync_request("POST", f"{self.base_url}/purge?{query}")
-        return response.json() if response.content else {}
+        return self._json("POST", f"{self.base_url}/purge?{query}")
 
     def get_statistics(self, **kwargs: Any) -> dict:
         """Get CDN statistics.
@@ -592,7 +562,7 @@ class CoreClient(_BaseClient):
         Returns:
             Statistics dict.
         """
-        return self._sync_request("GET", f"{self.base_url}/statistics", params=kwargs).json()
+        return self._json("GET", f"{self.base_url}/statistics", params=kwargs)
 
     def list_countries(self) -> list:
         """List available countries.
@@ -600,7 +570,7 @@ class CoreClient(_BaseClient):
         Returns:
             List of country dicts with Name, IsoCode, IsEU, TaxRate, TaxPrefix fields.
         """
-        return self._sync_request("GET", f"{self.base_url}/country").json()
+        return self._json("GET", f"{self.base_url}/country")
 
     def list_regions(self) -> list:
         """List available CDN regions.
@@ -608,7 +578,7 @@ class CoreClient(_BaseClient):
         Returns:
             List of region dicts with Id, Name, PricePerGigabyte, RegionCode, ContinentCode fields.
         """
-        return self._sync_request("GET", f"{self.base_url}/region").json()
+        return self._json("GET", f"{self.base_url}/region")
 
     def get_billing(self) -> dict:
         """Get billing information for the account.
@@ -616,4 +586,4 @@ class CoreClient(_BaseClient):
         Returns:
             Billing info dict.
         """
-        return self._sync_request("GET", f"{self.base_url}/billing").json()
+        return self._json("GET", f"{self.base_url}/billing")

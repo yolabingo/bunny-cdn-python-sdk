@@ -75,15 +75,8 @@ def main(
     state.json_output = json_output
 
 
-_KB = 1024
-_MB = 1024**2
 _GB = 1024**3
 _K = 1000
-
-
-def _fmt_bytes(n: int) -> str:
-    """Format byte count as GB (rounded to int, comma-separated)."""
-    return f"{round(n / _GB):,} GB"
 
 
 def _build_stats_row(name: str, stats: dict | None) -> dict:
@@ -117,19 +110,15 @@ def purge_url_cmd(
     url: str = typer.Argument(..., help="URL to purge from CDN cache"),
 ) -> None:
     """Purge a specific URL from CDN cache."""
-    import typer as _typer
-
-    from bunny_cdn_sdk.cli._output import err_console, sdk_errors
+    from bunny_cdn_sdk.cli._output import require_api_key, sdk_errors
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise _typer.Exit(1)
+    require_api_key(state)
     with sdk_errors():
         client = CoreClient(api_key=state.api_key)
         client.purge_url(url)
-        _typer.echo(f"Purged: {url}")
+        typer.echo(f"Purged: {url}")
 
 
 _STATS_COLUMNS = [
@@ -183,15 +172,11 @@ def stats_cmd(
     ),
 ) -> None:
     """Display CDN statistics per pull zone."""
-    import typer as _typer
-
-    from bunny_cdn_sdk.cli._output import err_console, output_result, sdk_errors
+    from bunny_cdn_sdk.cli._output import output_result, require_api_key, sdk_errors
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise _typer.Exit(1)
+    require_api_key(state)
 
     today = datetime.now(tz=UTC).date()
     date_from = from_ or (today - timedelta(days=7)).isoformat()
@@ -211,7 +196,7 @@ def stats_cmd(
                 s = client.get_statistics(pullZone=z["Id"], dateFrom=date_from, dateTo=date_to)
                 return _build_stats_row(z.get("Name", ""), s)
 
-            with ThreadPoolExecutor(max_workers=min(len(zones), 20)) as pool:
+            with ThreadPoolExecutor(max_workers=max(1, min(len(zones), 20))) as pool:
                 rows = list(pool.map(_fetch_one, zones))
 
         rows.sort(key=lambda r: _stats_sort_key(r, sort_by))
@@ -256,7 +241,7 @@ def stats_cmd(
         )
 
         if not state.json_output:
-            _typer.echo(f"  {date_from} → {date_to}  ({days} days)")
+            typer.echo(f"  {date_from} → {date_to}  ({days} days)")
 
 
 _BILLING_COLUMNS = [
@@ -275,15 +260,11 @@ _BILLING_COLUMNS = [
 @app.command("billing")
 def billing_cmd(ctx: typer.Context) -> None:
     """Display account billing summary."""
-    import typer as _typer
-
-    from bunny_cdn_sdk.cli._output import err_console, output_result, sdk_errors
+    from bunny_cdn_sdk.cli._output import output_result, require_api_key, sdk_errors
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise _typer.Exit(1)
+    require_api_key(state)
 
     with sdk_errors():
         client = CoreClient(api_key=state.api_key)

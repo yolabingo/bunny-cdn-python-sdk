@@ -32,9 +32,11 @@ _HTTP_SERVER_ERROR_MAX = 600
 def _extract_error_message(response: httpx2.Response, status_code: int) -> str:
     """Extract a human-readable error message from an HTTP error response."""
     try:
-        return response.json().get("Message") or response.text or f"HTTP {status_code}"
+        body = response.json()
     except ValueError:
-        return response.text or f"HTTP {status_code}"
+        body = None
+    message = body.get("Message") if isinstance(body, dict) else None
+    return message or response.text or f"HTTP {status_code}"
 
 
 def _raise_for_status_code(
@@ -111,6 +113,10 @@ class _BaseClient:
         exc_tb: object,
     ) -> None:
         """Sync context manager exit."""
+        self.close()
+
+    def close(self) -> None:
+        """Close the underlying HTTP client if this SDK client created it."""
         if self._client_owner:
             self._client.close()
 
@@ -151,9 +157,6 @@ class _BaseClient:
             status_code = exc.response.status_code
             message = _extract_error_message(exc.response, status_code)
             _raise_for_status_code(status_code, message, exc.response, exc)
-        except httpx2.ConnectTimeout as exc:
-            msg = f"Connection timeout: {exc}"
-            raise BunnyTimeoutError(msg) from exc
         except httpx2.ConnectError as exc:
             msg = f"Connection error: {exc}"
             raise BunnyConnectionError(msg) from exc
@@ -163,11 +166,7 @@ class _BaseClient:
         else:
             return response
 
-    def _sync_request(
-        self,
-        method: str,
-        url: str,
-        **kwargs: Any,
-    ) -> httpx2.Response:
-        """Alias for _request. Kept for internal call-site compatibility."""
-        return self._request(method, url, **kwargs)
+    def _json(self, method: str, url: str, **kwargs: Any) -> Any:
+        """Make a request and return the parsed JSON body, or {} for an empty body."""
+        response = self._request(method, url, **kwargs)
+        return response.json() if response.content else {}

@@ -68,7 +68,7 @@ def test_core_client_default_no_retry_single_call() -> None:
     client = CoreClient("test_api_key", client=httpx2.Client(transport=transport))
 
     with patch("time.sleep") as mock_sleep, pytest.raises(BunnyServerError):
-        client._sync_request("GET", _CORE_URL)
+        client._request("GET", _CORE_URL)
 
     assert len(calls) == 1, f"Expected 1 call, got {len(calls)}"
     assert mock_sleep.call_count == 0, "No sleep for max_retries=0"
@@ -106,7 +106,7 @@ def test_core_client_max_retries_2_produces_3_calls() -> None:
     client = CoreClient("test_api_key", client=httpx2.Client(transport=retry_transport))
 
     with patch("time.sleep"), pytest.raises(BunnyServerError):
-        client._sync_request("GET", _CORE_URL)
+        client._request("GET", _CORE_URL)
 
     assert len(calls) == 3, f"Expected 3 calls (1 + 2 retries), got {len(calls)}"
 
@@ -120,7 +120,7 @@ def test_core_client_constructor_max_retries_2_produces_3_calls() -> None:
     client._client._transport._inner = httpx2.MockTransport(handler)
 
     with patch("time.sleep"), pytest.raises(BunnyServerError):
-        client._sync_request("GET", _CORE_URL)
+        client._request("GET", _CORE_URL)
 
     assert len(calls) == 3, f"Expected 3 calls (1 + 2 retries), got {len(calls)}"
 
@@ -132,7 +132,7 @@ def test_core_client_max_retries_1_succeeds_on_second_call() -> None:
     client._client._transport._inner = httpx2.MockTransport(handler)
 
     with patch("time.sleep"):
-        resp = client._sync_request("GET", _CORE_URL)
+        resp = client._request("GET", _CORE_URL)
 
     assert resp.status_code == 200
     assert len(calls) == 2, f"Expected 2 calls (1 fail + 1 success), got {len(calls)}"
@@ -158,7 +158,7 @@ def test_storage_client_default_no_retry_single_call() -> None:
     client = StorageClient("my-zone", "test_password", client=httpx2.Client(transport=transport))
 
     with patch("time.sleep") as mock_sleep, pytest.raises(BunnyServerError):
-        client._sync_request("GET", _STORAGE_URL)
+        client._request("GET", _STORAGE_URL)
 
     assert len(calls) == 1, f"Expected 1 call, got {len(calls)}"
     assert mock_sleep.call_count == 0
@@ -172,7 +172,7 @@ def test_storage_client_max_retries_1_produces_2_calls() -> None:
     client._client._transport._inner = httpx2.MockTransport(handler)
 
     with patch("time.sleep"), pytest.raises(BunnyServerError):
-        client._sync_request("GET", _STORAGE_URL)
+        client._request("GET", _STORAGE_URL)
 
     assert len(calls) == 2, f"Expected 2 calls (1 + 1 retry), got {len(calls)}"
 
@@ -201,7 +201,7 @@ def test_backoff_base_zero_skips_delay_but_still_retries() -> None:
         sleep_delays.append(d)
 
     with patch("time.sleep", side_effect=capture_sleep), pytest.raises(BunnyServerError):
-        client._sync_request("GET", _CORE_URL)
+        client._request("GET", _CORE_URL)
 
     assert len(calls) == 3
     assert len(sleep_delays) == 2

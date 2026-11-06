@@ -7,7 +7,7 @@ from typing import cast
 
 import typer
 
-from bunny_cdn_sdk.cli._output import err_console, output_result, sdk_errors
+from bunny_cdn_sdk.cli._output import output_result, require_storage_auth, sdk_errors
 
 storage_app = typer.Typer(no_args_is_help=True, help="Manage Bunny CDN storage files.")
 _COLUMNS = ["ObjectName", "Length", "IsDirectory", "LastChanged"]
@@ -23,12 +23,7 @@ def list_files(
     from bunny_cdn_sdk.storage import StorageClient
 
     state = cast("State", ctx.obj)
-    if not state.zone_name or not state.storage_key:
-        err_console.print(
-            "Missing storage auth. Use --zone-name/--storage-key "
-            "or set BUNNY_STORAGE_ZONE/BUNNY_STORAGE_KEY."
-        )
-        raise typer.Exit(1)
+    require_storage_auth(state)
     with sdk_errors():
         client = StorageClient(state.zone_name, state.storage_key, region=state.region)
         files = client.list(path)
@@ -46,19 +41,14 @@ def upload_file(
     from bunny_cdn_sdk.storage import StorageClient
 
     state = cast("State", ctx.obj)
-    if not state.zone_name or not state.storage_key:
-        err_console.print(
-            "Missing storage auth. Use --zone-name/--storage-key "
-            "or set BUNNY_STORAGE_ZONE/BUNNY_STORAGE_KEY."
-        )
-        raise typer.Exit(1)
+    require_storage_auth(state)
     with sdk_errors():
         if not Path(local_path).is_file():
             msg = f"Local file not found: {local_path!r}"
             raise ValueError(msg)
         client = StorageClient(state.zone_name, state.storage_key, region=state.region)
         with Path(local_path).open("rb") as fh:
-            client.upload(remote_path, fh.read())
+            client.upload(remote_path, fh)
         typer.echo(f"Uploaded {local_path!r} -> {remote_path!r}")
 
 
@@ -73,12 +63,7 @@ def download_file(
     from bunny_cdn_sdk.storage import StorageClient
 
     state = cast("State", ctx.obj)
-    if not state.zone_name or not state.storage_key:
-        err_console.print(
-            "Missing storage auth. Use --zone-name/--storage-key "
-            "or set BUNNY_STORAGE_ZONE/BUNNY_STORAGE_KEY."
-        )
-        raise typer.Exit(1)
+    require_storage_auth(state)
     with sdk_errors():
         client = StorageClient(state.zone_name, state.storage_key, region=state.region)
         data = client.download(remote_path)
@@ -100,12 +85,7 @@ def delete_file(
     from bunny_cdn_sdk.storage import StorageClient
 
     state = cast("State", ctx.obj)
-    if not state.zone_name or not state.storage_key:
-        err_console.print(
-            "Missing storage auth. Use --zone-name/--storage-key "
-            "or set BUNNY_STORAGE_ZONE/BUNNY_STORAGE_KEY."
-        )
-        raise typer.Exit(1)
+    require_storage_auth(state)
     with sdk_errors():
         if not yes:
             typer.confirm(f"Delete {remote_path!r} from storage zone?", abort=True)

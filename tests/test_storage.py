@@ -110,3 +110,17 @@ def test_region_ny_base_url() -> None:
 def test_invalid_region_raises_value_error() -> None:
     with pytest.raises(ValueError, match="Unknown region"):
         StorageClient("zone", "password", region="invalid-region")
+
+
+@pytest.mark.parametrize("name", ["report?v=2.pdf", "notes#1.txt", "a b.txt"])
+def test_special_characters_stay_in_path(name: str) -> None:
+    """``?`` and ``#`` must not split the path, or the wrong file is deleted."""
+    seen: list[httpx2.URL] = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen.append(request.url)
+        return httpx2.Response(200)
+
+    make_storage_client(handler).delete(f"dir/{name}")
+    assert seen[0].path.endswith(f"/dir/{name}")
+    assert not seen[0].query

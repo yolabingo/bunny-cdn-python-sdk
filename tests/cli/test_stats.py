@@ -7,37 +7,6 @@ from unittest.mock import MagicMock, patch
 
 from bunny_cdn_sdk._exceptions import BunnyAuthenticationError
 from bunny_cdn_sdk.cli import app
-from bunny_cdn_sdk.cli._app import _fmt_bytes
-
-# ---------------------------------------------------------------------------
-# _fmt_bytes helper
-# ---------------------------------------------------------------------------
-
-
-def test_fmt_bytes_zero() -> None:
-    assert _fmt_bytes(0) == "0 GB"
-
-
-def test_fmt_bytes_bytes() -> None:
-    assert _fmt_bytes(1023) == "0 GB"
-
-
-def test_fmt_bytes_kilobytes() -> None:
-    assert _fmt_bytes(1024) == "0 GB"
-
-
-def test_fmt_bytes_kilobytes_fractional() -> None:
-    assert _fmt_bytes(1536) == "0 GB"
-
-
-def test_fmt_bytes_megabytes() -> None:
-    assert _fmt_bytes(1048576) == "0 GB"
-
-
-def test_fmt_bytes_gigabytes() -> None:
-    # 15032385536 bytes ≈ 14 GB
-    assert _fmt_bytes(15032385536) == "14 GB"
-
 
 # ---------------------------------------------------------------------------
 # stats — success path
@@ -153,3 +122,13 @@ def test_stats_api_error(runner) -> None:
         )
         result = runner.invoke(app, ["--api-key", "bad", "stats"])
     assert result.exit_code == 1
+
+
+def test_stats_no_pull_zones(runner) -> None:
+    """stats with zero pull zones exits 0 instead of crashing the thread pool."""
+    with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
+        mc = MockClient.return_value
+        mc.iter_pull_zones.return_value = []
+        result = runner.invoke(app, ["--api-key", "k", "stats"])
+    assert result.exit_code == 0
+    mc.get_statistics.assert_not_called()

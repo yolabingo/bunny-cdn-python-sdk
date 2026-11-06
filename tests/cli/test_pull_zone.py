@@ -109,6 +109,9 @@ def test_pull_zone_create_success(runner) -> None:
         )
     assert result.exit_code == 0
     assert "new-zone" in result.output
+    MockClient.return_value.create_pull_zone.assert_called_once_with(
+        Name="new-zone", OriginUrl="https://o.example.com"
+    )
 
 
 def test_pull_zone_create_error(runner) -> None:
@@ -151,6 +154,9 @@ def test_pull_zone_create_json(runner) -> None:
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert parsed["Name"] == "new-zone"
+    MockClient.return_value.create_pull_zone.assert_called_once_with(
+        Name="new-zone", OriginUrl="https://o.example.com"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -165,6 +171,7 @@ def test_pull_zone_delete_with_yes(runner) -> None:
         result = runner.invoke(app, ["--api-key", "k", "pull-zone", "delete", "1", "--yes"])
     assert result.exit_code == 0
     assert "Deleted pull zone 1" in result.output
+    MockClient.return_value.delete_pull_zone.assert_called_once_with(1)
 
 
 def test_pull_zone_delete_prompt_confirmed(runner) -> None:
@@ -173,6 +180,7 @@ def test_pull_zone_delete_prompt_confirmed(runner) -> None:
         MockClient.return_value.delete_pull_zone.return_value = {}
         result = runner.invoke(app, ["--api-key", "k", "pull-zone", "delete", "1"], input="y\n")
     assert result.exit_code == 0
+    MockClient.return_value.delete_pull_zone.assert_called_once_with(1)
 
 
 def test_pull_zone_delete_prompt_aborted(runner) -> None:
@@ -200,6 +208,7 @@ def test_pull_zone_purge_success(runner) -> None:
         result = runner.invoke(app, ["--api-key", "k", "pull-zone", "purge", "1"])
     assert result.exit_code == 0
     assert "Purged cache" in result.output or "purge" in result.output.lower()
+    MockClient.return_value.purge_pull_zone_cache.assert_called_once_with(1)
 
 
 def test_pull_zone_purge_error(runner) -> None:
@@ -236,6 +245,9 @@ def test_pull_zone_update_success_shows_diff(runner) -> None:
         )
     assert result.exit_code == 0
     assert "OriginUrl" in result.output
+    MockClient.return_value.update_pull_zone.assert_called_once_with(
+        1, OriginUrl="https://new.example.com"
+    )
 
 
 def test_pull_zone_update_json(runner) -> None:
@@ -259,6 +271,9 @@ def test_pull_zone_update_json(runner) -> None:
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert parsed["OriginUrl"] == "https://new.example.com"
+    MockClient.return_value.update_pull_zone.assert_called_once_with(
+        1, OriginUrl="https://new.example.com"
+    )
 
 
 def test_pull_zone_update_malformed_set(runner) -> None:

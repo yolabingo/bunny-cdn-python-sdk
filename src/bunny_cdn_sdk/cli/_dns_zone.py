@@ -8,7 +8,13 @@ import typer
 from rich.table import Table
 from rich.text import Text
 
-from bunny_cdn_sdk.cli._output import console, err_console, output_result, sdk_errors
+from bunny_cdn_sdk.cli._output import (
+    console,
+    output_result,
+    parse_set_pairs,
+    require_api_key,
+    sdk_errors,
+)
 
 dns_zone_app = typer.Typer(no_args_is_help=True, help="Manage Bunny CDN DNS zones.")
 record_app = typer.Typer(no_args_is_help=True, help="Manage DNS records within a zone.")
@@ -25,9 +31,7 @@ def list_zones(ctx: typer.Context) -> None:
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise typer.Exit(1)
+    require_api_key(state)
     with sdk_errors():
         client = CoreClient(api_key=state.api_key)
         zones = sorted(client.iter_dns_zones(), key=lambda z: z.get("Domain", ""))
@@ -44,9 +48,7 @@ def get_zone(
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise typer.Exit(1)
+    require_api_key(state)
     with sdk_errors():
         client = CoreClient(api_key=state.api_key)
         zone = client.get_dns_zone(id)
@@ -63,9 +65,7 @@ def create_zone(
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise typer.Exit(1)
+    require_api_key(state)
     with sdk_errors():
         client = CoreClient(api_key=state.api_key)
         result = client.create_dns_zone(Domain=domain)
@@ -83,9 +83,7 @@ def delete_zone(
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise typer.Exit(1)
+    require_api_key(state)
     with sdk_errors():
         client = CoreClient(api_key=state.api_key)
         zone = client.get_dns_zone(id)
@@ -110,9 +108,7 @@ def add_record(
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise typer.Exit(1)
+    require_api_key(state)
     with sdk_errors():
         client = CoreClient(api_key=state.api_key)
         result = client.add_dns_record(zone_id, Type=type_, Name=name, Value=value, Ttl=ttl)
@@ -131,17 +127,9 @@ def update_record(
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise typer.Exit(1)
+    require_api_key(state)
     with sdk_errors():
-        updates: dict[str, str] = {}
-        for pair in set_:
-            if "=" not in pair:
-                msg = f"Invalid --set value: '{pair}' (expected KEY=VALUE)"
-                raise ValueError(msg)
-            k, v = pair.split("=", 1)
-            updates[k] = v
+        updates = parse_set_pairs(set_)  # ValueError is caught by sdk_errors
         client = CoreClient(api_key=state.api_key)
         # D-12: fetch zone to get the record's before state
         zone_before = client.get_dns_zone(zone_id)
@@ -182,9 +170,7 @@ def delete_record(
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise typer.Exit(1)
+    require_api_key(state)
     with sdk_errors():
         client = CoreClient(api_key=state.api_key)
         if not yes:

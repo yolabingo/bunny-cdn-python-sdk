@@ -28,6 +28,23 @@ console = Console()
 err_console = Console(stderr=True)
 
 
+def require_api_key(state: Any) -> None:
+    """Exit 1 with a message if no API key was supplied."""
+    if not state.api_key:
+        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
+        raise typer.Exit(1)
+
+
+def require_storage_auth(state: Any) -> None:
+    """Exit 1 with a message if storage zone name or key is missing."""
+    if not state.zone_name or not state.storage_key:
+        err_console.print(
+            "Missing storage auth. Use --zone-name/--storage-key "
+            "or set BUNNY_STORAGE_ZONE/BUNNY_STORAGE_KEY."
+        )
+        raise typer.Exit(1)
+
+
 @contextmanager
 def sdk_errors() -> Generator[None, None, None]:
     """Wrap a command body — maps SDK exceptions to stderr message + Exit(1)."""
@@ -128,3 +145,23 @@ def _cell(value: object) -> str:
     if isinstance(value, list):
         return f"[{len(value)} items]"
     return str(value)
+
+
+def parse_set_pairs(pairs: list[str]) -> dict[str, Any]:
+    """Parse repeated ``--set KEY=VALUE`` options into an update dict.
+
+    Values are read as JSON when possible (``false`` -> False, ``600`` -> 600), so
+    booleans and numbers reach the API with the right type; anything else stays a
+    string. Quote a value to force a string: ``--set Name='"123"'``.
+    """
+    updates: dict[str, Any] = {}
+    for pair in pairs:
+        if "=" not in pair:
+            msg = f"Invalid --set value: '{pair}' (expected KEY=VALUE)"
+            raise ValueError(msg)
+        key, value = pair.split("=", 1)
+        try:
+            updates[key] = json.loads(value)
+        except ValueError:
+            updates[key] = value
+    return updates

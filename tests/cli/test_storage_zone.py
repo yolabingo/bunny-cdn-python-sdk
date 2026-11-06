@@ -99,6 +99,7 @@ def test_storage_zone_create_success(runner) -> None:
         )
     assert result.exit_code == 0
     assert "new-storage" in result.output
+    MockClient.return_value.create_storage_zone.assert_called_once_with(Name="new-storage")
 
 
 def test_storage_zone_create_error(runner) -> None:
@@ -118,6 +119,7 @@ def test_storage_zone_create_json(runner) -> None:
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert parsed["Name"] == "new-storage"
+    MockClient.return_value.create_storage_zone.assert_called_once_with(Name="new-storage")
 
 
 # ---------------------------------------------------------------------------
@@ -132,6 +134,7 @@ def test_storage_zone_delete_with_yes(runner) -> None:
         result = runner.invoke(app, ["--api-key", "k", "storage-zone", "delete", "2", "--yes"])
     assert result.exit_code == 0
     assert "Deleted storage zone 2" in result.output
+    MockClient.return_value.delete_storage_zone.assert_called_once_with(2)
 
 
 def test_storage_zone_delete_prompt_confirmed(runner) -> None:
@@ -140,6 +143,7 @@ def test_storage_zone_delete_prompt_confirmed(runner) -> None:
         MockClient.return_value.delete_storage_zone.return_value = {}
         result = runner.invoke(app, ["--api-key", "k", "storage-zone", "delete", "2"], input="y\n")
     assert result.exit_code == 0
+    MockClient.return_value.delete_storage_zone.assert_called_once_with(2)
 
 
 def test_storage_zone_delete_prompt_aborted(runner) -> None:
@@ -172,6 +176,7 @@ def test_storage_zone_update_success_shows_diff(runner) -> None:
         )
     assert result.exit_code == 0
     assert "Region" in result.output
+    MockClient.return_value.update_storage_zone.assert_called_once_with(2, Region="UK")
 
 
 def test_storage_zone_update_json(runner) -> None:
@@ -185,6 +190,7 @@ def test_storage_zone_update_json(runner) -> None:
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert parsed["Region"] == "UK"
+    MockClient.return_value.update_storage_zone.assert_called_once_with(2, Region="UK")
 
 
 def test_storage_zone_update_malformed_set(runner) -> None:
@@ -213,3 +219,4 @@ def test_storage_zone_update_no_fields_changed(runner) -> None:
         )
     assert result.exit_code == 0
     assert "No fields changed" in result.output
+    MockClient.return_value.update_storage_zone.assert_called_once_with(2, Region="DE")

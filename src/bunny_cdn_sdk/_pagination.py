@@ -1,4 +1,4 @@
-"""Pagination helpers (populated in Phase 2)."""
+"""Pagination helpers."""
 
 from __future__ import annotations
 
