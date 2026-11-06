@@ -8,7 +8,13 @@ import typer
 from rich.table import Table
 from rich.text import Text
 
-from bunny_cdn_sdk.cli._output import console, err_console, output_result, sdk_errors
+from bunny_cdn_sdk.cli._output import (
+    console,
+    output_result,
+    parse_set_pairs,
+    require_api_key,
+    sdk_errors,
+)
 
 video_library_app = typer.Typer(no_args_is_help=True, help="Manage Bunny CDN video libraries.")
 _COLUMNS = ["Name", "VideoCount", "Id"]
@@ -21,9 +27,7 @@ def list_libs(ctx: typer.Context) -> None:
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise typer.Exit(1)
+    require_api_key(state)
     with sdk_errors():
         client = CoreClient(api_key=state.api_key)
         libs = sorted(client.iter_video_libraries(), key=lambda v: v.get("Name", ""))
@@ -40,9 +44,7 @@ def get_lib(
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise typer.Exit(1)
+    require_api_key(state)
     with sdk_errors():
         client = CoreClient(api_key=state.api_key)
         lib = client.get_video_library(id)
@@ -59,9 +61,7 @@ def create_lib(
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise typer.Exit(1)
+    require_api_key(state)
     with sdk_errors():
         client = CoreClient(api_key=state.api_key)
         result = client.create_video_library(Name=name)
@@ -79,9 +79,7 @@ def delete_lib(
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise typer.Exit(1)
+    require_api_key(state)
     with sdk_errors():
         client = CoreClient(api_key=state.api_key)
         lib = client.get_video_library(id)
@@ -103,18 +101,9 @@ def update_lib(
     from bunny_cdn_sdk.core import CoreClient
 
     state = cast("State", ctx.obj)
-    if not state.api_key:
-        err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
-        raise typer.Exit(1)
+    require_api_key(state)
     with sdk_errors():
-        # Parse KEY=VALUE pairs (ValueError caught by sdk_errors)
-        updates: dict[str, str] = {}
-        for pair in set_:
-            if "=" not in pair:
-                msg = f"Invalid --set value: '{pair}' (expected KEY=VALUE)"
-                raise ValueError(msg)
-            k, v = pair.split("=", 1)
-            updates[k] = v
+        updates = parse_set_pairs(set_)  # ValueError is caught by sdk_errors
         client = CoreClient(api_key=state.api_key)
         # D-12: fetch before state
         before = client.get_video_library(id)

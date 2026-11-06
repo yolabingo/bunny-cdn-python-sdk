@@ -100,6 +100,7 @@ def test_dns_zone_create_success(runner) -> None:
         )
     assert result.exit_code == 0
     assert "newzone.com" in result.output
+    MockClient.return_value.create_dns_zone.assert_called_once_with(Domain="newzone.com")
 
 
 def test_dns_zone_create_error(runner) -> None:
@@ -119,6 +120,7 @@ def test_dns_zone_create_json(runner) -> None:
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert parsed["Domain"] == "newzone.com"
+    MockClient.return_value.create_dns_zone.assert_called_once_with(Domain="newzone.com")
 
 
 # ---------------------------------------------------------------------------
@@ -133,6 +135,7 @@ def test_dns_zone_delete_with_yes(runner) -> None:
         result = runner.invoke(app, ["--api-key", "k", "dns-zone", "delete", "10", "--yes"])
     assert result.exit_code == 0
     assert "Deleted DNS zone 10" in result.output
+    MockClient.return_value.delete_dns_zone.assert_called_once_with(10)
 
 
 def test_dns_zone_delete_prompt_aborted(runner) -> None:
@@ -176,6 +179,9 @@ def test_dns_zone_record_add_success(runner) -> None:
         )
     assert result.exit_code == 0
     assert "www" in result.output
+    MockClient.return_value.add_dns_record.assert_called_once_with(
+        10, Type="A", Name="www", Value="1.2.3.4", Ttl=300
+    )
 
 
 def test_dns_zone_record_add_error(runner) -> None:
@@ -225,6 +231,9 @@ def test_dns_zone_record_add_json(runner) -> None:
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert parsed["Name"] == "www"
+    MockClient.return_value.add_dns_record.assert_called_once_with(
+        10, Type="A", Name="www", Value="1.2.3.4", Ttl=300
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -253,6 +262,7 @@ def test_dns_zone_record_update_success(runner) -> None:
             ],
         )
     assert result.exit_code == 0
+    MockClient.return_value.update_dns_record.assert_called_once_with(10, 99, Value="5.6.7.8")
 
 
 def test_dns_zone_record_update_json(runner) -> None:
@@ -279,6 +289,7 @@ def test_dns_zone_record_update_json(runner) -> None:
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert parsed["Value"] == "5.6.7.8"
+    MockClient.return_value.update_dns_record.assert_called_once_with(10, 99, Value="5.6.7.8")
 
 
 def test_dns_zone_record_update_malformed_set(runner) -> None:
@@ -303,6 +314,7 @@ def test_dns_zone_record_delete_with_yes(runner) -> None:
         )
     assert result.exit_code == 0
     assert "Deleted DNS record 99" in result.output
+    MockClient.return_value.delete_dns_record.assert_called_once_with(10, 99)
 
 
 def test_dns_zone_record_delete_prompt_aborted(runner) -> None:

@@ -1,538 +1,317 @@
-"""Happy-path tests for CoreClient (all 37 public methods + 2 extras)."""
+"""Tests for CoreClient: every method's HTTP request, plus batch and paging behavior."""
 
 from __future__ import annotations
 
-import httpx
+import json
+from typing import TYPE_CHECKING, Any
 
-from bunny_cdn_sdk._client import _BaseClient
+import httpx2
+import pytest
+
 from bunny_cdn_sdk.core import CoreClient
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+BASE = "https://api.bunny.net"
+
+
+def make_core_client(handler: Callable[[httpx2.Request], httpx2.Response]) -> CoreClient:
+    return CoreClient("test_api_key", client=httpx2.Client(transport=httpx2.MockTransport(handler)))
+
+
+def _capture(call: Callable[[CoreClient], Any]) -> httpx2.Request:
+    """Run ``call`` against a mock API and return the single request it sent."""
+    sent: list[httpx2.Request] = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        sent.append(request)
+        return httpx2.Response(200, json={})
+
+    call(make_core_client(handler))
+    assert len(sent) == 1
+    return sent[0]
+
+
+# (call, method, path, query, json body or None)
+ENDPOINTS: dict[str, tuple[Callable[[CoreClient], Any], str, str, dict, Any]] = {
+    # Pull zones
+    "list_pull_zones": (
+        lambda c: c.list_pull_zones(search="web"),
+        "GET",
+        "/pullzone",
+        {"search": "web"},
+        None,
+    ),
+    "get_pull_zone": (lambda c: c.get_pull_zone(1), "GET", "/pullzone/1", {}, None),
+    "create_pull_zone": (
+        lambda c: c.create_pull_zone(Name="z"),
+        "POST",
+        "/pullzone",
+        {},
+        {"Name": "z"},
+    ),
+    "update_pull_zone": (
+        lambda c: c.update_pull_zone(1, Name="z"),
+        "POST",
+        "/pullzone/1",
+        {},
+        {"Name": "z"},
+    ),
+    "delete_pull_zone": (lambda c: c.delete_pull_zone(1), "DELETE", "/pullzone/1", {}, None),
+    "purge_pull_zone_cache": (
+        lambda c: c.purge_pull_zone_cache(1),
+        "POST",
+        "/pullzone/1/purgeCache",
+        {},
+        None,
+    ),
+    "purge_pull_zone_cache_tag": (
+        lambda c: c.purge_pull_zone_cache(1, CacheTag="t"),
+        "POST",
+        "/pullzone/1/purgeCache",
+        {},
+        {"CacheTag": "t"},
+    ),
+    "add_custom_hostname": (
+        lambda c: c.add_custom_hostname(1, "cdn.example.com"),
+        "POST",
+        "/pullzone/1/addHostname",
+        {},
+        {"Hostname": "cdn.example.com"},
+    ),
+    "remove_custom_hostname": (
+        lambda c: c.remove_custom_hostname(1, "cdn.example.com"),
+        "DELETE",
+        "/pullzone/1/removeHostname",
+        {},
+        {"Hostname": "cdn.example.com"},
+    ),
+    "add_blocked_ip": (
+        lambda c: c.add_blocked_ip(1, "1.2.3.4"),
+        "POST",
+        "/pullzone/1/addBlockedIp",
+        {},
+        {"IpAddress": "1.2.3.4"},
+    ),
+    "remove_blocked_ip": (
+        lambda c: c.remove_blocked_ip(1, "1.2.3.4"),
+        "POST",
+        "/pullzone/1/removeBlockedIp",
+        {},
+        {"IpAddress": "1.2.3.4"},
+    ),
+    # Storage zones
+    "list_storage_zones": (
+        lambda c: c.list_storage_zones(page=2, per_page=5),
+        "GET",
+        "/storagezone",
+        {"page": "2", "perPage": "5"},
+        None,
+    ),
+    "get_storage_zone": (lambda c: c.get_storage_zone(2), "GET", "/storagezone/2", {}, None),
+    "create_storage_zone": (
+        lambda c: c.create_storage_zone(Name="s"),
+        "POST",
+        "/storagezone",
+        {},
+        {"Name": "s"},
+    ),
+    "update_storage_zone": (
+        lambda c: c.update_storage_zone(2, ZoneTier=1),
+        "POST",
+        "/storagezone/2",
+        {},
+        {"ZoneTier": 1},
+    ),
+    "delete_storage_zone": (
+        lambda c: c.delete_storage_zone(2),
+        "DELETE",
+        "/storagezone/2",
+        {},
+        None,
+    ),
+    # DNS zones and records
+    "list_dns_zones": (
+        lambda c: c.list_dns_zones(page=2, per_page=5, search="ex"),
+        "GET",
+        "/dnszone",
+        {"page": "2", "perPage": "5", "search": "ex"},
+        None,
+    ),
+    "get_dns_zone": (lambda c: c.get_dns_zone(3), "GET", "/dnszone/3", {}, None),
+    "create_dns_zone": (
+        lambda c: c.create_dns_zone(Domain="ex.com"),
+        "POST",
+        "/dnszone",
+        {},
+        {"Domain": "ex.com"},
+    ),
+    "update_dns_zone": (
+        lambda c: c.update_dns_zone(3, Ttl=60),
+        "POST",
+        "/dnszone/3",
+        {},
+        {"Ttl": 60},
+    ),
+    "delete_dns_zone": (lambda c: c.delete_dns_zone(3), "DELETE", "/dnszone/3", {}, None),
+    "add_dns_record": (
+        lambda c: c.add_dns_record(3, Type=0, Name="www"),
+        "PUT",
+        "/dnszone/3/records",
+        {},
+        {"Type": 0, "Name": "www"},
+    ),
+    "update_dns_record": (
+        lambda c: c.update_dns_record(3, 9, Value="5.6.7.8"),
+        "POST",
+        "/dnszone/3/records/9",
+        {},
+        {"Value": "5.6.7.8"},
+    ),
+    "delete_dns_record": (
+        lambda c: c.delete_dns_record(3, 9),
+        "DELETE",
+        "/dnszone/3/records/9",
+        {},
+        None,
+    ),
+    # Video libraries
+    "list_video_libraries": (
+        lambda c: c.list_video_libraries(page=2, per_page=5),
+        "GET",
+        "/videolibrary",
+        {"page": "2", "perPage": "5"},
+        None,
+    ),
+    "get_video_library": (lambda c: c.get_video_library(4), "GET", "/videolibrary/4", {}, None),
+    "create_video_library": (
+        lambda c: c.create_video_library(Name="v"),
+        "POST",
+        "/videolibrary",
+        {},
+        {"Name": "v"},
+    ),
+    "update_video_library": (
+        lambda c: c.update_video_library(4, EnableDRM=True),
+        "POST",
+        "/videolibrary/4",
+        {},
+        {"EnableDRM": True},
+    ),
+    "delete_video_library": (
+        lambda c: c.delete_video_library(4),
+        "DELETE",
+        "/videolibrary/4",
+        {},
+        None,
+    ),
+    # Utilities
+    "purge_url": (
+        # The target URL has its own query string; it must arrive as one encoded param.
+        lambda c: c.purge_url("https://cdn.example.com/a b.jpg?x=1&y=2", async_="true"),
+        "POST",
+        "/purge",
+        {"url": "https://cdn.example.com/a b.jpg?x=1&y=2", "async_": "true"},
+        None,
+    ),
+    "get_statistics": (
+        lambda c: c.get_statistics(pullZone=1, dateFrom="2026-01-01"),
+        "GET",
+        "/statistics",
+        {"pullZone": "1", "dateFrom": "2026-01-01"},
+        None,
+    ),
+    "list_countries": (lambda c: c.list_countries(), "GET", "/country", {}, None),
+    "list_regions": (lambda c: c.list_regions(), "GET", "/region", {}, None),
+    "get_billing": (lambda c: c.get_billing(), "GET", "/billing", {}, None),
+}
+
+
+@pytest.mark.parametrize(
+    ("call", "method", "path", "query", "body"), ENDPOINTS.values(), ids=ENDPOINTS.keys()
+)
+def test_endpoint_request(call, method: str, path: str, query: dict, body: Any) -> None:
+    """Each method sends the exact HTTP method, URL, query and JSON body Bunny expects."""
+    request = _capture(call)
+    assert request.method == method
+    assert str(request.url.copy_with(query=None)) == BASE + path
+    assert dict(request.url.params) == query
+    assert (json.loads(request.content) if request.content else None) == body
+    assert request.headers["AccessKey"] == "test_api_key"
+
+
+def test_every_public_method_is_covered() -> None:
+    """Fails when a new endpoint method is added without a row in ENDPOINTS."""
+    not_endpoints = {"close", "get_pull_zones", "iter_dns_zones", "iter_pull_zones"}
+    not_endpoints |= {"iter_storage_zones", "iter_video_libraries"}
+    public = {n for n in dir(CoreClient) if not n.startswith("_")} - not_endpoints
+    assert public <= ENDPOINTS.keys()
+
+
+def test_returns_parsed_json_body() -> None:
+    client = make_core_client(lambda r: httpx2.Response(200, json={"Id": 42}))
+    assert client.get_pull_zone(42) == {"Id": 42}
+
+
+def test_empty_success_body_returns_empty_dict() -> None:
+    client = make_core_client(lambda r: httpx2.Response(204))
+    assert client.update_dns_record(1, 2, Value="x") == {}
+
+
+def test_default_base_url_and_trailing_slash() -> None:
+    assert CoreClient("k").base_url == BASE
+    assert CoreClient("k", base_url="https://example.test/").base_url == "https://example.test"
+
+
 # ---------------------------------------------------------------------------
-# Client factory
+# Batch fetch
 # ---------------------------------------------------------------------------
 
 
-def make_core_client(handler) -> CoreClient:
-    """Inject a MockTransport into CoreClient via __new__ + _BaseClient.__init__."""
-    transport = httpx.MockTransport(handler)
-    core = CoreClient.__new__(CoreClient)
-    _BaseClient.__init__(core, "test_api_key", client=httpx.Client(transport=transport))
-    core.base_url = "https://api.bunny.net"
-    return core
+def test_get_pull_zones_keeps_input_order() -> None:
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json={"Id": int(request.url.path.rsplit("/", 1)[1])})
+
+    assert make_core_client(handler).get_pull_zones([3, 1, 2]) == [{"Id": 3}, {"Id": 1}, {"Id": 2}]
+
+
+def test_get_pull_zones_empty_list() -> None:
+    client = make_core_client(lambda r: httpx2.Response(200, json={}))
+    assert client.get_pull_zones([]) == []
 
 
 # ---------------------------------------------------------------------------
-# Group A — Pull Zone CRUD
+# Iterators
 # ---------------------------------------------------------------------------
 
 
-def test_list_pull_zones_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
+def test_iter_pull_zones_yields_flat_list() -> None:
+    # Without a page param, /pullzone returns a plain array, not a paginated envelope.
+    client = make_core_client(lambda r: httpx2.Response(200, json=[{"Id": 1}, {"Id": 2}]))
+    assert list(client.iter_pull_zones()) == [{"Id": 1}, {"Id": 2}]
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("iter_storage_zones", "/storagezone"),
+        ("iter_dns_zones", "/dnszone"),
+        ("iter_video_libraries", "/videolibrary"),
+    ],
+)
+def test_paginated_iterators_walk_all_pages(method: str, path: str) -> None:
+    pages_seen: list[str] = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        assert request.url.path == path
+        page = int(request.url.params["page"])
+        pages_seen.append(request.url.params["page"])
+        return httpx2.Response(
             200,
-            json={"Items": [], "CurrentPage": 1, "TotalItems": 0, "HasMoreItems": False},
+            json={"Items": [{"Id": page * 10}, {"Id": page * 10 + 1}], "HasMoreItems": page < 3},
         )
 
-    core = make_core_client(handler)
-    result = core.list_pull_zones()
-    assert isinstance(result, dict)
-    assert "Items" in result
-
-
-def test_get_pull_zone_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 42, "Name": "test-zone"})
-
-    core = make_core_client(handler)
-    result = core.get_pull_zone(42)
-    assert isinstance(result, dict)
-    assert result["Id"] == 42
-
-
-def test_create_pull_zone_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 10, "Name": "new-zone"})
-
-    core = make_core_client(handler)
-    result = core.create_pull_zone(Name="new-zone", OriginUrl="https://origin.example.com")
-    assert isinstance(result, dict)
-    assert result["Id"] == 10
-
-
-def test_update_pull_zone_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 42, "Name": "updated-zone"})
-
-    core = make_core_client(handler)
-    result = core.update_pull_zone(42, Name="updated-zone")
-    assert isinstance(result, dict)
-    assert result["Id"] == 42
-
-
-def test_delete_pull_zone_returns_empty_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
-
-    core = make_core_client(handler)
-    result = core.delete_pull_zone(42)
-    assert result == {}
-
-
-# ---------------------------------------------------------------------------
-# Group B — Pull Zone extras
-# ---------------------------------------------------------------------------
-
-
-def test_purge_pull_zone_cache_returns_empty_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
-
-    core = make_core_client(handler)
-    result = core.purge_pull_zone_cache(1)
-    assert result == {}
-
-
-def test_add_custom_hostname_returns_empty_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
-
-    core = make_core_client(handler)
-    result = core.add_custom_hostname(1, "cdn.example.com")
-    assert result == {}
-
-
-def test_remove_custom_hostname_returns_empty_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
-
-    core = make_core_client(handler)
-    result = core.remove_custom_hostname(1, "cdn.example.com")
-    assert result == {}
-
-
-def test_add_blocked_ip_returns_empty_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
-
-    core = make_core_client(handler)
-    result = core.add_blocked_ip(1, "1.2.3.4")
-    assert result == {}
-
-
-def test_remove_blocked_ip_returns_empty_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
-
-    core = make_core_client(handler)
-    result = core.remove_blocked_ip(1, "1.2.3.4")
-    assert result == {}
-
-
-# ---------------------------------------------------------------------------
-# Group C — Pull Zone batch + pagination (2 extras)
-# ---------------------------------------------------------------------------
-
-
-def test_get_pull_zones_returns_both_in_order() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        url = str(request.url)
-        if "/pullzone/1" in url:
-            return httpx.Response(200, json={"Id": 1, "Name": "zone-a"})
-        return httpx.Response(200, json={"Id": 2, "Name": "zone-b"})
-
-    core = make_core_client(handler)
-    result = core.get_pull_zones([1, 2])
-    assert isinstance(result, list)
-    assert len(result) == 2
-    assert result[0]["Id"] == 1
-    assert result[1]["Id"] == 2
-
-
-def test_iter_pull_zones_yields_all_items() -> None:
-    # The real /pullzone endpoint returns a plain list, not a paginated envelope.
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json=[{"Id": 1}, {"Id": 2}])
-
-    core = make_core_client(handler)
-    result = list(core.iter_pull_zones())
-    assert result == [{"Id": 1}, {"Id": 2}]
-
-
-# ---------------------------------------------------------------------------
-# Group D — Storage Zone CRUD + iter
-# ---------------------------------------------------------------------------
-
-
-def test_list_storage_zones_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={"Items": [], "CurrentPage": 1, "TotalItems": 0, "HasMoreItems": False},
-        )
-
-    core = make_core_client(handler)
-    result = core.list_storage_zones()
-    assert isinstance(result, dict)
-    assert "Items" in result
-
-
-def test_get_storage_zone_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 7, "Name": "my-storage"})
-
-    core = make_core_client(handler)
-    result = core.get_storage_zone(7)
-    assert isinstance(result, dict)
-    assert result["Id"] == 7
-
-
-def test_create_storage_zone_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 5, "Name": "new-storage"})
-
-    core = make_core_client(handler)
-    result = core.create_storage_zone(Name="new-storage", Region="DE")
-    assert isinstance(result, dict)
-    assert result["Id"] == 5
-
-
-def test_update_storage_zone_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 7, "ReplicationRegions": ["NY"]})
-
-    core = make_core_client(handler)
-    result = core.update_storage_zone(7, ReplicationRegions=["NY"])
-    assert isinstance(result, dict)
-    assert result["Id"] == 7
-
-
-def test_delete_storage_zone_returns_empty_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
-
-    core = make_core_client(handler)
-    result = core.delete_storage_zone(7)
-    assert result == {}
-
-
-def test_iter_storage_zones_yields_items() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={
-                "Items": [{"Id": 7, "Name": "my-storage"}],
-                "CurrentPage": 1,
-                "TotalItems": 1,
-                "HasMoreItems": False,
-            },
-        )
-
-    core = make_core_client(handler)
-    result = list(core.iter_storage_zones())
-    assert result == [{"Id": 7, "Name": "my-storage"}]
-
-
-# ---------------------------------------------------------------------------
-# Group E — DNS Zone CRUD + iter
-# ---------------------------------------------------------------------------
-
-
-def test_list_dns_zones_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={"Items": [], "CurrentPage": 1, "TotalItems": 0, "HasMoreItems": False},
-        )
-
-    core = make_core_client(handler)
-    result = core.list_dns_zones()
-    assert isinstance(result, dict)
-    assert "Items" in result
-
-
-def test_get_dns_zone_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 3, "Domain": "example.com"})
-
-    core = make_core_client(handler)
-    result = core.get_dns_zone(3)
-    assert isinstance(result, dict)
-    assert result["Id"] == 3
-
-
-def test_create_dns_zone_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 3, "Domain": "example.com"})
-
-    core = make_core_client(handler)
-    result = core.create_dns_zone(Domain="example.com")
-    assert isinstance(result, dict)
-    assert result["Id"] == 3
-
-
-def test_update_dns_zone_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 3, "CustomNameserversEnabled": True})
-
-    core = make_core_client(handler)
-    result = core.update_dns_zone(3, CustomNameserversEnabled=True)
-    assert isinstance(result, dict)
-    assert result["Id"] == 3
-
-
-def test_delete_dns_zone_returns_empty_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
-
-    core = make_core_client(handler)
-    result = core.delete_dns_zone(3)
-    assert result == {}
-
-
-def test_iter_dns_zones_yields_items() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={
-                "Items": [{"Id": 3, "Domain": "example.com"}],
-                "CurrentPage": 1,
-                "TotalItems": 1,
-                "HasMoreItems": False,
-            },
-        )
-
-    core = make_core_client(handler)
-    result = list(core.iter_dns_zones())
-    assert result == [{"Id": 3, "Domain": "example.com"}]
-
-
-# ---------------------------------------------------------------------------
-# Group F — DNS Records
-# ---------------------------------------------------------------------------
-
-
-def test_add_dns_record_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 99, "Type": 0, "Name": "www"})
-
-    core = make_core_client(handler)
-    result = core.add_dns_record(1, Type=0, Name="www", Value="1.2.3.4", Ttl=300)
-    assert isinstance(result, dict)
-    assert result["Id"] == 99
-
-
-def test_update_dns_record_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 99, "Value": "5.6.7.8"})
-
-    core = make_core_client(handler)
-    result = core.update_dns_record(1, 99, Value="5.6.7.8")
-    assert isinstance(result, dict)
-    assert result["Id"] == 99
-
-
-def test_delete_dns_record_returns_empty_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
-
-    core = make_core_client(handler)
-    result = core.delete_dns_record(1, 99)
-    assert result == {}
-
-
-# ---------------------------------------------------------------------------
-# Group G — Video Library CRUD
-# ---------------------------------------------------------------------------
-
-
-def test_list_video_libraries_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={"Items": [], "CurrentPage": 1, "TotalItems": 0, "HasMoreItems": False},
-        )
-
-    core = make_core_client(handler)
-    result = core.list_video_libraries()
-    assert isinstance(result, dict)
-    assert "Items" in result
-
-
-def test_get_video_library_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 11, "Name": "my-library"})
-
-    core = make_core_client(handler)
-    result = core.get_video_library(11)
-    assert isinstance(result, dict)
-    assert result["Id"] == 11
-
-
-def test_create_video_library_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 11, "Name": "my-library"})
-
-    core = make_core_client(handler)
-    result = core.create_video_library(Name="my-library")
-    assert isinstance(result, dict)
-    assert result["Id"] == 11
-
-
-def test_update_video_library_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Id": 11, "EnableDRM": True})
-
-    core = make_core_client(handler)
-    result = core.update_video_library(11, EnableDRM=True)
-    assert isinstance(result, dict)
-    assert result["Id"] == 11
-
-
-def test_delete_video_library_returns_empty_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
-
-    core = make_core_client(handler)
-    result = core.delete_video_library(11)
-    assert result == {}
-
-
-# ---------------------------------------------------------------------------
-# Group H — Utilities
-# ---------------------------------------------------------------------------
-
-
-def test_purge_url_returns_empty_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
-
-    core = make_core_client(handler)
-    result = core.purge_url("https://cdn.example.com/image.jpg")
-    assert result == {}
-
-
-def test_get_statistics_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"BandwidthUsed": 100, "RequestsServed": 50})
-
-    core = make_core_client(handler)
-    result = core.get_statistics()
-    assert isinstance(result, dict)
-    assert result["BandwidthUsed"] == 100
-
-
-def test_list_countries_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Items": [{"IsoCode": "US", "Name": "United States"}]})
-
-    core = make_core_client(handler)
-    result = core.list_countries()
-    assert isinstance(result, dict)
-    assert "Items" in result
-
-
-def test_list_regions_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Items": [{"Id": 1, "Name": "Falkenstein"}]})
-
-    core = make_core_client(handler)
-    result = core.list_regions()
-    assert isinstance(result, dict)
-    assert "Items" in result
-
-
-def test_get_billing_returns_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"Balance": 10.0, "MonthlyChargesStorage": 0.5})
-
-    core = make_core_client(handler)
-    result = core.get_billing()
-    assert isinstance(result, dict)
-    assert result["Balance"] == 10.0
-
-
-# ---------------------------------------------------------------------------
-# Coverage gap tests — branch paths not hit by happy-path tests above
-# ---------------------------------------------------------------------------
-
-
-def test_core_client_init_direct() -> None:
-    """Covers CoreClient.__init__ (lines 47-48) via direct construction."""
-    core = CoreClient("direct_key")
-    assert core.base_url == "https://api.bunny.net"
-    assert core.api_key == "direct_key"
-
-
-def test_list_pull_zones_with_search() -> None:
-    """Covers the search param branch in list_pull_zones (line 72)."""
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        assert "search=my-zone" in str(request.url)
-        return httpx.Response(
-            200,
-            json={"Items": [], "CurrentPage": 1, "TotalItems": 0, "HasMoreItems": False},
-        )
-
-    core = make_core_client(handler)
-    result = core.list_pull_zones(search="my-zone")
-    assert isinstance(result, dict)
-
-
-def test_iter_pull_zones_with_search() -> None:
-    """Covers the search param branch in iter_pull_zones."""
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json=[{"Id": 1}])
-
-    core = make_core_client(handler)
-    result = list(core.iter_pull_zones(search="filter"))
-    assert result == [{"Id": 1}]
-
-
-def test_list_dns_zones_with_search() -> None:
-    """Covers the search param branch in list_dns_zones (line 369)."""
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        assert "search=example" in str(request.url)
-        return httpx.Response(
-            200,
-            json={"Items": [], "CurrentPage": 1, "TotalItems": 0, "HasMoreItems": False},
-        )
-
-    core = make_core_client(handler)
-    result = core.list_dns_zones(search="example")
-    assert isinstance(result, dict)
-
-
-def test_iter_dns_zones_with_search() -> None:
-    """Covers the search param branch in iter_dns_zones (line 437)."""
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={
-                "Items": [{"Id": 3}],
-                "CurrentPage": 1,
-                "TotalItems": 1,
-                "HasMoreItems": False,
-            },
-        )
-
-    core = make_core_client(handler)
-    result = list(core.iter_dns_zones(search="example"))
-    assert result == [{"Id": 3}]
-
-
-def test_purge_url_with_kwargs() -> None:
-    """Covers the extra kwargs branch in purge_url (lines 575-576)."""
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        url = str(request.url)
-        # Verify URL contains the base purge param and the extra kwarg
-        assert "url=" in url
-        assert "extra_param=1" in url
-        return httpx.Response(204, content=b"")
-
-    core = make_core_client(handler)
-    result = core.purge_url("https://cdn.example.com/image.jpg", extra_param="1")
-    assert result == {}
+    items = list(getattr(make_core_client(handler), method)(per_page=2))
+    assert [i["Id"] for i in items] == [10, 11, 20, 21, 30, 31]
+    assert pages_seen == ["1", "2", "3"]

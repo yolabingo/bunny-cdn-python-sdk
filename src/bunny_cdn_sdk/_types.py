@@ -1,4 +1,4 @@
-"""TypedDict definitions for API response envelopes (populated in Phase 2)."""
+"""TypedDict definitions for API response envelopes."""
 
 from __future__ import annotations
 

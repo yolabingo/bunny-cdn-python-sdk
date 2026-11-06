@@ -1,4 +1,4 @@
-"""Retry transport for httpx — exponential backoff with jitter (internal)."""
+"""Retry transport for httpx2 — exponential backoff with jitter (internal)."""
 
 from __future__ import annotations
 
@@ -7,11 +7,15 @@ import time
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 
-import httpx
+import httpx2
 
 _STATUS_TOO_MANY_REQUESTS = 429
 _STATUS_SERVER_ERROR_MIN = 500
 _STATUS_SERVER_ERROR_MAX = 600
+_MAX_DELAY = 60.0
+# Methods safe to resend after the server may have processed them. Bunny uses PUT to
+# create DNS records, so PUT is excluded even though HTTP calls it idempotent.
+_SAFE_TO_REPEAT = frozenset({"GET", "HEAD", "OPTIONS", "DELETE"})
 
 
 def _parse_retry_after(value: str) -> float:
@@ -34,32 +38,32 @@ def _parse_retry_after(value: str) -> float:
             return 0.0
 
 
-class RetryTransport(httpx.BaseTransport):
-    """Composable httpx transport that adds retry logic to any inner transport.
+class RetryTransport(httpx2.BaseTransport):
+    """Composable httpx2 transport that adds retry logic to any inner transport.
 
-    Wraps an existing ``httpx.BaseTransport`` and retries failed requests
+    Wraps an existing ``httpx2.BaseTransport`` and retries failed requests
     using exponential backoff with full jitter.
 
     Retry triggers:
     - HTTP 429 — respects ``Retry-After`` header when present
-    - HTTP 5xx — any server error response
-    - ``httpx.ConnectError`` — network connection failure
-    - ``httpx.TimeoutException`` — request or connect timeout
+    - HTTP 5xx — only for GET/HEAD/OPTIONS/DELETE (others may have been applied)
+    - ``httpx2.ConnectError`` — network connection failure
+    - ``httpx2.TimeoutException`` — connect timeouts always; others only for the methods above
 
     Usage::
 
-        import httpx
+        import httpx2
         from bunny_cdn_sdk import RetryTransport, CoreClient
 
-        inner = httpx.HTTPTransport()
+        inner = httpx2.HTTPTransport()
         retry_transport = RetryTransport(inner, max_retries=3, backoff_base=0.5)
-        client = httpx.Client(transport=retry_transport)
+        client = httpx2.Client(transport=retry_transport)
         core = CoreClient(api_key="...", client=client)
     """
 
     def __init__(
         self,
-        inner: httpx.BaseTransport,
+        inner: httpx2.BaseTransport,
         *,
         max_retries: int = 3,
         backoff_base: float = 0.5,
@@ -79,8 +83,8 @@ class RetryTransport(httpx.BaseTransport):
 
     def handle_request(
         self,
-        request: httpx.Request,
-    ) -> httpx.Response:
+        request: httpx2.Request,
+    ) -> httpx2.Response:
         """Handle a single request, retrying on retriable failures.
 
         On the final attempt (attempt == max_retries), returns the failed response
@@ -89,29 +93,34 @@ class RetryTransport(httpx.BaseTransport):
         exceptions on the final attempt, re-raises the exception directly.
 
         Args:
-            request: The outbound httpx.Request to execute.
+            request: The outbound httpx2.Request to execute.
 
         Returns:
-            The httpx.Response from the inner transport (possibly a non-2xx response
+            The httpx2.Response from the inner transport (possibly a non-2xx response
             on final attempt if all retries are exhausted for a status-code trigger).
 
         Raises:
-            httpx.ConnectError: If all attempts fail with a connection error.
-            httpx.TimeoutException: If all attempts fail with a timeout.
+            httpx2.ConnectError: If all attempts fail with a connection error.
+            httpx2.TimeoutException: If all attempts fail with a timeout.
         """
         # Initialize response before loop to satisfy ty's possibly-unresolved-reference rule.
-        response: httpx.Response = httpx.Response(0)
+        response: httpx2.Response = httpx2.Response(0)
 
+        safe = request.method in _SAFE_TO_REPEAT
         for attempt in range(self._max_retries + 1):
             if attempt > 0:
                 delay = self._backoff_delay(attempt - 1, response)
                 time.sleep(delay)
             try:
                 response = self._inner.handle_request(request)
-                if self._should_retry_response(response) and attempt < self._max_retries:
+                if self._should_retry_response(response, safe=safe) and attempt < self._max_retries:
                     continue
-            except (httpx.ConnectError, httpx.TimeoutException):
+            except (httpx2.ConnectError, httpx2.ConnectTimeout):
+                # The request never reached the server, so resending is always safe.
                 if attempt >= self._max_retries:
+                    raise
+            except httpx2.TimeoutException:
+                if not safe or attempt >= self._max_retries:
                     raise
             else:
                 return response
@@ -122,17 +131,16 @@ class RetryTransport(httpx.BaseTransport):
         """Close the inner transport and release its resources."""
         self._inner.close()
 
-    def _should_retry_response(self, response: httpx.Response) -> bool:
-        """Return True if the response status code warrants a retry."""
-        return (
-            response.status_code == _STATUS_TOO_MANY_REQUESTS
-            or _STATUS_SERVER_ERROR_MIN <= response.status_code < _STATUS_SERVER_ERROR_MAX
+    def _should_retry_response(self, response: httpx2.Response, *, safe: bool = True) -> bool:
+        """Return True if the response warrants a retry (5xx only for repeat-safe methods)."""
+        return response.status_code == _STATUS_TOO_MANY_REQUESTS or (
+            safe and _STATUS_SERVER_ERROR_MIN <= response.status_code < _STATUS_SERVER_ERROR_MAX
         )
 
     def _backoff_delay(
         self,
         attempt: int,
-        response: httpx.Response | None = None,
+        response: httpx2.Response | None = None,
     ) -> float:
         """Compute the delay in seconds before the next retry attempt.
 
@@ -150,6 +158,5 @@ class RetryTransport(httpx.BaseTransport):
         if response is not None and response.status_code == _STATUS_TOO_MANY_REQUESTS:
             retry_after = response.headers.get("retry-after")
             if retry_after is not None:
-                return _parse_retry_after(retry_after)
-        cap = 60.0
-        return random.uniform(0, min(cap, self._backoff_base * (2**attempt)))  # noqa: S311
+                return min(_MAX_DELAY, _parse_retry_after(retry_after))
+        return random.uniform(0, min(_MAX_DELAY, self._backoff_base * (2**attempt)))  # noqa: S311

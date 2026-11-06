@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from bunny_cdn_sdk._exceptions import BunnyAPIError, BunnyAuthenticationError
 from bunny_cdn_sdk.cli import app
@@ -70,6 +70,8 @@ def test_storage_upload_success(runner, tmp_path) -> None:
         result = runner.invoke(app, [*_AUTH, "storage", "upload", str(src), "remote/file.txt"])
     assert result.exit_code == 0
     assert "Uploaded" in result.output
+    MockClient.assert_called_once_with("z", "k", region="falkenstein")
+    MockClient.return_value.upload.assert_called_once_with("remote/file.txt", ANY)
 
 
 def test_storage_upload_file_not_found(runner, tmp_path) -> None:
@@ -99,6 +101,7 @@ def test_storage_download_success(runner, tmp_path) -> None:
         result = runner.invoke(app, [*_AUTH, "storage", "download", "remote/file.txt", str(dest)])
     assert result.exit_code == 0
     assert dest.read_bytes() == b"hello world"
+    MockClient.return_value.download.assert_called_once_with("remote/file.txt")
 
 
 def test_storage_download_error(runner, tmp_path) -> None:
@@ -120,6 +123,7 @@ def test_storage_delete_with_yes(runner) -> None:
         result = runner.invoke(app, [*_AUTH, "storage", "delete", "remote/file.txt", "--yes"])
     assert result.exit_code == 0
     assert "Deleted" in result.output
+    MockClient.return_value.delete.assert_called_once_with("remote/file.txt")
 
 
 def test_storage_delete_prompt_confirmed(runner) -> None:
@@ -127,6 +131,7 @@ def test_storage_delete_prompt_confirmed(runner) -> None:
         MockClient.return_value.delete.return_value = None
         result = runner.invoke(app, [*_AUTH, "storage", "delete", "remote/file.txt"], input="y\n")
     assert result.exit_code == 0
+    MockClient.return_value.delete.assert_called_once_with("remote/file.txt")
 
 
 def test_storage_delete_prompt_aborted(runner) -> None:

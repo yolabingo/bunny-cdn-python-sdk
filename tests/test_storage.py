@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import io
 
-import httpx
+import httpx2
 import pytest
 
 from bunny_cdn_sdk.storage import REGION_MAP, StorageClient
@@ -16,8 +16,8 @@ from tests.conftest import make_storage_client
 
 
 def test_upload_bytes_returns_empty_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(204, content=b"")
 
     client = make_storage_client(handler)
     result = client.upload("photos/image.jpg", b"hello")
@@ -25,8 +25,8 @@ def test_upload_bytes_returns_empty_dict() -> None:
 
 
 def test_upload_binary_io_returns_empty_dict() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(204, content=b"")
 
     client = make_storage_client(handler)
     result = client.upload("photos/image.jpg", io.BytesIO(b"hello"))
@@ -34,8 +34,8 @@ def test_upload_binary_io_returns_empty_dict() -> None:
 
 
 def test_upload_with_content_type() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(204, content=b"")
 
     client = make_storage_client(handler)
     result = client.upload("photos/image.jpg", b"data", content_type="image/jpeg")
@@ -50,8 +50,8 @@ def test_upload_with_content_type() -> None:
 def test_download_returns_bytes() -> None:
     payload = b"file content bytes"
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, content=payload)
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, content=payload)
 
     client = make_storage_client(handler)
     result = client.download("photos/image.jpg")
@@ -65,8 +65,8 @@ def test_download_returns_bytes() -> None:
 
 
 def test_delete_returns_none() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(204, content=b"")
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(204, content=b"")
 
     client = make_storage_client(handler)
     result = client.delete("photos/image.jpg")
@@ -81,8 +81,8 @@ def test_delete_returns_none() -> None:
 def test_list_returns_list_of_dicts() -> None:
     files = [{"ObjectName": "img.jpg", "Length": 1024}]
 
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json=files)
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json=files)
 
     client = make_storage_client(handler)
     result = client.list("/")
@@ -110,3 +110,17 @@ def test_region_ny_base_url() -> None:
 def test_invalid_region_raises_value_error() -> None:
     with pytest.raises(ValueError, match="Unknown region"):
         StorageClient("zone", "password", region="invalid-region")
+
+
+@pytest.mark.parametrize("name", ["report?v=2.pdf", "notes#1.txt", "a b.txt"])
+def test_special_characters_stay_in_path(name: str) -> None:
+    """``?`` and ``#`` must not split the path, or the wrong file is deleted."""
+    seen: list[httpx2.URL] = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen.append(request.url)
+        return httpx2.Response(200)
+
+    make_storage_client(handler).delete(f"dir/{name}")
+    assert seen[0].path.endswith(f"/dir/{name}")
+    assert not seen[0].query

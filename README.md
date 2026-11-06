@@ -150,10 +150,10 @@ storage.list(path: str) -> list[dict]
 
 ```python
 from bunny_cdn_sdk import CoreClient, RetryTransport
-import httpx
+import httpx2
 
 transport = RetryTransport(max_retries=5, backoff_base=0.5)
-core = CoreClient(api_key="...", client=httpx.Client(transport=transport))
+core = CoreClient(api_key="...", client=httpx2.Client(transport=transport))
 ```
 
 Or via constructor shorthand:
@@ -226,7 +226,7 @@ bunnycdn --json pull-zone list  # raw JSON output
 ## Requirements
 
 - Python 3.12+
-- [httpx](https://www.python-httpx.org/)
+- [httpx2](https://www.python-httpx2.org/)
 
 CLI requirements are optional:
 
