@@ -1,4 +1,4 @@
-"""Retry transport for httpx — exponential backoff with jitter (internal)."""
+"""Retry transport for httpx2 — exponential backoff with jitter (internal)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import time
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 
-import httpx
+import httpx2
 
 _STATUS_TOO_MANY_REQUESTS = 429
 _STATUS_SERVER_ERROR_MIN = 500
@@ -34,32 +34,32 @@ def _parse_retry_after(value: str) -> float:
             return 0.0
 
 
-class RetryTransport(httpx.BaseTransport):
-    """Composable httpx transport that adds retry logic to any inner transport.
+class RetryTransport(httpx2.BaseTransport):
+    """Composable httpx2 transport that adds retry logic to any inner transport.
 
-    Wraps an existing ``httpx.BaseTransport`` and retries failed requests
+    Wraps an existing ``httpx2.BaseTransport`` and retries failed requests
     using exponential backoff with full jitter.
 
     Retry triggers:
     - HTTP 429 — respects ``Retry-After`` header when present
     - HTTP 5xx — any server error response
-    - ``httpx.ConnectError`` — network connection failure
-    - ``httpx.TimeoutException`` — request or connect timeout
+    - ``httpx2.ConnectError`` — network connection failure
+    - ``httpx2.TimeoutException`` — request or connect timeout
 
     Usage::
 
-        import httpx
+        import httpx2
         from bunny_cdn_sdk import RetryTransport, CoreClient
 
-        inner = httpx.HTTPTransport()
+        inner = httpx2.HTTPTransport()
         retry_transport = RetryTransport(inner, max_retries=3, backoff_base=0.5)
-        client = httpx.Client(transport=retry_transport)
+        client = httpx2.Client(transport=retry_transport)
         core = CoreClient(api_key="...", client=client)
     """
 
     def __init__(
         self,
-        inner: httpx.BaseTransport,
+        inner: httpx2.BaseTransport,
         *,
         max_retries: int = 3,
         backoff_base: float = 0.5,
@@ -79,8 +79,8 @@ class RetryTransport(httpx.BaseTransport):
 
     def handle_request(
         self,
-        request: httpx.Request,
-    ) -> httpx.Response:
+        request: httpx2.Request,
+    ) -> httpx2.Response:
         """Handle a single request, retrying on retriable failures.
 
         On the final attempt (attempt == max_retries), returns the failed response
@@ -89,18 +89,18 @@ class RetryTransport(httpx.BaseTransport):
         exceptions on the final attempt, re-raises the exception directly.
 
         Args:
-            request: The outbound httpx.Request to execute.
+            request: The outbound httpx2.Request to execute.
 
         Returns:
-            The httpx.Response from the inner transport (possibly a non-2xx response
+            The httpx2.Response from the inner transport (possibly a non-2xx response
             on final attempt if all retries are exhausted for a status-code trigger).
 
         Raises:
-            httpx.ConnectError: If all attempts fail with a connection error.
-            httpx.TimeoutException: If all attempts fail with a timeout.
+            httpx2.ConnectError: If all attempts fail with a connection error.
+            httpx2.TimeoutException: If all attempts fail with a timeout.
         """
         # Initialize response before loop to satisfy ty's possibly-unresolved-reference rule.
-        response: httpx.Response = httpx.Response(0)
+        response: httpx2.Response = httpx2.Response(0)
 
         for attempt in range(self._max_retries + 1):
             if attempt > 0:
@@ -110,7 +110,7 @@ class RetryTransport(httpx.BaseTransport):
                 response = self._inner.handle_request(request)
                 if self._should_retry_response(response) and attempt < self._max_retries:
                     continue
-            except (httpx.ConnectError, httpx.TimeoutException):
+            except (httpx2.ConnectError, httpx2.TimeoutException):
                 if attempt >= self._max_retries:
                     raise
             else:
@@ -122,7 +122,7 @@ class RetryTransport(httpx.BaseTransport):
         """Close the inner transport and release its resources."""
         self._inner.close()
 
-    def _should_retry_response(self, response: httpx.Response) -> bool:
+    def _should_retry_response(self, response: httpx2.Response) -> bool:
         """Return True if the response status code warrants a retry."""
         return (
             response.status_code == _STATUS_TOO_MANY_REQUESTS
@@ -132,7 +132,7 @@ class RetryTransport(httpx.BaseTransport):
     def _backoff_delay(
         self,
         attempt: int,
-        response: httpx.Response | None = None,
+        response: httpx2.Response | None = None,
     ) -> float:
         """Compute the delay in seconds before the next retry attempt.
 

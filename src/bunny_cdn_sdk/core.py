@@ -12,7 +12,7 @@ from bunny_cdn_sdk._pagination import pagination_iterator
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    import httpx
+    import httpx2
 
     from bunny_cdn_sdk._types import PaginatedResponse
 
@@ -30,7 +30,7 @@ class CoreClient(_BaseClient):
     Args:
         api_key: Bunny CDN account API key.
         base_url: Base URL for the Core API (default: https://api.bunnycdn.com).
-        client: Optional httpx.Client to inject (advanced use). When provided,
+        client: Optional httpx2.Client to inject (advanced use). When provided,
             max_retries is ignored — configure RetryTransport on your client directly.
         max_retries: Number of retry attempts on 429/5xx/network errors (default 0 = no retry).
         backoff_base: Base delay in seconds for exponential backoff (default 0.5).
@@ -46,7 +46,7 @@ class CoreClient(_BaseClient):
         api_key: str,
         base_url: str = _BASE_URL,
         *,
-        client: httpx.Client | None = None,
+        client: httpx2.Client | None = None,
         max_retries: int = 0,
         backoff_base: float = 0.5,
     ) -> None:

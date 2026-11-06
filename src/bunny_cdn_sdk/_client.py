@@ -6,7 +6,7 @@ import importlib.metadata
 import warnings
 from typing import Any, Never, Self
 
-import httpx
+import httpx2
 
 from bunny_cdn_sdk._exceptions import (
     BunnyAPIError,
@@ -29,7 +29,7 @@ _HTTP_SERVER_ERROR_MIN = 500
 _HTTP_SERVER_ERROR_MAX = 600
 
 
-def _extract_error_message(response: httpx.Response, status_code: int) -> str:
+def _extract_error_message(response: httpx2.Response, status_code: int) -> str:
     """Extract a human-readable error message from an HTTP error response."""
     try:
         return response.json().get("Message") or response.text or f"HTTP {status_code}"
@@ -40,8 +40,8 @@ def _extract_error_message(response: httpx.Response, status_code: int) -> str:
 def _raise_for_status_code(
     status_code: int,
     message: str,
-    response: httpx.Response,
-    exc: httpx.HTTPStatusError,
+    response: httpx2.Response,
+    exc: httpx2.HTTPStatusError,
 ) -> Never:
     """Raise the appropriate Bunny exception for an HTTP error status code."""
     if status_code == _HTTP_UNAUTHORIZED:
@@ -61,7 +61,7 @@ class _BaseClient:
     def __init__(
         self,
         api_key: str,
-        client: httpx.Client | None = None,
+        client: httpx2.Client | None = None,
         *,
         max_retries: int = 0,
         backoff_base: float = 0.5,
@@ -70,7 +70,7 @@ class _BaseClient:
 
         Args:
             api_key: API key for authentication
-            client: Optional httpx.Client to use; if not provided, one is created
+            client: Optional httpx2.Client to use; if not provided, one is created
             max_retries: Number of retry attempts on 429/5xx/network errors (default 0 = no retry).
                 Ignored when ``client=`` is provided — configure RetryTransport on your
                 Client directly in that case. Reasonable values are 1-5.
@@ -90,14 +90,14 @@ class _BaseClient:
             self._client_owner = False
         elif max_retries > 0:
             transport = RetryTransport(
-                httpx.HTTPTransport(),
+                httpx2.HTTPTransport(),
                 max_retries=max_retries,
                 backoff_base=backoff_base,
             )
-            self._client = httpx.Client(transport=transport)
+            self._client = httpx2.Client(transport=transport)
             self._client_owner = True
         else:
-            self._client = httpx.Client()
+            self._client = httpx2.Client()
             self._client_owner = True
 
     def __enter__(self) -> Self:
@@ -119,16 +119,16 @@ class _BaseClient:
         method: str,
         url: str,
         **kwargs: Any,
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         """Make an HTTP request with auth and error mapping.
 
         Args:
             method: HTTP method
             url: URL to request
-            **kwargs: Additional arguments to pass to httpx.Client.request
+            **kwargs: Additional arguments to pass to httpx2.Client.request
 
         Returns:
-            The httpx.Response object
+            The httpx2.Response object
 
         Raises:
             BunnyAuthenticationError: On HTTP 401
@@ -147,17 +147,17 @@ class _BaseClient:
         try:
             response = self._client.request(method, url, headers=headers, **kwargs)
             response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
+        except httpx2.HTTPStatusError as exc:
             status_code = exc.response.status_code
             message = _extract_error_message(exc.response, status_code)
             _raise_for_status_code(status_code, message, exc.response, exc)
-        except httpx.ConnectTimeout as exc:
+        except httpx2.ConnectTimeout as exc:
             msg = f"Connection timeout: {exc}"
             raise BunnyTimeoutError(msg) from exc
-        except httpx.ConnectError as exc:
+        except httpx2.ConnectError as exc:
             msg = f"Connection error: {exc}"
             raise BunnyConnectionError(msg) from exc
-        except httpx.TimeoutException as exc:
+        except httpx2.TimeoutException as exc:
             msg = f"Request timeout: {exc}"
             raise BunnyTimeoutError(msg) from exc
         else:
@@ -168,6 +168,6 @@ class _BaseClient:
         method: str,
         url: str,
         **kwargs: Any,
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         """Alias for _request. Kept for internal call-site compatibility."""
         return self._request(method, url, **kwargs)

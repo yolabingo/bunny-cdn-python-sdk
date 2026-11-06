@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import httpx
+    import httpx2
 
 __all__ = [
     "BunnyAPIError",
@@ -30,7 +30,7 @@ class BunnyAPIError(BunnySDKError):
         self,
         status_code: int,
         message: str,
-        response: httpx.Response,
+        response: httpx2.Response,
     ) -> None:
         super().__init__(f"HTTP {status_code}: {message}")
         self.status_code = status_code

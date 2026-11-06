@@ -1,12 +1,15 @@
 version: 2
 updates:
-  # Python dependencies via pip (pyproject.toml)
-  - package-ecosystem: "pip"
+  # Python dependencies (pyproject.toml + uv.lock)
+  - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "daily"
       time: "04:00"
       timezone: "America/Denver"
+    # Wait 3 days after a release before proposing it (supply-chain safety)
+    cooldown:
+      default-days: 3
     open-pull-requests-limit: 10
     allow:
       - dependency-type: "all"
@@ -15,8 +18,6 @@ updates:
         dependency-type: "development"
       production-dependencies:
         dependency-type: "production"
-    reviewers:
-      - "yolabingo"
     labels:
       - "dependencies"
       - "python"
@@ -34,8 +35,6 @@ updates:
       time: "04:00"
       timezone: "America/Denver"
     open-pull-requests-limit: 5
-    reviewers:
-      - "yolabingo"
     labels:
       - "ci"
     commit-message:

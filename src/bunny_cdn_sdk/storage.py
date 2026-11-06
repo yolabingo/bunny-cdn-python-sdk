@@ -10,7 +10,7 @@ from bunny_cdn_sdk._client import _BaseClient
 if TYPE_CHECKING:
     import builtins
 
-    import httpx
+    import httpx2
 
 __all__ = ["StorageClient"]
 
@@ -42,7 +42,7 @@ class StorageClient(_BaseClient):
             ``api_key`` and the Basic Auth credential).
         region: Storage region key.  Must be one of the 10 supported regions
             (default: ``"falkenstein"``).  See ``REGION_MAP`` for the full list.
-        client: Optional ``httpx.Client`` to inject (keyword-only, advanced use).
+        client: Optional ``httpx2.Client`` to inject (keyword-only, advanced use).
             When provided, max_retries is ignored.
         max_retries: Number of retry attempts on 429/5xx/network errors (default 0 = no retry).
         backoff_base: Base delay in seconds for exponential backoff (default 0.5).
@@ -57,7 +57,7 @@ class StorageClient(_BaseClient):
         password: str,
         region: str = "falkenstein",
         *,
-        client: httpx.Client | None = None,
+        client: httpx2.Client | None = None,
         max_retries: int = 0,
         backoff_base: float = 0.5,
     ) -> None:
@@ -120,10 +120,10 @@ class StorageClient(_BaseClient):
         Args:
             path: Destination path within the zone (e.g. ``"photos/image.jpg"``).
             data: File content as ``bytes`` or a file-like object opened in
-                binary mode.  File-like objects are streamed by httpx without
+                binary mode.  File-like objects are streamed by httpx2 without
                 buffering the entire file in memory (T-03-09 mitigation).
             content_type: Optional MIME type for the ``Content-Type`` header.
-                If omitted, httpx defaults to ``application/octet-stream``.
+                If omitted, httpx2 defaults to ``application/octet-stream``.
 
         Returns:
             Parsed JSON response body as a plain ``dict`` (may be empty on 204).

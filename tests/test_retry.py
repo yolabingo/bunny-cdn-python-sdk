@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 from email.utils import format_datetime
 from unittest.mock import patch
 
-import httpx
+import httpx2
 import pytest
 
 from bunny_cdn_sdk import RetryTransport
@@ -34,25 +34,25 @@ def _make_flaky_handler(fail_count: int, fail_status: int = 503, headers: dict |
         fail_status: HTTP status code for failing responses.
         headers: Optional response headers to attach to failing responses.
     """
-    calls: list[httpx.Request] = []
+    calls: list[httpx2.Request] = []
     fail_headers = headers or {}
 
-    def handler(req: httpx.Request) -> httpx.Response:
+    def handler(req: httpx2.Request) -> httpx2.Response:
         calls.append(req)
         if len(calls) <= fail_count:
-            return httpx.Response(fail_status, headers=fail_headers)
-        return httpx.Response(200, json={"ok": True})
+            return httpx2.Response(fail_status, headers=fail_headers)
+        return httpx2.Response(200, json={"ok": True})
 
     return handler, calls
 
 
 def _make_always_fail_handler(fail_status: int = 503):
     """Return (handler, call_list) where every call returns fail_status."""
-    calls: list[httpx.Request] = []
+    calls: list[httpx2.Request] = []
 
-    def handler(req: httpx.Request) -> httpx.Response:
+    def handler(req: httpx2.Request) -> httpx2.Response:
         calls.append(req)
-        return httpx.Response(fail_status)
+        return httpx2.Response(fail_status)
 
     return handler, calls
 
@@ -61,11 +61,11 @@ def _make_network_error_handler(exc: Exception, fail_count: int):
     """Return handler that raises exc for the first fail_count calls, then succeeds."""
     calls: list[int] = [0]
 
-    def handler(req: httpx.Request) -> httpx.Response:
+    def handler(req: httpx2.Request) -> httpx2.Response:
         calls[0] += 1
         if calls[0] <= fail_count:
             raise exc
-        return httpx.Response(200, json={"ok": True})
+        return httpx2.Response(200, json={"ok": True})
 
     return handler, calls
 
@@ -73,7 +73,7 @@ def _make_network_error_handler(exc: Exception, fail_count: int):
 def _make_always_network_error_handler(exc: Exception):
     """Return handler that always raises exc."""
 
-    def handler(req: httpx.Request) -> httpx.Response:
+    def handler(req: httpx2.Request) -> httpx2.Response:
         raise exc
 
     return handler
@@ -85,9 +85,9 @@ def _client_with_retry(
     backoff_base: float = 0.5,
 ) -> _BaseClient:
     """Wire: handler -> MockTransport -> RetryTransport -> AsyncClient -> _BaseClient."""
-    inner = httpx.MockTransport(handler)
+    inner = httpx2.MockTransport(handler)
     retry_transport = RetryTransport(inner, max_retries=max_retries, backoff_base=backoff_base)
-    async_client = httpx.Client(transport=retry_transport)
+    async_client = httpx2.Client(transport=retry_transport)
     return _BaseClient("test_api_key", client=async_client)
 
 
@@ -203,9 +203,9 @@ def test_retries_on_429_without_retry_after_uses_backoff() -> None:
 
 
 def test_retries_on_connect_error() -> None:
-    """RetryTransport retries on httpx.ConnectError and returns 200 on success."""
+    """RetryTransport retries on httpx2.ConnectError and returns 200 on success."""
     handler, calls = _make_network_error_handler(
-        httpx.ConnectError("Connection refused"), fail_count=2
+        httpx2.ConnectError("Connection refused"), fail_count=2
     )
     client = _client_with_retry(handler, max_retries=3)
 
@@ -218,8 +218,8 @@ def test_retries_on_connect_error() -> None:
 
 
 def test_retries_on_timeout_exception() -> None:
-    """RetryTransport retries on httpx.TimeoutException and returns 200 on success."""
-    handler, calls = _make_network_error_handler(httpx.TimeoutException("Timed out"), fail_count=1)
+    """RetryTransport retries on httpx2.TimeoutException and returns 200 on success."""
+    handler, calls = _make_network_error_handler(httpx2.TimeoutException("Timed out"), fail_count=1)
     client = _client_with_retry(handler, max_retries=2)
 
     with patch("time.sleep"):
@@ -254,7 +254,7 @@ def test_max_retries_exhausted_returns_final_5xx_response() -> None:
 
 def test_max_retries_exhausted_reraises_connect_error() -> None:
     """When all retries fail with ConnectError, the exception is re-raised."""
-    handler = _make_always_network_error_handler(httpx.ConnectError("Connection refused"))
+    handler = _make_always_network_error_handler(httpx2.ConnectError("Connection refused"))
     client = _client_with_retry(handler, max_retries=1)
 
     with patch("time.sleep"):
@@ -264,7 +264,7 @@ def test_max_retries_exhausted_reraises_connect_error() -> None:
 
 def test_max_retries_exhausted_reraises_timeout_exception() -> None:
     """When all retries fail with TimeoutException, the exception is re-raised."""
-    handler = _make_always_network_error_handler(httpx.TimeoutException("Timed out"))
+    handler = _make_always_network_error_handler(httpx2.TimeoutException("Timed out"))
     client = _client_with_retry(handler, max_retries=1)
 
     with patch("time.sleep"):
@@ -326,13 +326,13 @@ def test_backoff_caps_at_60_seconds() -> None:
 
 
 def test_composability_with_async_http_transport() -> None:
-    """RetryTransport(httpx.AsyncHTTPTransport()) can be injected into _BaseClient via client=."""
+    """RetryTransport(httpx2.AsyncHTTPTransport()) can be injected into _BaseClient via client=."""
     # This test uses MockTransport (not a live network) to avoid external dependencies,
     # but constructs the full composability chain as documented in RETRY-05.
     handler, calls = _make_flaky_handler(fail_count=1, fail_status=503)
-    inner = httpx.MockTransport(handler)
+    inner = httpx2.MockTransport(handler)
     retry_transport = RetryTransport(inner, max_retries=2, backoff_base=0.5)
-    async_client = httpx.Client(transport=retry_transport)
+    async_client = httpx2.Client(transport=retry_transport)
     client = _BaseClient("test_api_key", client=async_client)
 
     with patch("time.sleep"):
@@ -404,6 +404,6 @@ def test_parse_retry_after_garbage_returns_zero() -> None:
 def test_close_delegates_to_inner_transport() -> None:
     """RetryTransport.close() calls close() on the inner transport."""
     handler, _ = _make_flaky_handler(fail_count=0)
-    inner = httpx.MockTransport(handler)
+    inner = httpx2.MockTransport(handler)
     retry_transport = RetryTransport(inner, max_retries=1)
     retry_transport.close()

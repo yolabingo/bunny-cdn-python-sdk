@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import httpx
+import httpx2
 import pytest
 
 from bunny_cdn_sdk._exceptions import (
@@ -20,8 +20,8 @@ _URL = "https://api.bunnycdn.com/pullzone/1"
 
 
 def _status_handler(status: int):
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(status, json={"Message": "error"})
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(status, json={"Message": "error"})
 
     return handler
 
@@ -58,8 +58,8 @@ def test_server_error() -> None:
 
 
 def test_connection_error() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        raise httpx.ConnectError("Connection refused")
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        raise httpx2.ConnectError("Connection refused")
 
     client = make_base_client(handler)
     with pytest.raises(BunnyConnectionError) as exc_info:
@@ -68,8 +68,8 @@ def test_connection_error() -> None:
 
 
 def test_timeout_error() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        raise httpx.TimeoutException("Timed out")
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        raise httpx2.TimeoutException("Timed out")
 
     client = make_base_client(handler)
     with pytest.raises(BunnyTimeoutError) as exc_info:
