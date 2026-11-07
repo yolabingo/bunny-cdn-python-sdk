@@ -10,8 +10,13 @@ from typing import Any, cast
 
 import typer
 
+from bunny_cdn_sdk import core
 from bunny_cdn_sdk.cli._dns_zone import dns_zone_app
+from bunny_cdn_sdk.cli._load_balancer import load_balancer_app
+from bunny_cdn_sdk.cli._logs import logs_cmd
+from bunny_cdn_sdk.cli._output import api_client, output_result, sdk_errors
 from bunny_cdn_sdk.cli._pull_zone import pull_zone_app
+from bunny_cdn_sdk.cli._shield import shield_app
 from bunny_cdn_sdk.cli._storage import storage_app
 from bunny_cdn_sdk.cli._storage_zone import storage_zone_app
 from bunny_cdn_sdk.cli._video_library import video_library_app
@@ -23,6 +28,9 @@ app.add_typer(storage_zone_app, name="storage-zone")
 app.add_typer(dns_zone_app, name="dns-zone")
 app.add_typer(video_library_app, name="video-library")
 app.add_typer(storage_app, name="storage")
+app.add_typer(load_balancer_app, name="load-balancer")
+app.add_typer(shield_app, name="shield")
+app.command("logs")(logs_cmd)
 
 
 @dataclass
@@ -110,13 +118,8 @@ def purge_url_cmd(
     url: str = typer.Argument(..., help="URL to purge from CDN cache"),
 ) -> None:
     """Purge a specific URL from CDN cache."""
-    from bunny_cdn_sdk.cli._output import require_api_key, sdk_errors
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    _state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         client.purge_url(url)
         typer.echo(f"Purged: {url}")
 
@@ -172,19 +175,13 @@ def stats_cmd(
     ),
 ) -> None:
     """Display CDN statistics per pull zone."""
-    from bunny_cdn_sdk.cli._output import output_result, require_api_key, sdk_errors
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
 
     today = datetime.now(tz=UTC).date()
     date_from = from_ or (today - timedelta(days=7)).isoformat()
     date_to = to_ or today.isoformat()
 
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
-
         if pull_zone_id is not None:
             zone = client.get_pull_zone(pull_zone_id)
             stats = client.get_statistics(pullZone=pull_zone_id, dateFrom=date_from, dateTo=date_to)
@@ -260,13 +257,8 @@ _BILLING_COLUMNS = [
 @app.command("billing")
 def billing_cmd(ctx: typer.Context) -> None:
     """Display account billing summary."""
-    from bunny_cdn_sdk.cli._output import output_result, require_api_key, sdk_errors
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
 
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         billing = client.get_billing()
         output_result(billing, columns=_BILLING_COLUMNS, json_mode=state.json_output)

@@ -25,7 +25,7 @@ class CoreClient(_BaseClient):
     """Bunny CDN Core API client.
 
     Wraps the full Bunny CDN Core API surface: Pull Zones, Storage Zones,
-    DNS Zones, Video Libraries, and utility endpoints.
+    DNS Zones, Video Libraries, Edge Rules, Load Balancers, and utility endpoints.
 
     Args:
         api_key: Bunny CDN account API key.
@@ -300,6 +300,13 @@ class CoreClient(_BaseClient):
         """
         return self._json("DELETE", f"{self.base_url}/storagezone/{id}")
 
+    def _iter_paged(self, path: str, per_page: int, **params: Any) -> Iterator[dict]:
+        def fetch_page(page: int) -> PaginatedResponse:
+            query = {"page": page, "perPage": per_page, **params}
+            return self._json("GET", f"{self.base_url}{path}", params=query)
+
+        return pagination_iterator(fetch_page)
+
     def iter_storage_zones(self, per_page: int = 1000) -> Iterator[dict]:
         """Iterate over all storage zones, auto-fetching pages as needed.
 
@@ -310,11 +317,7 @@ class CoreClient(_BaseClient):
             Individual storage zone dicts across all pages.
         """
 
-        def fetch_page(page: int) -> PaginatedResponse:
-            params: dict[str, Any] = {"page": page, "perPage": per_page}
-            return self._json("GET", f"{self.base_url}/storagezone", params=params)
-
-        return pagination_iterator(fetch_page)
+        return self._iter_paged("/storagezone", per_page)
 
     # ------------------------------------------------------------------
     # DNS Zones — CRUD + Iterator (CORE-07, CORE-09)
@@ -401,13 +404,9 @@ class CoreClient(_BaseClient):
             Individual DNS zone dicts across all pages.
         """
 
-        def fetch_page(page: int) -> PaginatedResponse:
-            params: dict[str, Any] = {"page": page, "perPage": per_page}
-            if search is not None:
-                params["search"] = search
-            return self._json("GET", f"{self.base_url}/dnszone", params=params)
-
-        return pagination_iterator(fetch_page)
+        return self._iter_paged(
+            "/dnszone", per_page, **({"search": search} if search is not None else {})
+        )
 
     # ------------------------------------------------------------------
     # DNS Records (CORE-08)
@@ -526,11 +525,7 @@ class CoreClient(_BaseClient):
             Individual video library dicts across all pages.
         """
 
-        def fetch_page(page: int) -> PaginatedResponse:
-            params: dict[str, Any] = {"page": page, "perPage": per_page}
-            return self._json("GET", f"{self.base_url}/videolibrary", params=params)
-
-        return pagination_iterator(fetch_page)
+        return self._iter_paged("/videolibrary", per_page)
 
     # ------------------------------------------------------------------
     # Utilities
@@ -587,3 +582,254 @@ class CoreClient(_BaseClient):
             Billing info dict.
         """
         return self._json("GET", f"{self.base_url}/billing")
+
+    # ------------------------------------------------------------------
+    # Edge Rules
+    # ------------------------------------------------------------------
+
+    def add_or_update_edge_rule(self, pull_zone_id: int, **kwargs: Any) -> dict:
+        """Create or update an edge rule on a pull zone.
+
+        Edge rules have no list endpoint; read them from ``get_pull_zone(id)["EdgeRules"]``.
+
+        Args:
+            pull_zone_id: Pull zone ID.
+            **kwargs: Edge rule fields (e.g. ActionType, Triggers). Include ``Guid`` to update.
+
+        Returns:
+            Response dict.
+        """
+        return self._json(
+            "POST", f"{self.base_url}/pullzone/{pull_zone_id}/edgerules/addOrUpdate", json=kwargs
+        )
+
+    def delete_edge_rule(self, pull_zone_id: int, edge_rule_id: str) -> dict:
+        """Delete an edge rule.
+
+        Args:
+            pull_zone_id: Pull zone ID.
+            edge_rule_id: Edge rule GUID.
+
+        Returns:
+            Response dict.
+        """
+        return self._json(
+            "DELETE", f"{self.base_url}/pullzone/{pull_zone_id}/edgerules/{edge_rule_id}"
+        )
+
+    def set_edge_rule_enabled(self, pull_zone_id: int, edge_rule_id: str, enabled: bool) -> dict:  # noqa: FBT001
+        """Enable or disable an edge rule.
+
+        Args:
+            pull_zone_id: Pull zone ID.
+            edge_rule_id: Edge rule GUID.
+            enabled: True to enable the rule, False to disable it.
+
+        Returns:
+            Response dict.
+        """
+        return self._json(
+            "POST",
+            f"{self.base_url}/pullzone/{pull_zone_id}/edgerules/{edge_rule_id}/setEdgeRuleEnabled",
+            json={"Id": pull_zone_id, "Value": enabled},
+        )
+
+    # ------------------------------------------------------------------
+    # Load Balancers
+    # ------------------------------------------------------------------
+
+    def list_load_balancers(self, page: int = 1, count: int = 50) -> list:
+        """List load balancers.
+
+        Args:
+            page: Page number (default 1).
+            count: Items per page (default 50).
+
+        Returns:
+            List of load balancer dicts.
+        """
+        return self._json(
+            "GET", f"{self.base_url}/loadbalancer", params={"page": page, "count": count}
+        )
+
+    def get_load_balancer(self, id: int) -> dict:
+        """Get a load balancer.
+
+        Args:
+            id: Load balancer ID.
+
+        Returns:
+            Response dict.
+        """
+        return self._json("GET", f"{self.base_url}/loadbalancer/{id}")
+
+    def create_load_balancer(self, **kwargs: Any) -> dict:
+        """Create a load balancer.
+
+        Args:
+            **kwargs: Load balancer fields (e.g. Name).
+
+        Returns:
+            Response dict.
+        """
+        return self._json("POST", f"{self.base_url}/loadbalancer", json=kwargs)
+
+    def update_load_balancer(self, id: int, **kwargs: Any) -> dict:
+        """Update a load balancer.
+
+        Args:
+            id: Load balancer ID.
+            **kwargs: Fields to update.
+
+        Returns:
+            Response dict.
+        """
+        return self._json("POST", f"{self.base_url}/loadbalancer/{id}", json=kwargs)
+
+    def delete_load_balancer(self, id: int) -> dict:
+        """Delete a load balancer.
+
+        Args:
+            id: Load balancer ID.
+
+        Returns:
+            Response dict.
+        """
+        return self._json("DELETE", f"{self.base_url}/loadbalancer/{id}")
+
+    def add_origin_group(self, lb_id: int, **kwargs: Any) -> dict:
+        """Add an origin group to a load balancer.
+
+        Args:
+            lb_id: Load balancer ID.
+            **kwargs: Origin group fields.
+
+        Returns:
+            Response dict.
+        """
+        return self._json("POST", f"{self.base_url}/loadbalancer/{lb_id}/origingroup", json=kwargs)
+
+    def update_origin_group(self, lb_id: int, group_id: int, **kwargs: Any) -> dict:
+        """Update an origin group.
+
+        Args:
+            lb_id: Load balancer ID.
+            group_id: Origin group ID.
+            **kwargs: Fields to update.
+
+        Returns:
+            Response dict.
+        """
+        return self._json(
+            "POST", f"{self.base_url}/loadbalancer/{lb_id}/origingroup/{group_id}", json=kwargs
+        )
+
+    def delete_origin_group(self, lb_id: int, group_id: int) -> dict:
+        """Delete an origin group.
+
+        Args:
+            lb_id: Load balancer ID.
+            group_id: Origin group ID.
+
+        Returns:
+            Response dict.
+        """
+        return self._json("DELETE", f"{self.base_url}/loadbalancer/{lb_id}/origingroup/{group_id}")
+
+    def add_origin(self, lb_id: int, group_id: int, **kwargs: Any) -> dict:
+        """Add an origin to an origin group.
+
+        Args:
+            lb_id: Load balancer ID.
+            group_id: Origin group ID.
+            **kwargs: Origin fields.
+
+        Returns:
+            Response dict.
+        """
+        return self._json(
+            "POST",
+            f"{self.base_url}/loadbalancer/{lb_id}/origingroup/{group_id}/origin",
+            json=kwargs,
+        )
+
+    def update_origin(self, lb_id: int, group_id: int, origin_id: int, **kwargs: Any) -> dict:
+        """Update an origin.
+
+        Args:
+            lb_id: Load balancer ID.
+            group_id: Origin group ID.
+            origin_id: Origin ID.
+            **kwargs: Fields to update.
+
+        Returns:
+            Response dict.
+        """
+        return self._json(
+            "POST",
+            f"{self.base_url}/loadbalancer/{lb_id}/origingroup/{group_id}/origin/{origin_id}",
+            json=kwargs,
+        )
+
+    def delete_origin(self, lb_id: int, group_id: int, origin_id: int) -> dict:
+        """Delete an origin.
+
+        Args:
+            lb_id: Load balancer ID.
+            group_id: Origin group ID.
+            origin_id: Origin ID.
+
+        Returns:
+            Response dict.
+        """
+        return self._json(
+            "DELETE",
+            f"{self.base_url}/loadbalancer/{lb_id}/origingroup/{group_id}/origin/{origin_id}",
+        )
+
+    def get_load_balancer_statistics(self, id: int, **kwargs: Any) -> dict:
+        """Get statistics for a load balancer.
+
+        Args:
+            id: Load balancer ID.
+            **kwargs: Query params (from, to, hourly, exactRange).
+
+        Returns:
+            Response dict.
+        """
+        return self._json("GET", f"{self.base_url}/loadbalancer/{id}/statistics", params=kwargs)
+
+    def get_load_balancer_pull_zones(self, id: int, **kwargs: Any) -> dict:
+        """Get pull zones using a load balancer.
+
+        Args:
+            id: Load balancer ID.
+            **kwargs: Query params (from, to).
+
+        Returns:
+            Response dict.
+        """
+        return self._json("GET", f"{self.base_url}/loadbalancer/{id}/pullzones", params=kwargs)
+
+    def get_load_balancer_account_statistics(self, **kwargs: Any) -> dict:
+        """Get account-wide load balancer statistics.
+
+        Args:
+            **kwargs: Query params (from, to).
+
+        Returns:
+            Response dict.
+        """
+        return self._json("GET", f"{self.base_url}/loadbalancer/statistics", params=kwargs)
+
+    def get_load_balancer_usage(self, id: int, **kwargs: Any) -> dict:
+        """Get usage for a load balancer.
+
+        Args:
+            id: Load balancer ID.
+            **kwargs: Query params (year, month).
+
+        Returns:
+            Response dict.
+        """
+        return self._json("GET", f"{self.base_url}/loadbalancer/{id}/usage", params=kwargs)

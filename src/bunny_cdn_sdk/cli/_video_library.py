@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 import typer
 from rich.table import Table
 from rich.text import Text
 
+from bunny_cdn_sdk import core
 from bunny_cdn_sdk.cli._output import (
+    api_client,
     console,
     output_result,
     parse_set_pairs,
-    require_api_key,
     sdk_errors,
 )
 
@@ -23,13 +22,8 @@ _COLUMNS = ["Name", "VideoCount", "Id"]
 @video_library_app.command("list")
 def list_libs(ctx: typer.Context) -> None:
     """List all video libraries."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         libs = sorted(client.iter_video_libraries(), key=lambda v: v.get("Name", ""))
         output_result(libs, columns=_COLUMNS, json_mode=state.json_output)
 
@@ -40,13 +34,8 @@ def get_lib(
     id: int = typer.Argument(..., help="Video library ID"),
 ) -> None:
     """Get a video library by ID."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         lib = client.get_video_library(id)
         output_result(lib, columns=_COLUMNS, json_mode=state.json_output)
 
@@ -57,13 +46,8 @@ def create_lib(
     name: str = typer.Option(..., "--name", help="Video library name"),
 ) -> None:
     """Create a new video library."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         result = client.create_video_library(Name=name)
         output_result(result, columns=_COLUMNS, json_mode=state.json_output)
 
@@ -75,13 +59,8 @@ def delete_lib(
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
 ) -> None:
     """Delete a video library (prompts for confirmation)."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    _state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         lib = client.get_video_library(id)
         name = lib.get("Name", "")
         if not yes:
@@ -97,14 +76,9 @@ def update_lib(
     set_: list[str] = typer.Option([], "--set", help="Field to update as KEY=VALUE (repeatable)"),
 ) -> None:
     """Update video library fields using --set KEY=VALUE."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
         updates = parse_set_pairs(set_)  # ValueError is caught by sdk_errors
-        client = CoreClient(api_key=state.api_key)
         # D-12: fetch before state
         before = client.get_video_library(id)
         # Apply update
