@@ -1,12 +1,14 @@
 # bunny-cdn-sdk
 
+[![PyPI](https://img.shields.io/pypi/v/bunny-cdn-sdk)](https://pypi.org/project/bunny-cdn-sdk/)
+
 A typed Python SDK for the [Bunny CDN](https://bunny.net) REST API.
 
 This package does not aim to cover every bunny.net API. It currently focuses on a narrow subset of the platform that is useful for CDN, DNS, storage-zone, and basic video-library workflows.
 
 ```bash
-pip install bunny-cdn-sdk
-pip install 'bunny-cdn-sdk[cli]'  # includes CLI
+uv add bunny-cdn-sdk                          # add the SDK to your project
+uv tool install 'bunny-cdn-sdk[cli]'          # install the bunnycdn CLI on your PATH
 ```
 
 <details>
@@ -314,7 +316,8 @@ except BunnyAPIError as e:
 Install with the `[cli]` extra:
 
 ```bash
-pip install 'bunny-cdn-sdk[cli]'
+uv tool install 'bunny-cdn-sdk[cli]'          # bunnycdn on your PATH
+uvx --from 'bunny-cdn-sdk[cli]' bunnycdn --help  # or run once without installing
 ```
 
 ```
@@ -356,5 +359,5 @@ bunnycdn --json pull-zone list  # raw JSON output
 
 CLI requirements are optional:
 
-- Install with `pip install 'bunny-cdn-sdk[cli]'`
+- Install with `uv tool install 'bunny-cdn-sdk[cli]'` (or `uv add 'bunny-cdn-sdk[cli]'` inside a project)
 - CLI dependencies: [`typer`](https://typer.tiangolo.com/) and [`rich`](https://rich.readthedocs.io/)
