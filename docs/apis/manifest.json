@@ -1,0 +1,86 @@
+{
+  "source_index": "https://bunny.net/docs/_llms/api-reference.txt",
+  "updated_at": "2026-11-07T22:20:27Z",
+  "specs": {
+    "core": {
+      "url": "https://core-api-public-docs.b-cdn.net/docs/v3/public.json",
+      "file": "core.json.gz",
+      "title": "bunny.net API",
+      "version": "1.0.0",
+      "spec_format": "3.0.0",
+      "paths": 90,
+      "sha256": "5f8b58f706efda355fe991cd7cc7251fddea46f5102dab8038e001e591941db8",
+      "updated_at": "2026-11-07T21:54:59Z"
+    },
+    "edge-scripting": {
+      "url": "https://core-api-public-docs.b-cdn.net/docs/v3/compute.json",
+      "file": "edge-scripting.json.gz",
+      "title": "bunny.net Compute API",
+      "version": "1.0.0",
+      "spec_format": "3.0.0",
+      "paths": 14,
+      "sha256": "28fe30448326f4a1ec541bd3cb37e1c5d13a569fb02cc4b2125f6b4a41477ba7",
+      "updated_at": "2026-11-07T21:54:59Z"
+    },
+    "logging": {
+      "url": "https://logging.bunnycdn.com/docs/all/swagger.json",
+      "file": "logging.json.gz",
+      "title": "bunny.net CDN Logging",
+      "version": "v2",
+      "spec_format": "3.0.4",
+      "paths": 2,
+      "sha256": "9f46707e43f4be9a12d6572bf8df35a797c00acb2af424f642103487c53184de",
+      "updated_at": "2026-11-07T21:55:23Z"
+    },
+    "magic-containers": {
+      "url": "https://api-mc.opsbunny.net/docs/public/swagger.json",
+      "file": "magic-containers.json.gz",
+      "title": "Public API",
+      "version": "1.0",
+      "spec_format": "3.0.4",
+      "paths": 39,
+      "sha256": "2dff302ced764d239731df00bdd8411e6e6b63f503d2df2cc3102c28b1a28eab",
+      "updated_at": "2026-11-07T21:54:59Z"
+    },
+    "origin-errors": {
+      "url": "https://bunny.net/docs/api-reference/origin-errors/openapi.json",
+      "file": "origin-errors.json.gz",
+      "title": "Origin Errors API",
+      "version": "1.0.0",
+      "spec_format": "3.0.3",
+      "paths": 1,
+      "sha256": "6411f32bff7da2446d831ad054249a90bbed948d7443ae3616347cf06ac2b787",
+      "updated_at": "2026-11-07T21:54:59Z"
+    },
+    "shield": {
+      "url": "https://api.bunny.net/shield/docs/v1/swagger.json",
+      "file": "shield.json.gz",
+      "title": "Bunny Shield API",
+      "version": "v1",
+      "spec_format": "3.0.4",
+      "paths": 49,
+      "sha256": "d014c73f0022458c22be78498aedf79e0b7104328a047a566f6b019415ce67b3",
+      "updated_at": "2026-11-07T21:54:59Z"
+    },
+    "storage": {
+      "url": "https://bunny.net/docs/api-reference/storage/openapi.json",
+      "file": "storage.json.gz",
+      "title": "bunny.net Edge Storage API",
+      "version": "1.0.0",
+      "spec_format": "3.0.0",
+      "paths": 2,
+      "sha256": "6e5005981fbd1933324dabd6d0e6eddabd0a8847d09f0744388a0f86c3088d05",
+      "updated_at": "2026-11-07T21:55:23Z"
+    },
+    "stream": {
+      "url": "https://video.bunnycdn.com/openapi/bunnynet-video-api.public.json",
+      "file": "stream.json.gz",
+      "title": "Stream API",
+      "version": "1.6.21",
+      "spec_format": "3.0.0",
+      "paths": 21,
+      "sha256": "52502dd1a9f4034b0103f3ee1c9c9e4d2fa82b66165c1a9e9bfaac037d236660",
+      "updated_at": "2026-11-07T21:54:59Z"
+    }
+  }
+}

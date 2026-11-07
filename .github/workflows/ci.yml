@@ -26,5 +26,11 @@ jobs:
       - name: Run all CI checks (lint + type + pytest)
         env:
           # Push-to-main runs are checked out on main; this hook only guards local commits.
-          SKIP: no-commit-to-branch
+          # uv-audit runs in its own non-blocking step below.
+          SKIP: no-commit-to-branch,uv-audit
         run: uv run poe test-all
+
+      - name: Dependency vulnerability audit (non-blocking)
+        if: matrix.python-version == '3.12'
+        continue-on-error: true
+        run: uv run poe test-audit
