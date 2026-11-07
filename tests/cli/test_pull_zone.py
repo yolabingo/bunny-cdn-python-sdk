@@ -288,3 +288,112 @@ def test_pull_zone_update_error_on_get(runner) -> None:
             app, ["--api-key", "k", "pull-zone", "update", "1", "--set", "Name=x"]
         )
     assert result.exit_code == 1
+
+
+# ---------------------------------------------------------------------------
+# edge-rule
+# ---------------------------------------------------------------------------
+
+RULE = {"Guid": "g-1", "Description": "block bots", "ActionType": 0, "Enabled": True}
+
+
+def _edge(runner, *args: str, setup=None):
+    with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
+        if setup:
+            setup(MockClient.return_value)
+        result = runner.invoke(app, ["--api-key", "k", *args])
+    return result, MockClient.return_value
+
+
+def test_edge_rule_list(runner) -> None:
+    def setup(c):
+        c.get_pull_zone.return_value = {**PULL_ZONE, "EdgeRules": [RULE]}
+
+    result, _ = _edge(runner, "pull-zone", "edge-rule", "list", "1", setup=setup)
+    assert result.exit_code == 0
+    assert "block bots" in result.output
+
+
+def test_edge_rule_list_json_empty(runner) -> None:
+    def setup(c):
+        c.get_pull_zone.return_value = PULL_ZONE
+
+    result, _ = _edge(runner, "--json", "pull-zone", "edge-rule", "list", "1", setup=setup)
+    assert result.exit_code == 0
+    assert json.loads(result.output) == []
+
+
+def test_edge_rule_list_error(runner) -> None:
+    def setup(c):
+        c.get_pull_zone.side_effect = _mock_exc(BunnyNotFoundError, 404)
+
+    result, _ = _edge(runner, "pull-zone", "edge-rule", "list", "1", setup=setup)
+    assert result.exit_code == 1
+
+
+def test_edge_rule_set(runner) -> None:
+    def setup(c):
+        c.add_or_update_edge_rule.return_value = RULE
+
+    result, c = _edge(
+        runner,
+        "--json",
+        "pull-zone",
+        "edge-rule",
+        "set",
+        "1",
+        "--set",
+        "Guid=g-1",
+        "--set",
+        "Enabled=false",
+        setup=setup,
+    )
+    assert result.exit_code == 0
+    assert json.loads(result.output)["Guid"] == "g-1"
+    c.add_or_update_edge_rule.assert_called_once_with(1, Guid="g-1", Enabled=False)
+
+
+def test_edge_rule_set_error(runner) -> None:
+    def setup(c):
+        c.add_or_update_edge_rule.side_effect = _mock_exc(BunnyAPIError, 400)
+
+    result, _ = _edge(runner, "pull-zone", "edge-rule", "set", "1", "--set", "A=1", setup=setup)
+    assert result.exit_code == 1
+
+
+def test_edge_rule_delete_yes_and_abort(runner) -> None:
+    result, c = _edge(runner, "pull-zone", "edge-rule", "delete", "1", "g-1", "--yes")
+    assert result.exit_code == 0
+    c.delete_edge_rule.assert_called_once_with(1, "g-1")
+    result, c = _edge(runner, "pull-zone", "edge-rule", "delete", "1", "g-1")
+    assert result.exit_code != 0  # no input -> confirm aborts
+    c.delete_edge_rule.assert_not_called()
+
+
+def test_edge_rule_delete_error(runner) -> None:
+    def setup(c):
+        c.delete_edge_rule.side_effect = _mock_exc(BunnyAPIError, 500)
+
+    result, _ = _edge(runner, "pull-zone", "edge-rule", "delete", "1", "g", "-y", setup=setup)
+    assert result.exit_code == 1
+
+
+def test_edge_rule_enable_disable(runner) -> None:
+    result, c = _edge(runner, "pull-zone", "edge-rule", "enable", "1", "g-1")
+    assert result.exit_code == 0
+    c.set_edge_rule_enabled.assert_called_once_with(1, "g-1", enabled=True)
+    result, c = _edge(runner, "pull-zone", "edge-rule", "disable", "1", "g-1")
+    assert result.exit_code == 0
+    c.set_edge_rule_enabled.assert_called_once_with(1, "g-1", enabled=False)
+
+
+def test_edge_rule_enable_error(runner) -> None:
+    def setup(c):
+        c.set_edge_rule_enabled.side_effect = _mock_exc(BunnyAPIError, 500)
+
+    result, _ = _edge(runner, "pull-zone", "edge-rule", "enable", "1", "g", setup=setup)
+    assert result.exit_code == 1
+
+
+def test_edge_rule_missing_auth(runner) -> None:
+    assert runner.invoke(app, ["pull-zone", "edge-rule", "list", "1"]).exit_code == 1

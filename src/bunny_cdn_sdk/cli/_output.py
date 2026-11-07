@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import json
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+
+    from bunny_cdn_sdk.cli._app import State
 
 import typer
 from rich.console import Console
@@ -33,6 +35,17 @@ def require_api_key(state: Any) -> None:
     if not state.api_key:
         err_console.print("Missing API key. Use --api-key or set BUNNY_API_KEY.")
         raise typer.Exit(1)
+
+
+class _KeyedClient(Protocol):
+    def __init__(self, api_key: str) -> None: ...
+
+
+def api_client[C: _KeyedClient](ctx: typer.Context, cls: type[C]) -> tuple[State, C]:
+    """Return ``(state, cls(api_key=...))`` for a command; exit 1 if no API key."""
+    state = cast("State", ctx.obj)
+    require_api_key(state)
+    return state, cls(api_key=state.api_key)
 
 
 def require_storage_auth(state: Any) -> None:

@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 import typer
 from rich.table import Table
 from rich.text import Text
 
+from bunny_cdn_sdk import core
 from bunny_cdn_sdk.cli._output import (
+    api_client,
     console,
     output_result,
     parse_set_pairs,
-    require_api_key,
     sdk_errors,
 )
 
@@ -27,13 +26,8 @@ _RECORD_COLUMNS = ["Name", "Type", "Value", "Id"]
 @dns_zone_app.command("list")
 def list_zones(ctx: typer.Context) -> None:
     """List all DNS zones."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         zones = sorted(client.iter_dns_zones(), key=lambda z: z.get("Domain", ""))
         output_result(zones, columns=_ZONE_COLUMNS, json_mode=state.json_output)
 
@@ -44,13 +38,8 @@ def get_zone(
     id: int = typer.Argument(..., help="DNS zone ID"),
 ) -> None:
     """Get a DNS zone by ID."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         zone = client.get_dns_zone(id)
         output_result(zone, columns=_ZONE_COLUMNS, json_mode=state.json_output)
 
@@ -61,13 +50,8 @@ def create_zone(
     domain: str = typer.Option(..., "--domain", help="Domain name for the DNS zone"),
 ) -> None:
     """Create a new DNS zone."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         result = client.create_dns_zone(Domain=domain)
         output_result(result, columns=_ZONE_COLUMNS, json_mode=state.json_output)
 
@@ -79,13 +63,8 @@ def delete_zone(
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
 ) -> None:
     """Delete a DNS zone (prompts for confirmation)."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    _state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         zone = client.get_dns_zone(id)
         domain = zone.get("Domain", "")
         if not yes:
@@ -104,13 +83,8 @@ def add_record(
     ttl: int = typer.Option(300, "--ttl", help="TTL in seconds (default: 300)"),
 ) -> None:
     """Add a DNS record to a zone."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         result = client.add_dns_record(zone_id, Type=type_, Name=name, Value=value, Ttl=ttl)
         output_result(result, columns=_RECORD_COLUMNS, json_mode=state.json_output)
 
@@ -123,14 +97,9 @@ def update_record(
     set_: list[str] = typer.Option([], "--set", help="Field to update as KEY=VALUE (repeatable)"),
 ) -> None:
     """Update a DNS record using --set KEY=VALUE."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
         updates = parse_set_pairs(set_)  # ValueError is caught by sdk_errors
-        client = CoreClient(api_key=state.api_key)
         # D-12: fetch zone to get the record's before state
         zone_before = client.get_dns_zone(zone_id)
         records_before = zone_before.get("Records", [])
@@ -166,13 +135,8 @@ def delete_record(
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
 ) -> None:
     """Delete a DNS record (prompts for confirmation)."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    _state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         if not yes:
             typer.confirm(f"Delete DNS record {record_id} in zone {zone_id}?", abort=True)
         client.delete_dns_record(zone_id, record_id)

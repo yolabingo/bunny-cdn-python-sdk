@@ -35,6 +35,128 @@ def _capture(call: Callable[[CoreClient], Any]) -> httpx2.Request:
 
 # (call, method, path, query, json body or None)
 ENDPOINTS: dict[str, tuple[Callable[[CoreClient], Any], str, str, dict, Any]] = {
+    # Edge rules
+    "add_or_update_edge_rule": (
+        lambda c: c.add_or_update_edge_rule(1, Guid="g", Enabled=True),
+        "POST",
+        "/pullzone/1/edgerules/addOrUpdate",
+        {},
+        {"Guid": "g", "Enabled": True},
+    ),
+    "delete_edge_rule": (
+        lambda c: c.delete_edge_rule(1, "g"),
+        "DELETE",
+        "/pullzone/1/edgerules/g",
+        {},
+        None,
+    ),
+    "set_edge_rule_enabled": (
+        lambda c: c.set_edge_rule_enabled(1, "g", False),  # noqa: FBT003
+        "POST",
+        "/pullzone/1/edgerules/g/setEdgeRuleEnabled",
+        {},
+        {"Id": 1, "Value": False},
+    ),
+    # Load balancers
+    "list_load_balancers": (
+        lambda c: c.list_load_balancers(page=2, count=10),
+        "GET",
+        "/loadbalancer",
+        {"page": "2", "count": "10"},
+        None,
+    ),
+    "get_load_balancer": (lambda c: c.get_load_balancer(1), "GET", "/loadbalancer/1", {}, None),
+    "create_load_balancer": (
+        lambda c: c.create_load_balancer(Name="lb"),
+        "POST",
+        "/loadbalancer",
+        {},
+        {"Name": "lb"},
+    ),
+    "update_load_balancer": (
+        lambda c: c.update_load_balancer(1, Name="lb"),
+        "POST",
+        "/loadbalancer/1",
+        {},
+        {"Name": "lb"},
+    ),
+    "delete_load_balancer": (
+        lambda c: c.delete_load_balancer(1),
+        "DELETE",
+        "/loadbalancer/1",
+        {},
+        None,
+    ),
+    "add_origin_group": (
+        lambda c: c.add_origin_group(1, Name="g"),
+        "POST",
+        "/loadbalancer/1/origingroup",
+        {},
+        {"Name": "g"},
+    ),
+    "update_origin_group": (
+        lambda c: c.update_origin_group(1, 2, Name="g"),
+        "POST",
+        "/loadbalancer/1/origingroup/2",
+        {},
+        {"Name": "g"},
+    ),
+    "delete_origin_group": (
+        lambda c: c.delete_origin_group(1, 2),
+        "DELETE",
+        "/loadbalancer/1/origingroup/2",
+        {},
+        None,
+    ),
+    "add_origin": (
+        lambda c: c.add_origin(1, 2, Address="a"),
+        "POST",
+        "/loadbalancer/1/origingroup/2/origin",
+        {},
+        {"Address": "a"},
+    ),
+    "update_origin": (
+        lambda c: c.update_origin(1, 2, 3, Address="a"),
+        "POST",
+        "/loadbalancer/1/origingroup/2/origin/3",
+        {},
+        {"Address": "a"},
+    ),
+    "delete_origin": (
+        lambda c: c.delete_origin(1, 2, 3),
+        "DELETE",
+        "/loadbalancer/1/origingroup/2/origin/3",
+        {},
+        None,
+    ),
+    "get_load_balancer_statistics": (
+        lambda c: c.get_load_balancer_statistics(1, hourly="true"),
+        "GET",
+        "/loadbalancer/1/statistics",
+        {"hourly": "true"},
+        None,
+    ),
+    "get_load_balancer_pull_zones": (
+        lambda c: c.get_load_balancer_pull_zones(1, to="t"),
+        "GET",
+        "/loadbalancer/1/pullzones",
+        {"to": "t"},
+        None,
+    ),
+    "get_load_balancer_account_statistics": (
+        lambda c: c.get_load_balancer_account_statistics(**{"from": "f"}),
+        "GET",
+        "/loadbalancer/statistics",
+        {"from": "f"},
+        None,
+    ),
+    "get_load_balancer_usage": (
+        lambda c: c.get_load_balancer_usage(1, year=2026, month=1),
+        "GET",
+        "/loadbalancer/1/usage",
+        {"year": "2026", "month": "1"},
+        None,
+    ),
     # Pull zones
     "list_pull_zones": (
         lambda c: c.list_pull_zones(search="web"),

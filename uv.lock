@@ -30,7 +30,7 @@ wheels = [
 
 [[package]]
 name = "bunny-cdn-sdk"
-version = "2.2.3"
+version = "2.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx2" },

@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 import typer
 from rich.table import Table
 from rich.text import Text
 
+from bunny_cdn_sdk import core
 from bunny_cdn_sdk.cli._output import (
+    api_client,
     console,
     output_result,
     parse_set_pairs,
-    require_api_key,
     sdk_errors,
 )
 
@@ -23,13 +22,8 @@ _COLUMNS = ["Name", "Region", "Id"]
 @storage_zone_app.command("list")
 def list_zones(ctx: typer.Context) -> None:
     """List all storage zones."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         zones = sorted(client.iter_storage_zones(), key=lambda z: z.get("Name", ""))
         output_result(zones, columns=_COLUMNS, json_mode=state.json_output)
 
@@ -40,13 +34,8 @@ def get_zone(
     id: int = typer.Argument(..., help="Storage zone ID"),
 ) -> None:
     """Get a storage zone by ID."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         zone = client.get_storage_zone(id)
         output_result(zone, columns=_COLUMNS, json_mode=state.json_output)
 
@@ -57,13 +46,8 @@ def create_zone(
     name: str = typer.Option(..., "--name", help="Storage zone name"),
 ) -> None:
     """Create a new storage zone."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         result = client.create_storage_zone(Name=name)
         output_result(result, columns=_COLUMNS, json_mode=state.json_output)
 
@@ -75,13 +59,8 @@ def delete_zone(
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
 ) -> None:
     """Delete a storage zone (prompts for confirmation)."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    _state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client = CoreClient(api_key=state.api_key)
         zone = client.get_storage_zone(id)
         name = zone.get("Name", "")
         if not yes:
@@ -97,14 +76,9 @@ def update_zone(
     set_: list[str] = typer.Option([], "--set", help="Field to update as KEY=VALUE (repeatable)"),
 ) -> None:
     """Update storage zone fields using --set KEY=VALUE."""
-    from bunny_cdn_sdk.cli._app import State
-    from bunny_cdn_sdk.core import CoreClient
-
-    state = cast("State", ctx.obj)
-    require_api_key(state)
+    state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
         updates = parse_set_pairs(set_)  # ValueError is caught by sdk_errors
-        client = CoreClient(api_key=state.api_key)
         # D-12: fetch before state
         before = client.get_storage_zone(id)
         # Apply update
