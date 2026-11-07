@@ -24,4 +24,7 @@ jobs:
         run: uv run poe install-deps
 
       - name: Run all CI checks (lint + type + pytest)
+        env:
+          # Push-to-main runs are checked out on main; this hook only guards local commits.
+          SKIP: no-commit-to-branch
         run: uv run poe test-all
