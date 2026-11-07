@@ -115,6 +115,7 @@ core.get_load_balancer_usage(id, **kwargs)
 **Storage Zones**
 ```python
 core.list_storage_zones()
+core.iter_storage_zones()  # all pages
 core.get_storage_zone(id)
 core.create_storage_zone(**kwargs)
 core.update_storage_zone(id, **kwargs)
@@ -124,6 +125,7 @@ core.delete_storage_zone(id)
 **DNS Zones**
 ```python
 core.list_dns_zones()
+core.iter_dns_zones()  # all pages
 core.get_dns_zone(id)
 core.create_dns_zone(**kwargs)
 core.update_dns_zone(id, **kwargs)
@@ -136,6 +138,7 @@ core.delete_dns_record(zone_id, record_id)
 **Video Libraries**
 ```python
 core.list_video_libraries()
+core.iter_video_libraries()  # all pages
 core.get_video_library(id)
 core.create_video_library(**kwargs)
 core.update_video_library(id, **kwargs)
