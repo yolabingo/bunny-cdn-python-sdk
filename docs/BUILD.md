@@ -35,6 +35,7 @@ uv run poe install-deps   # uv sync --all-groups --all-extras
 ```bash
 uv run poe test-lint      # ruff check --fix + ruff format on src/ tests/, then prek on all files
 uv run poe test-type      # ty check src/
+uv run poe test-audit     # uv audit: known vulnerabilities in uv.lock (also a prek hook; CI skips the hook and runs this as a non-blocking step)
 uv run poe test-pytest    # pytest in parallel, fails under 80% coverage
 uv run poe test-cov       # pytest + HTML coverage report in htmlcov/
 uv run poe test-all       # test-lint → test-type → test-pytest (what CI runs)
@@ -67,6 +68,18 @@ To publish only after merge, bump and commit normally, then tag `main` after mer
 git tag vX.Y.Z && git push origin vX.Y.Z
 ```
 
+### API specs
+```bash
+uv run poe api-specs        # Fetch Bunny's OpenAPI specs into docs/apis/, print added/changed/removed
+uv run poe api-specs-check  # Fetch and compare only; exit 1 if anything changed upstream
+```
+
+`tools/fetch_api_specs.py` finds the specs listed in Bunny's docs index (https://bunny.net/docs/_llms/api-reference.txt), so new APIs are picked up automatically.
+Specs are saved as gzipped, pretty-printed JSON (`docs/apis/<name>.json.gz`, about 110 KB total instead of 1.3 MB). Gzip is written with `mtime=0`, so the same content always produces the same bytes.
+`docs/apis/manifest.json` (uncompressed) records each spec's source URL, `info.version`, path count and a SHA-256 of the key-sorted JSON. A spec file is rewritten only when that hash changes.
+For readable `git diff` output on the `.gz` files, run once per clone: `git config diff.gzip.textconv "gzip -dc"`.
+Bunny often leaves `info.version` unchanged when a spec changes, so compare hashes rather than versions; use `git diff docs/apis/` to see what changed.
+
 ## Pre-commit Hooks (prek)
 
 Configuration is in `prek.toml`.
@@ -75,7 +88,7 @@ Configuration is in `prek.toml`.
 
 **File Validation:** `check-json`, `check-toml`, `check-yaml`, `check-xml`, `check-vcs-permalinks`, `check-symlinks`, `destroyed-symlinks`, `mixed-line-ending` (LF)
 
-**Security / Safety:** `detect-private-key`, `check-merge-conflict`, `no-commit-to-branch` (blocks direct commits to `main`)
+**Security / Safety:** `detect-private-key`, `check-merge-conflict`, `no-commit-to-branch` (blocks direct commits to `main`), `uv-audit` (`uv audit --locked` when `uv.lock`/`pyproject.toml` change; needs network, and uv's audit command is still experimental)
 
 **GitHub config:** `check-dependabot`, `check-github-workflows`
 

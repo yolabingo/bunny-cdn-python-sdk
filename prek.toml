@@ -27,6 +27,13 @@ hooks = [
 ]
 
 [[repos]]
+repo = "local"
+hooks = [
+  # Runs when deps change, and on every `prek run --all-files` (so test-lint / test-all / CI).
+  { id = "uv-audit", name = "uv audit (dependency vulnerabilities)", entry = "uv audit --locked --preview-features audit-command", language = "system", files = "^(uv\\.lock|pyproject\\.toml)$", pass_filenames = false }
+]
+
+[[repos]]
 repo = "https://github.com/python-jsonschema/check-jsonschema"
 rev = "0.39.0"
 hooks = [

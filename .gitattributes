@@ -1,0 +1,13 @@
+# Normalize text files to LF in the repo and working tree (matches prek's mixed-line-ending --fix=lf).
+* text=auto eol=lf
+
+# Binary: no EOL conversion, no textual merge.
+*.gz binary
+
+# Show decompressed JSON in git diff/log; needs once per clone: git config diff.gzip.textconv "gzip -dc"
+# (must come after the *.gz line so it overrides binary's -diff)
+docs/apis/*.json.gz diff=gzip
+
+# Generated files: collapsed in GitHub PR diffs and excluded from language stats.
+uv.lock linguist-generated=true
+docs/apis/** linguist-generated=true
