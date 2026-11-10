@@ -44,7 +44,9 @@ def test_video_library_list_json(runner) -> None:
         mock_client = MagicMock()
         MockClient.return_value = mock_client
         mock_client.iter_video_libraries.return_value = iter([VIDEO_LIB])
-        result = runner.invoke(app, ["--api-key", "k", "--json", "video-library", "list"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "--output-format", "json", "video-library", "list"]
+        )
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert isinstance(parsed, list)
@@ -79,7 +81,9 @@ def test_video_library_get_not_found(runner) -> None:
 def test_video_library_get_json(runner) -> None:
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.get_video_library.return_value = VIDEO_LIB
-        result = runner.invoke(app, ["--api-key", "k", "--json", "video-library", "get", "5"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "--output-format", "json", "video-library", "get", "5"]
+        )
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert parsed["Id"] == 5
@@ -114,7 +118,17 @@ def test_video_library_create_json(runner) -> None:
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.create_video_library.return_value = created
         result = runner.invoke(
-            app, ["--api-key", "k", "--json", "video-library", "create", "--name", "new-lib"]
+            app,
+            [
+                "--api-key",
+                "k",
+                "--output-format",
+                "json",
+                "video-library",
+                "create",
+                "--name",
+                "new-lib",
+            ],
         )
     assert result.exit_code == 0
     parsed = json.loads(result.output)
@@ -170,7 +184,17 @@ def test_video_library_update_json(runner) -> None:
         MockClient.return_value.update_video_library.return_value = after
         result = runner.invoke(
             app,
-            ["--api-key", "k", "--json", "video-library", "update", "5", "--set", "Name=new-name"],
+            [
+                "--api-key",
+                "k",
+                "--output-format",
+                "json",
+                "video-library",
+                "update",
+                "5",
+                "--set",
+                "Name=new-name",
+            ],
         )
     assert result.exit_code == 0
     parsed = json.loads(result.output)

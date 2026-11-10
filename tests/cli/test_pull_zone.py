@@ -44,7 +44,9 @@ def test_pull_zone_list_json(runner) -> None:
         mock_client = MagicMock()
         MockClient.return_value = mock_client
         mock_client.iter_pull_zones.return_value = iter([PULL_ZONE])
-        result = runner.invoke(app, ["--api-key", "k", "--json", "pull-zone", "list"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "--output-format", "json", "pull-zone", "list"]
+        )
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert isinstance(parsed, list)
@@ -79,7 +81,9 @@ def test_pull_zone_get_not_found(runner) -> None:
 def test_pull_zone_get_json(runner) -> None:
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.get_pull_zone.return_value = PULL_ZONE
-        result = runner.invoke(app, ["--api-key", "k", "--json", "pull-zone", "get", "1"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "--output-format", "json", "pull-zone", "get", "1"]
+        )
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert parsed["Id"] == 1
@@ -142,7 +146,8 @@ def test_pull_zone_create_json(runner) -> None:
             [
                 "--api-key",
                 "k",
-                "--json",
+                "--output-format",
+                "json",
                 "pull-zone",
                 "create",
                 "--name",
@@ -260,7 +265,8 @@ def test_pull_zone_update_json(runner) -> None:
             [
                 "--api-key",
                 "k",
-                "--json",
+                "--output-format",
+                "json",
                 "pull-zone",
                 "update",
                 "1",
@@ -318,7 +324,9 @@ def test_edge_rule_list_json_empty(runner) -> None:
     def setup(c):
         c.get_pull_zone.return_value = PULL_ZONE
 
-    result, _ = _edge(runner, "--json", "pull-zone", "edge-rule", "list", "1", setup=setup)
+    result, _ = _edge(
+        runner, "--output-format", "json", "pull-zone", "edge-rule", "list", "1", setup=setup
+    )
     assert result.exit_code == 0
     assert json.loads(result.output) == []
 
@@ -337,7 +345,8 @@ def test_edge_rule_set(runner) -> None:
 
     result, c = _edge(
         runner,
-        "--json",
+        "--output-format",
+        "json",
         "pull-zone",
         "edge-rule",
         "set",

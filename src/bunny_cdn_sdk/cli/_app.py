@@ -9,28 +9,56 @@ from enum import StrEnum
 from typing import Any, cast
 
 import typer
+from typer.core import TyperGroup
 
-from bunny_cdn_sdk import core
+from bunny_cdn_sdk import __version__, core
 from bunny_cdn_sdk.cli._dns_zone import dns_zone_app
 from bunny_cdn_sdk.cli._load_balancer import load_balancer_app
 from bunny_cdn_sdk.cli._logs import logs_cmd
-from bunny_cdn_sdk.cli._output import api_client, output_result, sdk_errors
+from bunny_cdn_sdk.cli._output import (
+    OutputFormat,
+    api_client,
+    output_result,
+    sdk_errors,
+    set_output_format,
+)
+from bunny_cdn_sdk.cli._partner import partner_app
 from bunny_cdn_sdk.cli._pull_zone import pull_zone_app
+from bunny_cdn_sdk.cli._schema import add_footer, build_schema
 from bunny_cdn_sdk.cli._shield import shield_app
 from bunny_cdn_sdk.cli._storage import storage_app
 from bunny_cdn_sdk.cli._storage_zone import storage_zone_app
 from bunny_cdn_sdk.cli._video_library import video_library_app
 
-app = typer.Typer(no_args_is_help=True, help="Bunny CDN management CLI.")
+# Help panels group the top-level commands in `bunnycdn --help`, in this order.
+_CDN, _STORAGE, _NETWORK = "CDN", "Storage", "DNS & Load Balancing"
+_STREAM, _SECURITY, _ACCOUNT = "Stream", "Security", "Account"
+_PARTNER, _TOOLS = "Partner (uses --partner-api-key)", "CLI LLM Tools"
+_PANELS = [_CDN, _STORAGE, _NETWORK, _STREAM, _SECURITY, _ACCOUNT, _PARTNER, _TOOLS]
 
-app.add_typer(pull_zone_app, name="pull-zone")
-app.add_typer(storage_zone_app, name="storage-zone")
-app.add_typer(dns_zone_app, name="dns-zone")
-app.add_typer(video_library_app, name="video-library")
-app.add_typer(storage_app, name="storage")
-app.add_typer(load_balancer_app, name="load-balancer")
-app.add_typer(shield_app, name="shield")
-app.command("logs")(logs_cmd)
+
+class _PanelOrderGroup(TyperGroup):
+    """List commands panel by panel (Typer otherwise puts all commands before sub-groups)."""
+
+    def list_commands(self, ctx: Any) -> list[str]:  # Click context (vendored by Typer)
+        def panel(name: str) -> int:
+            p = getattr(self.commands[name], "rich_help_panel", None)
+            return _PANELS.index(p) if p in _PANELS else len(_PANELS)
+
+        return sorted(super().list_commands(ctx), key=panel)
+
+
+app = typer.Typer(cls=_PanelOrderGroup, no_args_is_help=True, help="Bunny CDN management CLI.")
+
+app.add_typer(pull_zone_app, name="pull-zone", rich_help_panel=_CDN)
+app.command("logs", rich_help_panel=_CDN)(logs_cmd)
+app.add_typer(storage_zone_app, name="storage-zone", rich_help_panel=_STORAGE)
+app.add_typer(storage_app, name="storage", rich_help_panel=_STORAGE)
+app.add_typer(dns_zone_app, name="dns-zone", rich_help_panel=_NETWORK)
+app.add_typer(load_balancer_app, name="load-balancer", rich_help_panel=_NETWORK)
+app.add_typer(video_library_app, name="video-library", rich_help_panel=_STREAM)
+app.add_typer(shield_app, name="shield", rich_help_panel=_SECURITY)
+app.add_typer(partner_app, name="partner", rich_help_panel=_PARTNER)
 
 
 @dataclass
@@ -38,10 +66,16 @@ class State:
     """Auth context and global flags — stored on ctx.obj by @app.callback()."""
 
     api_key: str = field(default="")
+    partner_api_key: str = field(default="")
     storage_key: str = field(default="")
     zone_name: str = field(default="")
     region: str = field(default="falkenstein")
-    json_output: bool = field(default=False)
+    output_format: OutputFormat = field(default=OutputFormat.human)
+
+    @property
+    def json_output(self) -> bool:
+        """True for ``json`` and ``json-file``: commands emit JSON instead of tables."""
+        return self.output_format != OutputFormat.human
 
 
 @app.callback()
@@ -50,7 +84,18 @@ def main(
     api_key: str = typer.Option(
         "",
         envvar="BUNNY_API_KEY",
-        help="Bunny CDN account API key. Prefer BUNNY_API_KEY env var.",
+        help=(
+            "Bunny account API key, used by every command except `partner`. "
+            "Prefer BUNNY_API_KEY env var."
+        ),
+    ),
+    partner_api_key: str = typer.Option(
+        "",
+        envvar="BUNNY_PARTNER_API_KEY",
+        help=(
+            "Partner API key (from your partner account), used only by `partner` commands; "
+            "falls back to --api-key. Prefer BUNNY_PARTNER_API_KEY env var."
+        ),
     ),
     storage_key: str = typer.Option(
         "",
@@ -67,20 +112,27 @@ def main(
         envvar="BUNNY_STORAGE_REGION",
         help="Storage region (default: falkenstein).",
     ),
-    json_output: bool = typer.Option(
-        False,
-        "--json",
-        help="Output raw JSON instead of formatted table.",
+    output_format: OutputFormat = typer.Option(
+        OutputFormat.human,
+        "--output-format",
+        envvar="BUNNY_OUTPUT_FORMAT",
+        case_sensitive=False,
+        help=(
+            "human: tables and text. json: JSON on stdout. json-file: JSON written to a new "
+            "temp file whose path is printed. With json/json-file, errors are JSON on stderr."
+        ),
     ),
 ) -> None:
     """Bunny CDN management CLI — auth options apply to all sub-commands."""
     ctx.ensure_object(State)
     state = cast("State", ctx.obj)
     state.api_key = api_key
+    state.partner_api_key = partner_api_key
     state.storage_key = storage_key
     state.zone_name = zone_name
     state.region = region
-    state.json_output = json_output
+    state.output_format = output_format
+    set_output_format(output_format)
 
 
 _GB = 1024**3
@@ -112,7 +164,7 @@ def _build_stats_row(name: str, stats: dict | None) -> dict:
     }
 
 
-@app.command("purge")
+@app.command("purge", rich_help_panel=_CDN)
 def purge_url_cmd(
     ctx: typer.Context,
     url: str = typer.Argument(..., help="URL to purge from CDN cache"),
@@ -160,7 +212,7 @@ def _stats_sort_key(row: dict, field: _StatSort) -> Any:
     return -(float(val) if val != "—" else 0.0)
 
 
-@app.command("stats")
+@app.command("stats", rich_help_panel=_CDN)
 def stats_cmd(
     ctx: typer.Context,
     pull_zone_id: int | None = typer.Option(
@@ -254,7 +306,7 @@ _BILLING_COLUMNS = [
 ]
 
 
-@app.command("billing")
+@app.command("billing", rich_help_panel=_ACCOUNT)
 def billing_cmd(ctx: typer.Context) -> None:
     """Display account billing summary."""
     state, client = api_client(ctx, core.CoreClient)
@@ -262,3 +314,12 @@ def billing_cmd(ctx: typer.Context) -> None:
     with sdk_errors():
         billing = client.get_billing()
         output_result(billing, columns=_BILLING_COLUMNS, json_mode=state.json_output)
+
+
+@app.command("schema", rich_help_panel=_TOOLS)
+def schema_cmd() -> None:
+    """Print every command, argument, option and env var as JSON (for scripts and AI agents)."""
+    output_result(build_schema(app, "bunnycdn", __version__), json_mode=True)
+
+
+add_footer(app)  # last, so it reaches every command registered above

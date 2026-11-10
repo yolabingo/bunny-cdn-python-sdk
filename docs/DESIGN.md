@@ -19,6 +19,7 @@ A thin, typed Python SDK wrapping the Bunny CDN REST APIs using `httpx2`.
 | **Core** | `https://api.bunny.net` | Account API key | Pull Zones, Edge Rules, Load Balancers, Storage Zones (mgmt), DNS Zones, Video Libraries (mgmt), Statistics, Billing, Purge, API Keys, Countries, Regions |
 | **Storage** | `https://{region}.storage.bunnycdn.com` | Storage zone password | Upload, Download, Delete, List files |
 | **Shield** | `https://api.bunny.net/shield` | Account API key | Shield zones, WAF rules and custom rules, rate limits, access lists, bot detection, event logs, metrics |
+| **Partner** | `https://api.bunny.net/partner` | Partner API key (the partner account's API key) | Partner Portal: customers, invites, overviews, audit logs, contract, billing and invoice PDFs, pricing, customer products |
 | **Logging** | `https://logging.bunnycdn.com` | Account API key | Pull zone request logs (v2 JSON) |
 | **Stream** | `https://video.bunnycdn.com` | Library API key | Videos (CRUD + upload), Collections |
 
@@ -60,6 +61,7 @@ src/bunny_cdn_sdk/
     core.py              # CoreClient
     storage.py           # StorageClient
     shield.py            # ShieldClient
+    partner.py           # PartnerClient
     logs.py              # LoggingClient
     py.typed             # PEP 561 marker
     cli/                 # `bunnycdn` Typer CLI (optional `cli` extra: typer + rich)
@@ -115,11 +117,12 @@ def get_pull_zones(self, ids: list[int]) -> list[dict]:
 CoreClient(_BaseClient)        — base_url = "https://api.bunny.net"
 StorageClient(_BaseClient)     — base_url = "https://{region}.storage.bunnycdn.com"
 ShieldClient(_BaseClient)      — base_url = "https://api.bunny.net/shield"
+PartnerClient(_BaseClient)     — base_url = "https://api.bunny.net/partner"
 LoggingClient(_BaseClient)     — base_url = "https://logging.bunnycdn.com"
 StreamClient(_BaseClient)      — base_url = "https://video.bunnycdn.com"  [planned]
 ```
 
-Each service sets its own `base_url` default. Users provide the appropriate API key.
+Each service sets its own `base_url` default. Users provide the appropriate API key: the account API key for Core, Shield and Logging, and the partner API key for Partner. The CLI reads them from `BUNNY_API_KEY` and `BUNNY_PARTNER_API_KEY` (`partner` commands fall back to `BUNNY_API_KEY`).
 
 ### RetryTransport (`_retry.py`)
 
@@ -346,6 +349,37 @@ Quirks:
 - `iter_logs` pins the `from`/`to` window the API resolved on the first page, so the window does not shift between pages.
 - Only the v2 JSON endpoint is wrapped. The v1 legacy endpoint is not wrapped.
 
+## 6c. Service: Partner API (`partner.py`)
+
+Constructor: `PartnerClient(api_key: str, base_url: str = "https://api.bunny.net/partner", *, client: httpx2.Client | None = None, max_retries: int = 0, backoff_base: float = 0.5)`
+
+`api_key` is the **partner API key** (the API key of the partner account), not a customer's account API key.
+
+Responses are returned as the raw JSON Bunny sends. Request fields use the spec's PascalCase names; optional params that are `None` are omitted.
+
+| Method | HTTP | Path |
+|--------|------|------|
+| `list_customers() -> list` | GET | `/customers` |
+| `create_customer(email, **kwargs)` | POST | `/customers` (body `{"Email": email, **kwargs}`) |
+| `invite_customer(email)` | POST | `/customers/invite` (body `{"Email": email}`) |
+| `get_customer_overview(customer_user_id)` | GET | `/customer/{customerUserId}` |
+| `get_partner_overview()` | GET | `/overview` |
+| `get_audit_log(customer_user_id, date, *, product, resource_type, resource_id, actor_id, order, continuation_token, limit)` | GET | `/customer/{customerUserId}/audit/{date}` |
+| `iter_audit_log(customer_user_id, date, *, product, resource_type, resource_id, actor_id, order, limit)` | GET | same as `get_audit_log`; yields `Logs` entries across pages |
+| `get_contract()` | GET | `/contract` |
+| `get_customer_billing(customer_user_id)` | GET | `/customer/{customerUserId}/billing` |
+| `download_invoice_pdf(customer_user_id, billing_record_id)` | GET | `/customer/{customerUserId}/billing/{billingRecordId}/pdf` |
+| `get_customer_pricing(customer_user_id)` | GET | `/customer/{customerUserId}/pricing` |
+| `get_partner_pricing()` | GET | `/pricing` |
+| `list_customer_products(customer_user_id) -> list` | GET | `/customer/{customerUserId}/products` |
+| `set_customer_product(customer_user_id, product_id, *, enabled=None)` | PUT | `/customer/{customerUserId}/products/{productId}?enabled=` |
+
+- `download_invoice_pdf()` returns `bytes`; `set_customer_product()` returns `None` (204).
+- `get_audit_log` array filters (`product`, `resource_type`, `resource_id`, `actor_id`) are sent as repeated query params (`Product=a&Product=b`); `order` is `Ascending` or `Descending`.
+- `list_customers()` and `list_customer_products()` return the JSON array Bunny sends (`list`, like `list_pull_zones`).
+- `iter_audit_log` follows `ContinuationToken` while `HasMoreData` is true and stops on an empty token or an empty `Logs`, so it cannot loop forever. `limit` is the page size.
+- `product_id`: 1 CDN, 2 Database, 3 DNS, 4 Magic Containers, 5 Optimizer, 6 Edge Scripting, 7 Shield, 8 Storage, 9 Stream.
+
 ## 7. Service: Stream API (`stream.py`)
 
 **Status: planned, not yet implemented.**
@@ -402,7 +436,7 @@ Iterators accept a callback (the page-fetcher function), decoupling pagination l
 ## 10. Public API (`__init__.py`)
 
 ```python
-from bunny_cdn_sdk import CoreClient, StorageClient, ShieldClient, LoggingClient
+from bunny_cdn_sdk import CoreClient, StorageClient, ShieldClient, PartnerClient, LoggingClient
 from bunny_cdn_sdk import RetryTransport
 from bunny_cdn_sdk import BunnyAPIError, BunnyAuthenticationError, ...
 ```
@@ -467,3 +501,14 @@ core = CoreClient(api_key="account-key", client=client)
 9. `__init__.py` — wire up re-exports
 10. Tests throughout using `httpx2.MockTransport`
 11. `cli/` — `bunnycdn` Typer CLI over the SDK
+
+## 14. CLI (`cli/`)
+
+`bunnycdn` is a Typer app over the SDK, installed with the optional `cli` extra. Conventions:
+
+- **Keys:** `--api-key` / `BUNNY_API_KEY` (account key) for every command except `partner`; `--partner-api-key` / `BUNNY_PARTNER_API_KEY` for `partner`, falling back to the account key. Option and parameter names stay `api_key`, as in Bunny's API.
+- **Output:** global `--output-format human|json|json-file` (`BUNNY_OUTPUT_FORMAT`, case-insensitive StrEnum). `json-file` writes to a `tempfile.NamedTemporaryFile(delete=False)` named from the sub-command words only (no argument values) and prints the path.
+- **Errors:** `cli/_output.py` `fail()` handles every error. In `json`/`json-file` mode it prints `{"error": {code, message, status, retryable}}` on stderr; exit code 1. Usage errors stay Typer's (exit 2).
+- **Discovery:** `bunnycdn schema` emits the command tree from Click's own objects (`schema_version` 1). Every help page ends with a dim footer pointing to `schema`, `--output-format` and `NO_COLOR=1 TYPER_USE_RICH=0`.
+- **Help layout:** top-level commands are grouped with `rich_help_panel`; `_PanelOrderGroup` lists them panel by panel. `no_args_is_help=True` on every group.
+- **Typer internals:** Typer 0.28 vendors Click (`typer._click`). `_schema.py` duck-types Click objects, and tests fail if those attributes change. The `json-file` name reads the current Click context from `typer._click` and falls back to `bunnycdn-<random>.json` if that import ever fails.

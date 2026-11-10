@@ -33,7 +33,7 @@ def test_logs_table(runner) -> None:
 def test_logs_json(runner) -> None:
     with patch("bunny_cdn_sdk.logs.LoggingClient") as mc:
         mc.return_value.iter_logs.return_value = iter(_ROWS)
-        result = runner.invoke(app, ["--api-key", "k", "--json", "logs", "7"])
+        result = runner.invoke(app, ["--api-key", "k", "--output-format", "json", "logs", "7"])
     assert result.exit_code == 0
     assert json.loads(result.output) == _ROWS
 
@@ -60,7 +60,9 @@ def test_logs_option_mapping(runner) -> None:
 def test_logs_limit_truncates(runner) -> None:
     with patch("bunny_cdn_sdk.logs.LoggingClient") as mc:
         mc.return_value.iter_logs.return_value = iter(_ROWS)
-        result = runner.invoke(app, ["--api-key", "k", "--json", "logs", "7", "--limit", "2"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "--output-format", "json", "logs", "7", "--limit", "2"]
+        )
     assert result.exit_code == 0
     assert len(json.loads(result.output)) == 2
 

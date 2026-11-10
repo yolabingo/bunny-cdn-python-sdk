@@ -26,3 +26,13 @@ def runner() -> CliRunner:
             "BUNNY_STORAGE_REGION": "",
         }
     )
+
+
+@pytest.fixture(autouse=True)
+def _plain_errors():
+    """Reset the output format, which the root callback sets per run."""
+    from bunny_cdn_sdk.cli import _output
+
+    _output.set_output_format(_output.OutputFormat.human)
+    yield
+    _output.set_output_format(_output.OutputFormat.human)

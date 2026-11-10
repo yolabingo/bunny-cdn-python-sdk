@@ -34,9 +34,31 @@ updates:
       day: "monday"
       time: "04:00"
       timezone: "America/Denver"
+    cooldown:
+      default-days: 3
     open-pull-requests-limit: 5
     labels:
       - "ci"
     commit-message:
       prefix: "ci"
+      include: "scope"
+
+  # prek hooks (.pre-commit-config.yaml; local hooks are skipped)
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "America/Denver"
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 5
+    groups:
+      prek-hooks:
+        patterns: ["*"]
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(hooks)"
       include: "scope"

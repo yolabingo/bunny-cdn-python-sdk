@@ -35,7 +35,11 @@ NAMES = {
     "video.bunnycdn.com/openapi/bunnynet-video-api.public.json": "stream",
     "api.bunny.net/shield/docs/v1/swagger.json": "shield",
     "api-mc.opsbunny.net/docs/public/swagger.json": "magic-containers",
+    "core-api-public-docs.b-cdn.net/docs/v3/PartnerPortal.json": "partner",
 }
+
+# Published specs missing from the docs index's '## OpenAPI Specs' list.
+EXTRA_URLS = ["https://core-api-public-docs.b-cdn.net/docs/v3/PartnerPortal.json"]
 
 
 def fetch(url: str) -> bytes:
@@ -77,7 +81,7 @@ def main() -> int:
     args = parser.parse_args()
 
     old = json.loads(MANIFEST.read_text())["specs"] if MANIFEST.exists() else {}
-    urls = discover_spec_urls(fetch(INDEX_URL).decode())
+    urls = sorted({*discover_spec_urls(fetch(INDEX_URL).decode()), *EXTRA_URLS})
     now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     new: dict[str, dict] = {}

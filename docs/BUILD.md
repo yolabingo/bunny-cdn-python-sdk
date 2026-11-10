@@ -74,7 +74,7 @@ uv run poe api-specs        # Fetch Bunny's OpenAPI specs into docs/apis/, print
 uv run poe api-specs-check  # Fetch and compare only; exit 1 if anything changed upstream
 ```
 
-`tools/fetch_api_specs.py` finds the specs listed in Bunny's docs index (https://bunny.net/docs/_llms/api-reference.txt), so new APIs are picked up automatically.
+`tools/fetch_api_specs.py` finds the specs listed in Bunny's docs index (https://bunny.net/docs/_llms/api-reference.txt), so new APIs are picked up automatically. Specs Bunny publishes but leaves out of the index (currently the Partner Portal spec) are listed in `EXTRA_URLS`.
 Specs are saved as gzipped, pretty-printed JSON (`docs/apis/<name>.json.gz`, about 110 KB total instead of 1.3 MB). Gzip is written with `mtime=0`, so the same content always produces the same bytes.
 `docs/apis/manifest.json` (uncompressed) records each spec's source URL, `info.version`, path count and a SHA-256 of the key-sorted JSON. A spec file is rewritten only when that hash changes.
 For readable `git diff` output on the `.gz` files, run once per clone: `git config diff.gzip.textconv "gzip -dc"`.
@@ -82,7 +82,7 @@ Bunny often leaves `info.version` unchanged when a spec changes, so compare hash
 
 ## Pre-commit Hooks (prek)
 
-Configuration is in `prek.toml`.
+Configuration is in `.pre-commit-config.yaml` (pre-commit format, so Dependabot bumps hook `rev`s weekly after a 3-day cooldown; local hooks are skipped).
 
 **Code Quality (ruff):** `ruff --fix`, `ruff-format`
 
@@ -107,7 +107,7 @@ uv run prek install            # Install the git pre-commit hook
 |----------|---------|---------|
 | `ci.yml` | Push/PR to `main` | `uv run poe install-deps` + `uv run poe test-all` (matrix: Python 3.12–3.15) |
 | `publish.yml` | Push of a `v*` tag | Build and publish to PyPI via OIDC trusted publishing |
-| `dependabot-auto-merge.yml` | Dependabot PRs | Auto-merge dev dependency updates (`chore(deps-dev)`); production deps need manual review |
+| `dependabot-auto-merge.yml` | Dependabot PRs | Auto-merge dev dependency updates (`chore(deps-dev)`); production deps, GitHub Actions (`ci`) and prek hook (`chore(hooks)`) updates need manual review |
 
 ## Coverage Reports
 

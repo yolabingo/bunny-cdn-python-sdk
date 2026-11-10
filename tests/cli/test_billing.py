@@ -41,10 +41,10 @@ def test_billing_success(runner) -> None:
 
 
 def test_billing_shows_key_fields(runner) -> None:
-    """billing --json output includes all curated billing columns as keys."""
+    """billing --output-format json output includes all curated billing columns as keys."""
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.get_billing.return_value = _BILLING
-        result = runner.invoke(app, ["--api-key", "k", "--json", "billing"])
+        result = runner.invoke(app, ["--api-key", "k", "--output-format", "json", "billing"])
     parsed = json.loads(result.output)
     for field_name in [
         "Balance",
@@ -56,10 +56,10 @@ def test_billing_shows_key_fields(runner) -> None:
 
 
 def test_billing_json_output(runner) -> None:
-    """billing --json outputs the raw billing dict."""
+    """billing --output-format json outputs the raw billing dict."""
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.get_billing.return_value = _BILLING
-        result = runner.invoke(app, ["--api-key", "k", "--json", "billing"])
+        result = runner.invoke(app, ["--api-key", "k", "--output-format", "json", "billing"])
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert isinstance(parsed, dict)

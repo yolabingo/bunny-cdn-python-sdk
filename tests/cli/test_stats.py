@@ -94,12 +94,12 @@ def test_stats_error_pct_zero_requests(runner) -> None:
 
 
 def test_stats_json_output(runner) -> None:
-    """--json outputs a JSON list of per-zone dicts."""
+    """--output-format json outputs a JSON list of per-zone dicts."""
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         mc = MockClient.return_value
         mc.iter_pull_zones.return_value = [_ZONE]
         mc.get_statistics.return_value = _STATS
-        result = runner.invoke(app, ["--api-key", "k", "--json", "stats"])
+        result = runner.invoke(app, ["--api-key", "k", "--output-format", "json", "stats"])
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert isinstance(parsed, list)

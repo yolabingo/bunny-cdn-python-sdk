@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 from io import StringIO
 from unittest.mock import MagicMock
 
@@ -42,6 +45,31 @@ def test_no_args_shows_help(runner) -> None:
     result = runner.invoke(app, [])
     assert result.exit_code in (0, 2)
     assert "usage" in result.output.lower() or "bunny" in result.output.lower()
+
+
+@pytest.mark.parametrize("group", ["partner", "partner customer", "shield waf"])
+def test_nested_group_no_args_shows_help(runner, group) -> None:
+    result = runner.invoke(app, group.split())
+    assert "usage" in result.output.lower()
+
+
+def test_plain_output_for_machine_use() -> None:
+    # README "Scripts and other machine use": NO_COLOR + TYPER_USE_RICH=0 give plain help.
+    # Subprocess because Typer reads TYPER_USE_RICH at import time.
+    env = {**os.environ, "NO_COLOR": "1", "TYPER_USE_RICH": "0", "COLUMNS": "200"}
+    code = "from bunny_cdn_sdk.cli import app; app()"
+    out = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", code, "partner", "--help"],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=True,
+    ).stdout
+    assert "Usage:" in out
+    assert "\x1b[" not in out
+    assert "╭" not in out
+    assert "bunnycdn schema" in out  # footer still shown, without literal Rich markup
+    assert "[dim]" not in out
 
 
 # ---------------------------------------------------------------------------
@@ -257,3 +285,12 @@ def test_parse_set_pairs_keeps_json_types() -> None:
     assert parse_set_pairs(['Name="123"']) == {"Name": "123"}
     with pytest.raises(ValueError, match="expected KEY=VALUE"):
         parse_set_pairs(["oops"])
+
+
+def test_top_level_commands_listed_by_panel(runner) -> None:
+    out = runner.invoke(app, ["--help"], env={"COLUMNS": "200"}).output
+    panels = ["CDN", "Storage", "DNS & Load Balancing", "Stream", "Security", "Account"]
+    panels += ["Partner (uses --partner-api-key)", "CLI LLM Tools"]
+    positions = [out.index(f" {p} ") for p in panels]  # panel titles; ANSI-styled borders
+    assert positions == sorted(positions)
+    assert out.index("pull-zone") < out.index("storage-zone") < out.index("schema")
