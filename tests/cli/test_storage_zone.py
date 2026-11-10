@@ -44,7 +44,9 @@ def test_storage_zone_list_json(runner) -> None:
         mock_client = MagicMock()
         MockClient.return_value = mock_client
         mock_client.iter_storage_zones.return_value = iter([STORAGE_ZONE])
-        result = runner.invoke(app, ["--api-key", "k", "--json", "storage-zone", "list"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "--output-format", "json", "storage-zone", "list"]
+        )
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert isinstance(parsed, list)
@@ -79,7 +81,9 @@ def test_storage_zone_get_not_found(runner) -> None:
 def test_storage_zone_get_json(runner) -> None:
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.get_storage_zone.return_value = STORAGE_ZONE
-        result = runner.invoke(app, ["--api-key", "k", "--json", "storage-zone", "get", "2"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "--output-format", "json", "storage-zone", "get", "2"]
+        )
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert parsed["Id"] == 2
@@ -114,7 +118,17 @@ def test_storage_zone_create_json(runner) -> None:
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.create_storage_zone.return_value = created
         result = runner.invoke(
-            app, ["--api-key", "k", "--json", "storage-zone", "create", "--name", "new-storage"]
+            app,
+            [
+                "--api-key",
+                "k",
+                "--output-format",
+                "json",
+                "storage-zone",
+                "create",
+                "--name",
+                "new-storage",
+            ],
         )
     assert result.exit_code == 0
     parsed = json.loads(result.output)
@@ -185,7 +199,18 @@ def test_storage_zone_update_json(runner) -> None:
         MockClient.return_value.get_storage_zone.return_value = STORAGE_ZONE
         MockClient.return_value.update_storage_zone.return_value = after
         result = runner.invoke(
-            app, ["--api-key", "k", "--json", "storage-zone", "update", "2", "--set", "Region=UK"]
+            app,
+            [
+                "--api-key",
+                "k",
+                "--output-format",
+                "json",
+                "storage-zone",
+                "update",
+                "2",
+                "--set",
+                "Region=UK",
+            ],
         )
     assert result.exit_code == 0
     parsed = json.loads(result.output)

@@ -26,7 +26,7 @@ A thin, typed Python SDK wrapping the Bunny CDN REST APIs using `httpx2`. Provid
 
 ### Bunny API specs ([docs/apis/](docs/apis/))
 
-Bunny's published OpenAPI/Swagger specs, saved as gzipped JSON snapshots: `core.json.gz` (api.bunny.net: pull/storage/DNS zones, billing, …), `shield.json.gz`, `logging.json.gz`, `storage.json.gz` (Edge Storage), `stream.json.gz`, `edge-scripting.json.gz`, `magic-containers.json.gz`, `origin-errors.json.gz`. `manifest.json` stays uncompressed.
+Bunny's published OpenAPI/Swagger specs, saved as gzipped JSON snapshots: `core.json.gz` (api.bunny.net: pull/storage/DNS zones, billing, …), `shield.json.gz`, `logging.json.gz`, `storage.json.gz` (Edge Storage), `stream.json.gz`, `edge-scripting.json.gz`, `magic-containers.json.gz`, `origin-errors.json.gz`, `partner.json.gz` (Partner Portal; not in the docs index, so listed in `EXTRA_URLS` in `tools/fetch_api_specs.py`). `manifest.json` stays uncompressed.
 
 - **Source of truth**: use these specs when adding or checking an endpoint (paths, methods, params, request/response schemas). Prefer them over memory or web search; then record the method in `docs/DESIGN.md`, as the API-fidelity rule requires.
 - **Generated files**: don't edit them by hand; `tools/fetch_api_specs.py` writes them.

@@ -1,0 +1,43 @@
+# prek configuration for bunny-cdn-sdk (pre-commit format, so Dependabot can bump hook revs)
+# https://prek.j178.dev/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-json
+      - id: check-toml
+      - id: check-vcs-permalinks
+      - id: check-yaml
+      - id: check-xml
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      - id: check-symlinks
+      - id: destroyed-symlinks
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: ["--branch", "main"]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.4
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      # Runs when deps change, and on every `prek run --all-files` (so test-lint / test-all / CI).
+      - id: uv-audit
+        name: uv audit (dependency vulnerabilities)
+        entry: uv audit --locked --preview-features audit-command
+        language: system
+        files: ^(uv\.lock|pyproject\.toml)$
+        pass_filenames: false
+
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.39.0
+    hooks:
+      - id: check-dependabot
+      - id: check-github-workflows

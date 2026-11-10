@@ -38,7 +38,9 @@ def test_list(runner) -> None:
 
 
 def test_list_json(runner) -> None:
-    result, _ = _run(runner, "--json", "load-balancer", "list", list_load_balancers=[LB])
+    result, _ = _run(
+        runner, "--output-format", "json", "load-balancer", "list", list_load_balancers=[LB]
+    )
     assert json.loads(result.output)[0]["Name"] == "my-lb"
 
 
@@ -46,14 +48,17 @@ def test_get_and_json(runner) -> None:
     result, _ = _run(runner, "load-balancer", "get", "7", get_load_balancer=LB)
     assert result.exit_code == 0
     assert "my-lb" in result.output
-    result, _ = _run(runner, "--json", "load-balancer", "get", "7", get_load_balancer=LB)
+    result, _ = _run(
+        runner, "--output-format", "json", "load-balancer", "get", "7", get_load_balancer=LB
+    )
     assert json.loads(result.output)["Id"] == 7
 
 
 def test_create(runner) -> None:
     result, c = _run(
         runner,
-        "--json",
+        "--output-format",
+        "json",
         "load-balancer",
         "create",
         "--name",
@@ -91,7 +96,8 @@ def test_delete_yes_and_abort(runner) -> None:
 def test_stats_args(runner) -> None:
     result, c = _run(
         runner,
-        "--json",
+        "--output-format",
+        "json",
         "load-balancer",
         "stats",
         "7",
@@ -174,7 +180,8 @@ def test_origin_group_commands(runner) -> None:
 def test_origin_commands(runner) -> None:
     result, c = _run(
         runner,
-        "--json",
+        "--output-format",
+        "json",
         "load-balancer",
         "origin",
         "add",

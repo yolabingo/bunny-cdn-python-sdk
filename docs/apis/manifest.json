@@ -1,6 +1,6 @@
 {
   "source_index": "https://bunny.net/docs/_llms/api-reference.txt",
-  "updated_at": "2026-11-07T22:20:27Z",
+  "updated_at": "2026-11-10T16:28:49Z",
   "specs": {
     "core": {
       "url": "https://core-api-public-docs.b-cdn.net/docs/v3/public.json",
@@ -39,8 +39,8 @@
       "version": "1.0",
       "spec_format": "3.0.4",
       "paths": 39,
-      "sha256": "2dff302ced764d239731df00bdd8411e6e6b63f503d2df2cc3102c28b1a28eab",
-      "updated_at": "2026-11-07T21:54:59Z"
+      "sha256": "066537aedbd046e1ba6ce168ed80d26a963ada32e5f597256da32e01170d45dc",
+      "updated_at": "2026-11-10T16:28:49Z"
     },
     "origin-errors": {
       "url": "https://bunny.net/docs/api-reference/origin-errors/openapi.json",
@@ -51,6 +51,16 @@
       "paths": 1,
       "sha256": "6411f32bff7da2446d831ad054249a90bbed948d7443ae3616347cf06ac2b787",
       "updated_at": "2026-11-07T21:54:59Z"
+    },
+    "partner": {
+      "url": "https://core-api-public-docs.b-cdn.net/docs/v3/PartnerPortal.json",
+      "file": "partner.json.gz",
+      "title": "bunny.net Partner Portal API",
+      "version": "1.0.0",
+      "spec_format": "3.0.0",
+      "paths": 12,
+      "sha256": "e6b18f528ec184310f215f15634e3ea10d6539d461050bb34cc0cd99f7016ed9",
+      "updated_at": "2026-11-10T16:28:49Z"
     },
     "shield": {
       "url": "https://api.bunny.net/shield/docs/v1/swagger.json",

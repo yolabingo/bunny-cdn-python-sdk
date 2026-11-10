@@ -45,7 +45,7 @@ def test_storage_list_error(runner) -> None:
 def test_storage_list_json(runner) -> None:
     with patch("bunny_cdn_sdk.storage.StorageClient") as MockClient:
         MockClient.return_value.list.return_value = [FILE_DICT]
-        result = runner.invoke(app, [*_AUTH, "--json", "storage", "list"])
+        result = runner.invoke(app, [*_AUTH, "--output-format", "json", "storage", "list"])
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert isinstance(parsed, list)

@@ -45,7 +45,9 @@ def test_dns_zone_list_json(runner) -> None:
         mock_client = MagicMock()
         MockClient.return_value = mock_client
         mock_client.iter_dns_zones.return_value = iter([DNS_ZONE])
-        result = runner.invoke(app, ["--api-key", "k", "--json", "dns-zone", "list"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "--output-format", "json", "dns-zone", "list"]
+        )
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert isinstance(parsed, list)
@@ -80,7 +82,9 @@ def test_dns_zone_get_not_found(runner) -> None:
 def test_dns_zone_get_json(runner) -> None:
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.get_dns_zone.return_value = DNS_ZONE
-        result = runner.invoke(app, ["--api-key", "k", "--json", "dns-zone", "get", "10"])
+        result = runner.invoke(
+            app, ["--api-key", "k", "--output-format", "json", "dns-zone", "get", "10"]
+        )
     assert result.exit_code == 0
     parsed = json.loads(result.output)
     assert parsed["Id"] == 10
@@ -115,7 +119,17 @@ def test_dns_zone_create_json(runner) -> None:
     with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
         MockClient.return_value.create_dns_zone.return_value = created
         result = runner.invoke(
-            app, ["--api-key", "k", "--json", "dns-zone", "create", "--domain", "newzone.com"]
+            app,
+            [
+                "--api-key",
+                "k",
+                "--output-format",
+                "json",
+                "dns-zone",
+                "create",
+                "--domain",
+                "newzone.com",
+            ],
         )
     assert result.exit_code == 0
     parsed = json.loads(result.output)
@@ -215,7 +229,8 @@ def test_dns_zone_record_add_json(runner) -> None:
             [
                 "--api-key",
                 "k",
-                "--json",
+                "--output-format",
+                "json",
                 "dns-zone",
                 "record",
                 "add",
@@ -276,7 +291,8 @@ def test_dns_zone_record_update_json(runner) -> None:
             [
                 "--api-key",
                 "k",
-                "--json",
+                "--output-format",
+                "json",
                 "dns-zone",
                 "record",
                 "update",

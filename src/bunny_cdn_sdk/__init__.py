@@ -20,6 +20,7 @@ from bunny_cdn_sdk._exceptions import (
 from bunny_cdn_sdk._retry import RetryTransport
 from bunny_cdn_sdk.core import CoreClient
 from bunny_cdn_sdk.logs import LoggingClient
+from bunny_cdn_sdk.partner import PartnerClient
 from bunny_cdn_sdk.shield import ShieldClient
 from bunny_cdn_sdk.storage import StorageClient
 
@@ -34,6 +35,7 @@ __all__ = [
     "BunnyTimeoutError",
     "CoreClient",
     "LoggingClient",
+    "PartnerClient",
     "RetryTransport",
     "ShieldClient",
     "StorageClient",

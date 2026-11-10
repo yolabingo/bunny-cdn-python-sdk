@@ -4,7 +4,7 @@
 
 A typed Python SDK for the [Bunny CDN](https://bunny.net) REST API.
 
-This package does not aim to cover every bunny.net API. It currently focuses on a narrow subset of the platform that is useful for CDN, DNS, storage-zone, and basic video-library workflows.
+This package does not aim to cover every bunny.net API. It currently focuses on CDN, DNS, storage, Shield, request-log, Partner Portal and basic video-library workflows.
 
 ```bash
 uv add bunny-cdn-sdk                          # add the SDK to your project
@@ -19,6 +19,7 @@ uv tool install 'bunny-cdn-sdk[cli]'          # install the bunnycdn CLI on your
 - [CoreClient](#coreclient)
 - [StorageClient](#storageclient)
 - [ShieldClient](#shieldclient)
+- [PartnerClient](#partnerclient)
 - [LoggingClient](#loggingclient)
 - [Retry](#retry)
 - [Exceptions](#exceptions)
@@ -34,14 +35,15 @@ Supported today:
 - Core Platform API coverage for pull zones, storage zones, DNS zones, purge, regions, countries, statistics, billing, and stream video library CRUD.
 - Edge Storage file operations through `StorageClient`: upload, download, list, and delete.
 - Shield (WAF, rate limits, access lists, bot detection, event logs, metrics) through `ShieldClient`.
+- Partner Portal API (customers, billing, pricing, products, audit logs) through `PartnerClient`.
 - Pull zone request logs through `LoggingClient`.
 - Load balancers and pull zone edge rules through `CoreClient`.
 - Optional CLI coverage for the same implemented SDK operations.
 
 Not supported yet:
 
-- Core Platform API resources outside the current clients, including users, audit logs, search, API keys, and affiliate endpoints.
-- Product APIs outside Core, Shield, Logging, and Edge Storage file operations, including Origin Errors, the full Stream API surface beyond video library CRUD, Edge Scripting, and Magic Containers.
+- Core Platform API resources outside the current clients, including users, account audit logs, search, API keys, and affiliate endpoints.
+- Product APIs outside Core, Shield, Partner, Logging, and Edge Storage file operations, including Origin Errors, the full Stream API surface beyond video library CRUD, Edge Scripting, and Magic Containers.
 - Advanced Storage API capabilities beyond basic file management if Bunny adds endpoints that are not represented by `upload`, `download`, `list`, and `delete`.
 
 If you need an endpoint that exists in the Bunny docs but not in this SDK, that endpoint is currently omitted rather than wrapped behind a partial or unstable abstraction.
@@ -52,7 +54,7 @@ If you need an endpoint that exists in the Bunny docs but not in this SDK, that 
 from bunny_cdn_sdk import CoreClient, StorageClient
 
 # Core API — pull zones, storage zones, DNS, video libraries
-core = CoreClient(api_key="your-api-key")
+core = CoreClient(api_key="account-api-key")
 zones = core.list_pull_zones()  # returns a list directly
 
 # Storage API — file operations
@@ -251,6 +253,33 @@ shield.search_event_logs(zone_id, **kwargs)
 shield.get_metrics_overview(zone_id)
 ```
 
+## PartnerClient
+
+Bunny has two kinds of API key. Every client except `PartnerClient` takes your **account API key**. `PartnerClient` takes the **partner API key**: the API key of your partner account, found under **API Keys** in that account's settings.
+
+```python
+from bunny_cdn_sdk import PartnerClient
+
+partner = PartnerClient(api_key="partner-api-key")
+partner.list_customers()
+partner.create_customer(
+    "jane@example.com", FirstName="Jane"
+)  # extra kwargs use the spec's PascalCase names
+partner.invite_customer("jane@example.com")
+partner.get_customer_overview(customer_user_id)
+partner.get_partner_overview()
+partner.get_audit_log(customer_user_id, "2026-01-31", resource_type=["PullZone"], limit=100)
+for entry in partner.iter_audit_log(customer_user_id, "2026-01-31"):  # all pages
+    ...
+partner.get_contract()
+partner.get_customer_billing(customer_user_id)
+partner.download_invoice_pdf(customer_user_id, billing_record_id)  # bytes
+partner.get_customer_pricing(customer_user_id)
+partner.get_partner_pricing()
+partner.list_customer_products(customer_user_id)
+partner.set_customer_product(customer_user_id, product_id, enabled=True)
+```
+
 ## LoggingClient
 
 ```python
@@ -321,35 +350,85 @@ uvx --from 'bunny-cdn-sdk[cli]' bunnycdn --help  # or run once without installin
 ```
 
 ```
-bunnycdn --api-key KEY COMMAND
+bunnycdn --api-key ACCOUNT_KEY COMMAND
+bunnycdn --partner-api-key PARTNER_KEY partner COMMAND
 
-Commands:
-  pull-zone      Manage pull zones
-  storage-zone   Manage storage zones
-  dns-zone       Manage DNS zones
-  video-library  Manage video libraries
-  storage        Upload, download, list, delete files
-  load-balancer  Manage load balancers, origin groups and origins
-  shield         Shield zones, WAF, rate limits, access lists, bot detection, event logs, metrics
-  logs           Show CDN request logs for a pull zone
+CDN:
+  pull-zone      Manage pull zones (edge rules under `pull-zone edge-rule`)
   purge          Purge a URL from CDN cache
   stats          CDN statistics per pull zone
+  logs           Show CDN request logs for a pull zone
+Storage:
+  storage-zone   Manage storage zones
+  storage        Upload, download, list, delete files
+DNS & Load Balancing:
+  dns-zone       Manage DNS zones
+  load-balancer  Manage load balancers, origin groups and origins
+Stream:
+  video-library  Manage video libraries
+Security:
+  shield         Shield zones, WAF, rate limits, access lists, bot detection, event logs, metrics
+Account:
   billing        Account billing summary
+Partner (uses --partner-api-key):
+  partner        Partner Portal: customers, billing, invoices, pricing, audit logs, products
+CLI LLM Tools:
+  schema         Every command, option and env var as JSON (for scripts and AI agents)
 ```
 
-Pull zone edge rules are under `pull-zone edge-rule`.
+Partner Portal commands need the **partner API key** (`--partner-api-key` / `BUNNY_PARTNER_API_KEY`). If it isn't set they fall back to the account key (`BUNNY_API_KEY`), which only works when that key belongs to the partner account:
+
+```
+bunnycdn partner overview | contract | pricing
+bunnycdn partner customer list
+bunnycdn partner customer get ID
+bunnycdn partner customer create EMAIL [--first-name --last-name --country --billing-email --company-name --company-vat-number --internal-notes]
+bunnycdn partner customer invite EMAIL
+bunnycdn partner customer billing ID
+bunnycdn partner customer invoice ID BILLING_RECORD_ID [-o PATH]   # default invoice-<id>.pdf; '-' = stdout
+bunnycdn partner customer pricing ID
+bunnycdn partner customer audit ID DATE [--product --resource-type --resource-id --actor-id] [--order Ascending|Descending] [--limit N] [--all]
+bunnycdn partner customer product list ID
+bunnycdn partner customer product enable|disable ID PRODUCT   # cdn, database (bunny-db), dns, magic-containers, optimizer, scripting (edge-scripting), shield, storage, stream, or 1-9
+```
 
 Auth via env vars (recommended):
 
 ```bash
-export BUNNY_API_KEY=your-api-key
+export BUNNY_API_KEY=your-account-api-key          # every command except `partner`
+export BUNNY_PARTNER_API_KEY=your-partner-api-key  # `partner` commands only; falls back to BUNNY_API_KEY
 export BUNNY_STORAGE_KEY=your-storage-password
 export BUNNY_STORAGE_ZONE=your-zone-name
 export BUNNY_STORAGE_REGION=falkenstein
 
 bunnycdn pull-zone list
 bunnycdn storage list path/
-bunnycdn --json pull-zone list  # raw JSON output
+bunnycdn --output-format json pull-zone list       # JSON on stdout
+bunnycdn --output-format json-file pull-zone list  # JSON in a new temp file; prints its path
+```
+
+### Scripts and other machine use
+
+The CLI uses [Rich](https://github.com/Textualize/rich) for tables, colours and boxed help. For scripts, CI and other programs:
+
+- **Data:** pass `--output-format` before the command (or set `BUNNY_OUTPUT_FORMAT`):
+  - `human` (default): Rich tables and text.
+  - `json`: plain JSON on stdout.
+  - `json-file`: JSON written to a new, uniquely named file in the system temp directory (Python `tempfile`), for example `bunnycdn-partner-customer-list-k3j9x2.json`. Only the path is printed on stdout. The name uses the command's sub-command words, never argument values, so IDs and emails don't appear in file listings. Files aren't deleted automatically.
+
+  Errors and progress notes go to stderr; failures exit non-zero.
+- **Errors:** with `json` or `json-file`, a failure prints one JSON line to stderr and exits 1:
+  `{"error": {"code": "rate_limited", "message": "Rate limited. Try again later.", "status": 429, "retryable": true}}`.
+  Codes: `authentication_failed`, `not_found`, `rate_limited`, `server_error`, `api_error`, `timeout`, `connection_error`, `sdk_error`, `invalid_argument`, `missing_api_key`, `missing_storage_auth`. `retryable` is true only for rate limits, 5xx errors, timeouts and connection errors. Bad usage (unknown option, invalid value) still exits 2 with plain text.
+- **Colour:** set `NO_COLOR=1` (or `TERM=dumb`) to drop ANSI colour codes. Rich also drops them on its own when stdout isn't a terminal.
+- **Help and errors:** set `TYPER_USE_RICH=0` for plain-text `--help` and usage errors, without boxes.
+- **Discovery:** `bunnycdn schema` prints every command with its arguments, options, types, choices, defaults and env vars as JSON (`schema_version` marks the format). An AI agent can read it once instead of walking `--help` page by page. Every `--help` ends with a dim footer pointing here.
+
+```bash
+export NO_COLOR=1 TYPER_USE_RICH=0
+bunnycdn --output-format json partner customer list | jq -r '.[].Email'
+jq . "$(bunnycdn --output-format json-file partner customer list)"
+bunnycdn schema | jq -r '.commands[].command'   # every command
 ```
 
 ## Requirements

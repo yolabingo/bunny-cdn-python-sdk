@@ -69,7 +69,7 @@ def _exc() -> BunnyAuthenticationError:
 
 
 def _invoke(runner, args: str, *, json_mode: bool = False, key: bool = True, stdin=None):
-    argv = (["--api-key", "k"] if key else []) + (["--json"] if json_mode else [])
+    argv = (["--api-key", "k"] if key else []) + (["--output-format", "json"] if json_mode else [])
     return runner.invoke(app, [*argv, "shield", *args.split()], input=stdin)
 
 
