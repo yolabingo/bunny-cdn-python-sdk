@@ -17,7 +17,9 @@ from bunny_cdn_sdk._exceptions import (
     BunnyServerError,
     BunnyTimeoutError,
 )
+from bunny_cdn_sdk._log import debug_enabled, http_context, log
 from bunny_cdn_sdk._retry import RetryTransport
+from bunny_cdn_sdk._typecheck import log_mismatches
 
 _USER_AGENT = f"bunny-cdn-sdk/{importlib.metadata.version('bunny-cdn-sdk')}"
 
@@ -154,19 +156,30 @@ class _BaseClient:
             response = self._client.request(method, url, headers=headers, **kwargs)
             response.raise_for_status()
         except httpx2.HTTPStatusError as exc:
+            if debug_enabled():
+                log.debug("request_failed", **http_context(exc.request, exc.response))
             status_code = exc.response.status_code
             message = _extract_error_message(exc.response, status_code)
             _raise_for_status_code(status_code, message, exc.response, exc)
         except httpx2.ConnectError as exc:
+            log.debug("request_error", method=method, url=url, error=repr(exc))
             msg = f"Connection error: {exc}"
             raise BunnyConnectionError(msg) from exc
         except httpx2.TimeoutException as exc:
+            log.debug("request_error", method=method, url=url, error=repr(exc))
             msg = f"Request timeout: {exc}"
             raise BunnyTimeoutError(msg) from exc
         else:
             return response
 
-    def _json(self, method: str, url: str, **kwargs: Any) -> Any:
-        """Make a request and return the parsed JSON body, or {} for an empty body."""
+    def _json(self, method: str, url: str, *, expect: Any = None, **kwargs: Any) -> Any:
+        """Make a request and return the parsed JSON body, or {} for an empty body.
+
+        ``expect`` is the spec-generated response type; with DEBUG logging on, the body
+        is compared against it and differences are logged (never raised).
+        """
         response = self._request(method, url, **kwargs)
-        return response.json() if response.content else {}
+        body = response.json() if response.content else {}
+        if expect is not None and response.content:
+            log_mismatches(body, expect, method=method, url=url)
+        return body

@@ -7,6 +7,7 @@ from rich.table import Table
 from rich.text import Text
 
 from bunny_cdn_sdk import core
+from bunny_cdn_sdk.cli._options import SET_HELP, examples
 from bunny_cdn_sdk.cli._output import (
     api_client,
     console,
@@ -24,7 +25,7 @@ def list_zones(ctx: typer.Context) -> None:
     """List all storage zones."""
     state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        zones = sorted(client.iter_storage_zones(), key=lambda z: z.get("Name", ""))
+        zones = sorted(client.iter_storage_zones(), key=lambda z: z.get("Name") or "")
         output_result(zones, columns=_COLUMNS, json_mode=state.json_output)
 
 
@@ -40,10 +41,17 @@ def get_zone(
         output_result(zone, columns=_COLUMNS, json_mode=state.json_output)
 
 
-@storage_zone_app.command("create")
+@storage_zone_app.command(
+    "create",
+    epilog=examples("bunnycdn storage-zone create --name my-assets"),
+)
 def create_zone(
     ctx: typer.Context,
-    name: str = typer.Option(..., "--name", help="Storage zone name"),
+    name: str = typer.Option(
+        ...,
+        "--name",
+        help="Storage zone name: lowercase letters, numbers and hyphens, globally unique",
+    ),
 ) -> None:
     """Create a new storage zone."""
     state, client = api_client(ctx, core.CoreClient)
@@ -69,13 +77,23 @@ def delete_zone(
         typer.echo(f"Deleted storage zone {id} ({name}).")
 
 
-@storage_zone_app.command("update")
+@storage_zone_app.command(
+    "update",
+    epilog=examples(
+        "bunnycdn storage-zone update 12345 --set Rewrite404To200=true",
+        "bunnycdn storage-zone update 12345 \\",
+        "  --set Custom404FilePath=/404.html --set Rewrite404To200=false",
+    ),
+)
 def update_zone(
     ctx: typer.Context,
     id: int = typer.Argument(..., help="Storage zone ID"),
-    set_: list[str] = typer.Option([], "--set", help="Field to update as KEY=VALUE (repeatable)"),
+    set_: list[str] = typer.Option([], "--set", help=SET_HELP),
 ) -> None:
-    """Update storage zone fields using --set KEY=VALUE."""
+    """Update storage zone fields using --set KEY=VALUE.
+
+    Only the fields you pass change; the output lists what differed.
+    """
     state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
         updates = parse_set_pairs(set_)  # ValueError is caught by sdk_errors

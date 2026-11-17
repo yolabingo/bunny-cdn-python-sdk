@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import TYPE_CHECKING, Any
 
 import httpx2
@@ -186,9 +187,13 @@ def test_download_invoice_pdf_returns_bytes() -> None:
 
 def test_iter_audit_log_follows_tokens_and_passes_filters() -> None:
     pages = {
-        None: {"Logs": [{"n": 1}, {"n": 2}], "HasMoreData": True, "ContinuationToken": "t1"},
-        "t1": {"Logs": [{"n": 3}], "HasMoreData": True, "ContinuationToken": "t2"},
-        "t2": {"Logs": [{"n": 4}], "HasMoreData": False, "ContinuationToken": "t3"},
+        None: {
+            "Logs": [{"ResourceId": "1"}, {"ResourceId": "2"}],
+            "HasMoreData": True,
+            "ContinuationToken": "t1",
+        },
+        "t1": {"Logs": [{"ResourceId": "3"}], "HasMoreData": True, "ContinuationToken": "t2"},
+        "t2": {"Logs": [{"ResourceId": "4"}], "HasMoreData": False, "ContinuationToken": "t3"},
     }
     seen: list[httpx2.Request] = []
 
@@ -198,7 +203,7 @@ def test_iter_audit_log_follows_tokens_and_passes_filters() -> None:
 
     c = make_partner_client(handler)
     out = list(c.iter_audit_log("u1", "2026-01-31", product=["Cdn"], limit=2))
-    assert [e["n"] for e in out] == [1, 2, 3, 4]
+    assert [e["ResourceId"] for e in out] == ["1", "2", "3", "4"]
     assert len(seen) == 3  # HasMoreData false stops before t3
     assert seen[0].url.path == "/partner/customer/u1/audit/2026-01-31"
     assert seen[0].url.params["Product"] == "Cdn"
@@ -234,3 +239,11 @@ def test_iter_audit_log_stops_on_empty_logs() -> None:
 
     assert list(make_partner_client(handler).iter_audit_log("u1", "2026-01-31")) == []
     assert len(calls) == 1
+
+
+def test_spec_mismatch_logs_debug_and_returns_dict(caplog: pytest.LogCaptureFixture) -> None:
+    body = {"CustomerUserId": 123}  # spec says str
+    client = make_partner_client(lambda request: httpx2.Response(200, json=body))
+    with caplog.at_level(logging.DEBUG, logger="bunny_cdn_sdk"):
+        assert client.create_customer("a@b.test") == body
+    assert "response_type_mismatch" in caplog.text

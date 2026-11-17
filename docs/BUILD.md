@@ -70,8 +70,10 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 
 ### API specs
 ```bash
-uv run poe api-specs        # Fetch Bunny's OpenAPI specs into docs/apis/, print added/changed/removed
+uv run poe api-specs        # Fetch Bunny's OpenAPI specs into docs/apis/, print added/changed/removed, then run api-types
 uv run poe api-specs-check  # Fetch and compare only; exit 1 if anything changed upstream
+uv run poe api-types         # Regenerate src/bunny_cdn_sdk/models/ (TypedDicts) from docs/apis/; api-specs runs this too
+uv run poe api-types-check   # Exit 1 if the generated models are out of date
 ```
 
 `tools/fetch_api_specs.py` finds the specs listed in Bunny's docs index (https://bunny.net/docs/_llms/api-reference.txt), so new APIs are picked up automatically. Specs Bunny publishes but leaves out of the index (currently the Partner Portal spec) are listed in `EXTRA_URLS`.

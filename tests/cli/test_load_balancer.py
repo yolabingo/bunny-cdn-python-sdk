@@ -93,7 +93,7 @@ def test_delete_yes_and_abort(runner) -> None:
     c.delete_load_balancer.assert_not_called()
 
 
-def test_stats_args(runner) -> None:
+def test_stats_args(runner, frozen_now) -> None:
     result, c = _run(
         runner,
         "--output-format",
@@ -108,10 +108,12 @@ def test_stats_args(runner) -> None:
     )
     assert result.exit_code == 0
     assert json.loads(result.output) == {"Total": 1}
-    c.get_load_balancer_statistics.assert_called_once_with(7, hourly=True, **{"from": "2026-01-01"})
+    c.get_load_balancer_statistics.assert_called_once_with(
+        7, hourly=True, **{"from": "2026-01-01", "to": "2026-01-02"}
+    )
 
 
-def test_pull_zones_account_stats_usage(runner) -> None:
+def test_pull_zones_account_stats_usage(runner, frozen_now) -> None:
     result, c = _run(
         runner,
         "load-balancer",
@@ -122,12 +124,16 @@ def test_pull_zones_account_stats_usage(runner) -> None:
         get_load_balancer_pull_zones={"A": 1},
     )
     assert result.exit_code == 0
-    c.get_load_balancer_pull_zones.assert_called_once_with(7, to="2026-02-01")
+    c.get_load_balancer_pull_zones.assert_called_once_with(
+        7, to="2026-02-01", **{"from": "2025-12-26"}
+    )
     result, c = _run(
         runner, "load-balancer", "account-stats", get_load_balancer_account_statistics={"A": 1}
     )
     assert result.exit_code == 0
-    c.get_load_balancer_account_statistics.assert_called_once_with()
+    c.get_load_balancer_account_statistics.assert_called_once_with(
+        to="2026-01-02", **{"from": "2025-12-26"}
+    )
     result, c = _run(
         runner,
         "load-balancer",

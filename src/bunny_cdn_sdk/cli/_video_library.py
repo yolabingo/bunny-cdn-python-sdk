@@ -7,6 +7,7 @@ from rich.table import Table
 from rich.text import Text
 
 from bunny_cdn_sdk import core
+from bunny_cdn_sdk.cli._options import SET_HELP, examples
 from bunny_cdn_sdk.cli._output import (
     api_client,
     console,
@@ -24,7 +25,7 @@ def list_libs(ctx: typer.Context) -> None:
     """List all video libraries."""
     state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        libs = sorted(client.iter_video_libraries(), key=lambda v: v.get("Name", ""))
+        libs = sorted(client.iter_video_libraries(), key=lambda v: v.get("Name") or "")
         output_result(libs, columns=_COLUMNS, json_mode=state.json_output)
 
 
@@ -40,10 +41,15 @@ def get_lib(
         output_result(lib, columns=_COLUMNS, json_mode=state.json_output)
 
 
-@video_library_app.command("create")
+@video_library_app.command(
+    "create",
+    epilog=examples("bunnycdn video-library create --name my-videos"),
+)
 def create_lib(
     ctx: typer.Context,
-    name: str = typer.Option(..., "--name", help="Video library name"),
+    name: str = typer.Option(
+        ..., "--name", help="Name for the new video library (any text, e.g. my-videos)"
+    ),
 ) -> None:
     """Create a new video library."""
     state, client = api_client(ctx, core.CoreClient)
@@ -69,13 +75,23 @@ def delete_lib(
         typer.echo(f"Deleted video library {id} ({name}).")
 
 
-@video_library_app.command("update")
+@video_library_app.command(
+    "update",
+    epilog=examples(
+        "bunnycdn video-library update 12345 --set EnableMP4Fallback=true",
+        "bunnycdn video-library update 12345 --set AllowDirectPlay=false",
+        "bunnycdn video-library update 12345 --set PlayerVersion=2",
+    ),
+)
 def update_lib(
     ctx: typer.Context,
     id: int = typer.Argument(..., help="Video library ID"),
-    set_: list[str] = typer.Option([], "--set", help="Field to update as KEY=VALUE (repeatable)"),
+    set_: list[str] = typer.Option([], "--set", help=SET_HELP),
 ) -> None:
-    """Update video library fields using --set KEY=VALUE."""
+    """Update video library fields using --set KEY=VALUE.
+
+    Only the fields you pass change; the output lists what differed.
+    """
     state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
         updates = parse_set_pairs(set_)  # ValueError is caught by sdk_errors

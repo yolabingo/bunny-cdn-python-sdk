@@ -120,6 +120,28 @@ def test_set_values_json_parsed(runner) -> None:
     }
 
 
+@pytest.mark.parametrize(
+    ("action", "code"),
+    [("ignore", 0), ("log-only", 1), ("disable-rule", 2), ("LOG-ONLY", 1), ("Ignore", 0), ("2", 2)],
+)
+def test_review_action(runner, action, code) -> None:
+    with patch("bunny_cdn_sdk.shield.ShieldClient") as M:
+        c = M.return_value
+        c.review_triggered_waf_rule.return_value = {"data": ROW}
+        result = _invoke(runner, f"waf review 1 r1 --action {action}")
+    assert result.exit_code == 0, result.output
+    assert c.review_triggered_waf_rule.call_args.args == (1, "r1", code)
+
+
+@pytest.mark.parametrize("action", ["bogus", "3"])
+def test_review_action_invalid(runner, action) -> None:
+    with patch("bunny_cdn_sdk.shield.ShieldClient") as M:
+        result = _invoke(runner, f"waf review 1 r1 --action {action}")
+    assert result.exit_code == 2
+    assert "disable-rule" in result.output  # the choices are listed
+    M.return_value.review_triggered_waf_rule.assert_not_called()
+
+
 @pytest.mark.parametrize(("args", "method", "pos"), DELETES)
 def test_delete(runner, args, method, pos) -> None:
     with patch("bunny_cdn_sdk.shield.ShieldClient") as M:

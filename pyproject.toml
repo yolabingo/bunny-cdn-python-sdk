@@ -24,6 +24,7 @@ classifiers = [
 ]
 dependencies = [
     "httpx2>=2.16.0",
+    "structlog>=26.1.0",
 ]
 
 [project.urls]
@@ -88,8 +89,13 @@ build = { shell = "rm -rf build/ dist/ *.egg-info && uv build", help = "Clean ar
 version       = { cmd = "uv version", help = "Show current package version" }
 
 # --- api specs ---
-api-specs       = { cmd = "python tools/fetch_api_specs.py", help = "Fetch Bunny OpenAPI specs into docs/apis/ and report changes" }
+api-specs       = { sequence = [
+  { cmd = "python tools/fetch_api_specs.py" },
+  "api-types"
+], help = "Fetch Bunny OpenAPI specs into docs/apis/, report changes, then regenerate models" }
 api-specs-check = { cmd = "python tools/fetch_api_specs.py --check", help = "Exit 1 if Bunny's published OpenAPI specs differ from docs/apis/" }
+api-types       = { cmd = "python tools/gen_types.py", help = "Regenerate TypedDict models in src/bunny_cdn_sdk/models/ from docs/apis/" }
+api-types-check = { cmd = "python tools/gen_types.py --check", help = "Exit 1 if src/bunny_cdn_sdk/models/ is out of date with docs/apis/" }
 version-patch = { cmd = "uv version --bump patch", help = "Bump patch version (X.Y.Z+1)" }
 version-minor = { cmd = "uv version --bump minor", help = "Bump minor version (X.Y+1.0)" }
 version-major = { cmd = "uv version --bump major", help = "Bump major version (X+1.0.0)" }
@@ -143,6 +149,7 @@ ignore = ["D", "COM812", "ISC001", "ANN401", "CPY001", "PLR0917"]
 "src/bunny_cdn_sdk/{core,shield}.py" = ["A002"]  # id param matches Bunny API surface (API fidelity)
 "src/bunny_cdn_sdk/storage.py" = ["PLR0913"]  # StorageClient.__init__ signature matches API surface
 # Standalone maintainer scripts: print output, fixed https URLs, best-effort fetch loop.
+"src/bunny_cdn_sdk/models/**" = ["E501", "N815", "N801", "A003", "PYI", "I001"]
 "tools/**" = ["INP001", "T201", "S310", "BLE001", "C901", "PLR2004", "TRY003", "EM102"]
 "tests/**" = [
     "ANN",       # type annotations not required in tests
