@@ -18,6 +18,7 @@ https://github.com/yolabingo/bunny-cdn-python-sdk/blob/main/docs/LOGGING.md
 
    ```python
    import logging
+
    logging.basicConfig(format="%(levelname)s %(name)s: %(message)s")
    logging.getLogger("bunny_cdn_sdk").setLevel(logging.DEBUG)
    ```
@@ -92,6 +93,9 @@ will print every event twice.
 def test_zones_match_spec(caplog, core_client):
     with caplog.at_level(logging.DEBUG, logger="bunny_cdn_sdk"):
         core_client.list_pull_zones()
-    assert [r.bunny_event for r in caplog.records
-            if getattr(r, "bunny_event", {}).get("event") == "response_type_mismatch"] == []
+    assert [
+        r.bunny_event
+        for r in caplog.records
+        if getattr(r, "bunny_event", {}).get("event") == "response_type_mismatch"
+    ] == []
 ```

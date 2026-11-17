@@ -100,10 +100,13 @@ class CoreClient(_BaseClient):
             List of pull zone dicts. Without a ``page`` param the API returns every
             zone as one flat list, so no paging is needed.
         """
-        params = {"search": search} if search is not None else {}
-        return self._json(
-            "GET", f"{self.base_url}/pullzone", params=params, expect=PullZonePublicIndexAllResponse
-        )
+        if search is None:
+            return self._json(
+                "GET", f"{self.base_url}/pullzone", expect=PullZonePublicIndexAllResponse
+            )
+        # With search, the live API answers with a paginated envelope (Items, HasMoreItems)
+        # instead of the documented plain array, so page through it explicitly.
+        return list(self._iter_paged("/pullzone", 1000, search=search))
 
     def get_pull_zone(self, id: int) -> PullZoneModel:
         """Get a single pull zone by ID.

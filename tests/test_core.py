@@ -159,10 +159,10 @@ ENDPOINTS: dict[str, tuple[Callable[[CoreClient], Any], str, str, dict, Any]] = 
     ),
     # Pull zones
     "list_pull_zones": (
-        lambda c: c.list_pull_zones(search="web"),
+        lambda c: c.list_pull_zones(),
         "GET",
         "/pullzone",
-        {"search": "web"},
+        {},
         None,
     ),
     "get_pull_zone": (lambda c: c.get_pull_zone(1), "GET", "/pullzone/1", {}, None),
@@ -406,6 +406,20 @@ def test_get_pull_zones_empty_list() -> None:
 # ---------------------------------------------------------------------------
 # Iterators
 # ---------------------------------------------------------------------------
+
+
+def test_list_pull_zones_search_pages_the_envelope() -> None:
+    # With search the live API returns {Items, HasMoreItems}, not the documented array.
+    pages = {"1": {"Items": [{"Id": 1}], "HasMoreItems": True},
+             "2": {"Items": [{"Id": 2}], "HasMoreItems": False}}  # fmt: skip
+    seen: list[dict] = []
+
+    def handler(r: httpx2.Request) -> httpx2.Response:
+        seen.append(dict(r.url.params))
+        return httpx2.Response(200, json=pages[r.url.params["page"]])
+
+    assert make_core_client(handler).list_pull_zones(search="web") == [{"Id": 1}, {"Id": 2}]
+    assert seen[0] == {"page": "1", "perPage": "1000", "search": "web"}
 
 
 def test_iter_pull_zones_yields_flat_list() -> None:

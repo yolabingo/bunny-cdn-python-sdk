@@ -41,6 +41,18 @@ uv run poe test-cov       # pytest + HTML coverage report in htmlcov/
 uv run poe test-all       # test-lint → test-type → test-pytest (what CI runs)
 ```
 
+### Live smoke tests
+
+`tests/smoke/` calls the real Bunny API. These tests are marked `smoke`, left out of every other pytest run (including `test-all` and CI), and skipped unless `BUNNYCDN_API_PYTEST` holds an account API key. Use a test account: a run creates a pull zone named `pytest-smoke-<epoch>-<hex>`, changes its settings, edge rules and hostnames, purges its cache, reads its stats and logs, and deletes it. Leftover `pytest-smoke-*` zones more than an hour old are deleted when the next run starts.
+
+```bash
+BUNNYCDN_API_PYTEST=... uv run poe test-smoke   # or: ksm exec / op run -- uv run poe test-smoke
+```
+
+The custom hostname test adds `<zone name>.smoke.test` to the zone and removes it again, without changing DNS. `.test` is a reserved top-level domain that no other account can own (Bunny refuses hostnames under domains owned by other accounts). To use a domain on your own account instead, set `BUNNYCDN_PYTEST_DOMAIN`.
+
+Timeouts: 30 s per HTTP request (with 2 retries on 429 and 5xx responses and on network errors) and 120 s per test (SIGALRM, Unix only).
+
 ### Build
 ```bash
 uv run poe build          # Clean build/, dist/ and build wheel + sdist into dist/

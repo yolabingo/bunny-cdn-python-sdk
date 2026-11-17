@@ -80,6 +80,7 @@ test-type   = { cmd = "ty check src/", help = "Type-check src/ with ty" }
 test-audit  = { cmd = "uv audit --locked --preview-features audit-command", help = "Scan locked dependencies for known vulnerabilities (OSV)" }
 test-pytest = { cmd = "uv run pytest -n auto --cov-fail-under=80", help = "Run pytest in parallel (80% coverage required)" }
 test-cov    = { cmd = "uv run pytest -n auto --cov=bunny_cdn_sdk --cov-report=html --cov-report=term", help = "Run pytest and generate HTML coverage report in htmlcov/" }
+test-smoke  = { cmd = "uv run pytest tests/smoke -m smoke --no-cov -v", help = "Live smoke tests against the real Bunny API (creates and deletes a pytest-smoke-* pull zone; needs BUNNYCDN_API_PYTEST)" }
 test-all    = { sequence = ["test-lint", "test-type", "test-pytest"], help = "Run all checks: lint + type + pytest" }
 
 # --- build ---
@@ -170,7 +171,8 @@ ignore = ["D", "COM812", "ISC001", "ANN401", "CPY001", "PLR0917"]
 ]
 
 [tool.pytest.ini_options]
-addopts = ["--cov=bunny_cdn_sdk"]
+addopts = ["--cov=bunny_cdn_sdk", "-m", "not smoke"]
+markers = ["smoke: live tests against the real Bunny API (poe test-smoke; needs BUNNYCDN_API_PYTEST)"]
 
 [tool.ty.terminal]
 error-on-warning = true
