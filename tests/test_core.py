@@ -422,6 +422,17 @@ def test_list_pull_zones_search_pages_the_envelope() -> None:
     assert seen[0] == {"page": "1", "perPage": "1000", "search": "web"}
 
 
+def test_list_pull_zones_search_accepts_plain_array() -> None:
+    client = make_core_client(lambda r: httpx2.Response(200, json=[{"Id": 1}]))
+    assert client.list_pull_zones(search="web") == [{"Id": 1}]
+
+
+def test_paging_tolerates_null_items() -> None:
+    body = {"Items": None, "HasMoreItems": False}
+    client = make_core_client(lambda r: httpx2.Response(200, json=body))
+    assert list(client.iter_dns_zones()) == []
+
+
 def test_iter_pull_zones_yields_flat_list() -> None:
     # Without a page param, /pullzone returns a plain array, not a paginated envelope.
     client = make_core_client(lambda r: httpx2.Response(200, json=[{"Id": 1}, {"Id": 2}]))

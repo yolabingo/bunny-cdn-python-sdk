@@ -101,3 +101,17 @@ def test_logs_rejects_bad_ranges_before_calling_api(runner, frozen_now, args, er
     assert result.exit_code != 0
     assert error in result.output
     mc.return_value.iter_logs.assert_not_called()
+
+
+def test_logs_accepts_full_retention_window(runner, monkeypatch) -> None:
+    # The clock moves between reads; --from 3d must still count as inside retention.
+    from datetime import UTC, datetime, timedelta
+
+    from bunny_cdn_sdk.cli import _options
+
+    ticks = iter(datetime(2026, 1, 2, 12, tzinfo=UTC) + timedelta(seconds=i) for i in range(10))
+    monkeypatch.setattr(_options, "utcnow", lambda: next(ticks))
+    with patch("bunny_cdn_sdk.logs.LoggingClient") as mc:
+        mc.return_value.iter_logs.return_value = iter([])
+        result = runner.invoke(app, ["--api-key", "k", "logs", "7", "--from", "3d"])
+    assert result.exit_code == 0, result.output

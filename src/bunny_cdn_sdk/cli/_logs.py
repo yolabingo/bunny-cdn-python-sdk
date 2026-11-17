@@ -51,11 +51,12 @@ def logs_cmd(
     order: _Order = typer.Option(_Order.desc, "--order", help="By timestamp"),
 ) -> None:
     """Show CDN request logs for a pull zone (kept for 3 days; at most 3 days per query)."""
-    start, end = date_range(from_, to)
+    now = _options.utcnow()  # one clock for parsing and the retention check
+    start, end = date_range(from_, to, now=now)
     if end - start > _RETENTION:
         msg = "the range can be at most 3 days"
         raise typer.BadParameter(msg, param_hint="--from/--to")
-    if start < _options.utcnow() - _RETENTION:
+    if start < now - _RETENTION:
         msg = f"logs are kept for 3 days; {from_!r} is older"
         raise typer.BadParameter(msg, param_hint="--from")
     state, client = api_client(ctx, logs.LoggingClient)

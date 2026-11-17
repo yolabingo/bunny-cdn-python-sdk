@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 REDACTED = "***"
 _MAX_BODY = 2000
+_MAX_PARSE = 64 * 1024  # larger bodies (uploads, big lists) are summarised, not logged
 # Key names whose values are secrets: AccessKey header, Password/ReadOnlyPassword,
 # ZoneSecurityKey, API keys, tokens, cookies.
 _SECRET_NAME = re.compile(
@@ -87,11 +88,17 @@ def _body(content: bytes) -> Any:
     """A body for logging: parsed JSON (so field redaction applies) or truncated text."""
     if not content:
         return None
+    if len(content) > _MAX_PARSE:
+        return f"<{len(content)} bytes, not logged>"
     try:
         return json.loads(content)
     except ValueError:
-        text = content.decode("utf-8", "replace")
-        return text if len(text) <= _MAX_BODY else f"{text[:_MAX_BODY]}... ({len(text)} chars)"
+        pass
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        return f"<{len(content)} bytes of binary data>"
+    return text if len(text) <= _MAX_BODY else f"{text[:_MAX_BODY]}... ({len(text)} chars)"
 
 
 def http_context(

@@ -46,7 +46,7 @@ All APIs use the same header: `AccessKey: <key>`. The key value differs per serv
 
 - `401` — bad API key
 - `404` — resource not found
-- `429` — rate limited (undocumented but observed)
+- `429` — rate limited (documented for purges: per-account token buckets)
 - `5xx` — server error
 
 ## 3. Package Structure
@@ -59,6 +59,9 @@ src/bunny_cdn_sdk/
     _types.py            # TypedDict definitions (pagination envelopes)
     _pagination.py       # Page/item iterators
     _retry.py            # RetryTransport (composable httpx2 transport)
+    _log.py              # structlog logger over stdlib `bunny_cdn_sdk`, secret redaction
+    _typecheck.py        # DEBUG-only check of responses against their spec types
+    models/              # TypedDicts generated from docs/apis/ (tools/gen_types.py)
     core.py              # CoreClient
     storage.py           # StorageClient
     shield.py            # ShieldClient
@@ -144,7 +147,7 @@ Constructor: `CoreClient(api_key: str, base_url: str = "https://api.bunny.net", 
 
 | Method | HTTP | Path |
 |--------|------|------|
-| `list_pull_zones(search)` | GET | `/pullzone` (returns a plain list, unpaginated) |
+| `list_pull_zones(search)` | GET | `/pullzone` (a plain list; with `search`, pages the `Items` envelope the live API returns) |
 | `iter_pull_zones(search)` | GET | `/pullzone` (yields from `list_pull_zones`) |
 | `get_pull_zone(id)` | GET | `/pullzone/{id}` |
 | `get_pull_zones(ids)` | GET | `/pullzone/{id}` (concurrent) |

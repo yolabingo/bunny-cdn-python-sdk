@@ -51,7 +51,9 @@ Every record carries the event's fields twice:
 
 **Bodies:**
 - JSON bodies are logged as parsed values.
-- Other bodies are logged as text, cut at 2,000 characters.
+- Other text bodies are logged as text, cut at 2,000 characters.
+- Bodies over 64 KiB (uploads, big lists) and binary bodies are shown only as their size, e.g.
+  `<5242880 bytes, not logged>`.
 - A streamed body that can't be re-read is shown as `<stream>`.
 
 **Type mismatches never raise.** The return types (`bunny_cdn_sdk.models.*`) are static types

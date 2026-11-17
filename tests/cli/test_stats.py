@@ -132,3 +132,13 @@ def test_stats_no_pull_zones(runner) -> None:
         result = runner.invoke(app, ["--api-key", "k", "stats"])
     assert result.exit_code == 0
     mc.get_statistics.assert_not_called()
+
+
+def test_stats_null_cache_hit_rate(runner) -> None:
+    """A zone with no traffic can return CacheHitRate: null."""
+    with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
+        mc = MockClient.return_value
+        mc.iter_pull_zones.return_value = [_ZONE]
+        mc.get_statistics.return_value = {**_STATS, "CacheHitRate": None}
+        result = runner.invoke(app, ["--api-key", "k", "stats"])
+    assert result.exit_code == 0, result.output

@@ -171,7 +171,7 @@ def _build_stats_row(name: str, stats: StatisticsModel | None) -> dict:
         "Requests\n(K)": f"{round(served / _K):,}" if served >= _K else str(served),
         "Bandwidth\nUsed (GB)": f"{round(bw_used / _GB):,}",
         "Bandwidth\nCached (GB)": f"{round(bw_cached / _GB):,}",
-        "Cache\nHit\nRate (%)": str(round(stats.get("CacheHitRate", 0))),
+        "Cache\nHit\nRate (%)": str(round(stats.get("CacheHitRate") or 0)),
         "Error\n(%)": error_pct.rstrip("%") if error_pct != "—" else "—",
         "_requests": served,
         "_bw_used": bw_used,
@@ -262,7 +262,12 @@ def stats_cmd(
         help="Column to sort by (Name sorts A→Z; others sort highest first)",
     ),
 ) -> None:
-    """Display CDN statistics per pull zone."""
+    """Display CDN statistics per pull zone.
+
+    Bunny reports statistics per whole UTC day, so the range covers every full day from
+    --from's day through --to's day (--from 12h means today, or yesterday and today
+    before noon UTC).
+    """
     state, client = api_client(ctx, core.CoreClient)
 
     start, end = date_range(from_, to_)

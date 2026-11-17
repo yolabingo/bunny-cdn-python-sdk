@@ -2,7 +2,7 @@
 
 **bunny-cdn-sdk**
 
-A thin, typed Python SDK wrapping the Bunny CDN REST APIs using `httpx2`. Provides four service clients — Core, Storage, Shield, Logging — with a sync public API and thread-pooled concurrent batch operations. Designed for Python developers who need a clean, dependency-light interface to Bunny CDN without any magic.
+A thin, typed Python SDK wrapping the Bunny CDN REST APIs using `httpx2`. Provides five service clients — Core, Storage, Shield, Logging, Partner — with a sync public API and thread-pooled concurrent batch operations. Designed for Python developers who need a clean, dependency-light interface to Bunny CDN without any magic.
 
 **Core Value:** A Python developer can `pip install bunny-cdn-sdk`, instantiate a client with their API key, and call methods that map 1:1 to Bunny CDN endpoints — no surprises, no hidden behavior.
 
@@ -22,6 +22,7 @@ A thin, typed Python SDK wrapping the Bunny CDN REST APIs using `httpx2`. Provid
 
 - **Tasks**: run everything through poe (`uv run poe <task>`; `uv run poe` lists them). Task list and details are in [docs/BUILD.md](docs/BUILD.md). Use the `poe-tasks` skill (`.claude/skills/poe-tasks/`) before adding or changing a task.
 - **Before finishing a change**: run `uv run poe test-all` (lint + prek hooks + ty + pytest at ≥80% coverage). This is what CI runs.
+- **Live smoke tests**: `uv run poe test-smoke` runs `tests/smoke/` against the real API with `BUNNYCDN_API_PYTEST`. Every other run leaves them out (`-m "not smoke"`). They create and delete a `pytest-smoke-*` pull zone, so run them only when the user asks.
 - **Dependency audit**: `uv run poe test-audit` (`uv audit`, which is experimental in uv) runs locally and as a prek hook when `uv.lock` or `pyproject.toml` change. CI skips the hook and runs the audit as a non-blocking step, so a newly published vulnerability never fails CI.
 - **Release**: `poe release` tags and pushes, and the tag publishes to PyPI. Don't run it unless asked.
 

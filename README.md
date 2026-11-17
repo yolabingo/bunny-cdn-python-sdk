@@ -321,7 +321,7 @@ client.iter_logs(pull_zone_id, limit=1000, **params)  # yields every entry
 from bunny_cdn_sdk import CoreClient, RetryTransport
 import httpx2
 
-transport = RetryTransport(max_retries=5, backoff_base=0.5)
+transport = RetryTransport(httpx2.HTTPTransport(), max_retries=5, backoff_base=0.5)
 core = CoreClient(api_key="...", client=httpx2.Client(transport=transport))
 ```
 
@@ -331,7 +331,7 @@ Or via constructor shorthand:
 core = CoreClient(api_key="...", max_retries=5, backoff_base=0.5)
 ```
 
-Retries on: `429 Too Many Requests`, `5xx` server errors, and network failures. Uses exponential backoff with jitter.
+Retries are off by default. When on, the SDK retries `429 Too Many Requests` (honouring `Retry-After`) and connection failures for any request, and `5xx` errors and timeouts only for GET, HEAD, OPTIONS and DELETE, which are safe to repeat. Uses exponential backoff with jitter.
 
 ## Exceptions
 
@@ -456,6 +456,7 @@ bunnycdn schema | jq -r '.commands[].command'   # every command
 
 - Python 3.12+
 - [httpx2](https://www.python-httpx2.org/)
+- [structlog](https://www.structlog.org/) (debug logging; it never configures structlog globally)
 
 CLI requirements are optional:
 

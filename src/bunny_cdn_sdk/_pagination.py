@@ -29,7 +29,7 @@ def pagination_iterator(
     current_page = start_page
     while True:
         response = fetch_page(current_page)
-        yield from response["Items"]
-        if not response["HasMoreItems"]:
+        yield from response.get("Items") or ()  # the specs allow null Items
+        if not response.get("HasMoreItems"):
             break
         current_page += 1

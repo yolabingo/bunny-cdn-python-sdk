@@ -95,3 +95,12 @@ def test_record_carries_redacted_fields_for_structured_handlers(
     assert fields["status"] == 503
     assert fields["request_headers"]["accesskey"] == REDACTED
     assert fields["response_body"] == {"Password": REDACTED}
+
+
+def test_body_summarises_large_and_binary_content() -> None:
+    from bunny_cdn_sdk._log import _MAX_PARSE, _body
+
+    assert _body(b"x" * (_MAX_PARSE + 1)) == f"<{_MAX_PARSE + 1} bytes, not logged>"
+    assert _body(b"\xff\xfe\x00") == "<3 bytes of binary data>"
+    assert _body(b'{"a": 1}') == {"a": 1}
+    assert _body(b"plain") == "plain"

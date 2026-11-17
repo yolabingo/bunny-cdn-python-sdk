@@ -104,9 +104,17 @@ class CoreClient(_BaseClient):
             return self._json(
                 "GET", f"{self.base_url}/pullzone", expect=PullZonePublicIndexAllResponse
             )
-        # With search, the live API answers with a paginated envelope (Items, HasMoreItems)
-        # instead of the documented plain array, so page through it explicitly.
-        return list(self._iter_paged("/pullzone", 1000, search=search))
+
+        # With search, the live API answered with a paginated envelope (Items, HasMoreItems)
+        # instead of the documented plain array; accept either.
+        def fetch_page(page: int) -> Any:
+            query = {"page": page, "perPage": 1000, "search": search}
+            return self._json("GET", f"{self.base_url}/pullzone", params=query)
+
+        first = fetch_page(1)
+        if isinstance(first, list):
+            return first
+        return list(pagination_iterator(lambda page: first if page == 1 else fetch_page(page)))
 
     def get_pull_zone(self, id: int) -> PullZoneModel:
         """Get a single pull zone by ID.
