@@ -9,6 +9,8 @@ from email.utils import parsedate_to_datetime
 
 import httpx2
 
+from bunny_cdn_sdk._log import log
+
 _STATUS_TOO_MANY_REQUESTS = 429
 _STATUS_SERVER_ERROR_MIN = 500
 _STATUS_SERVER_ERROR_MAX = 600
@@ -107,21 +109,34 @@ class RetryTransport(httpx2.BaseTransport):
         response: httpx2.Response = httpx2.Response(0)
 
         safe = request.method in _SAFE_TO_REPEAT
+        reason = ""
         for attempt in range(self._max_retries + 1):
             if attempt > 0:
                 delay = self._backoff_delay(attempt - 1, response)
+                log.debug(
+                    "request_retry",
+                    method=request.method,
+                    url=str(request.url),
+                    attempt=attempt,
+                    max_retries=self._max_retries,
+                    delay=round(delay, 3),
+                    reason=reason,
+                )
                 time.sleep(delay)
             try:
                 response = self._inner.handle_request(request)
                 if self._should_retry_response(response, safe=safe) and attempt < self._max_retries:
+                    reason = f"HTTP {response.status_code}"
                     continue
-            except (httpx2.ConnectError, httpx2.ConnectTimeout):
+            except (httpx2.ConnectError, httpx2.ConnectTimeout) as exc:
                 # The request never reached the server, so resending is always safe.
                 if attempt >= self._max_retries:
                     raise
-            except httpx2.TimeoutException:
+                reason = repr(exc)
+            except httpx2.TimeoutException as exc:
                 if not safe or attempt >= self._max_retries:
                     raise
+                reason = repr(exc)
             else:
                 return response
         # Unreachable: the loop always returns or raises before reaching here.

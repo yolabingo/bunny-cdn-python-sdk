@@ -4,18 +4,52 @@ from __future__ import annotations
 
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Unpack
 
 from bunny_cdn_sdk._client import _BaseClient
 from bunny_cdn_sdk._pagination import pagination_iterator
+from bunny_cdn_sdk.models.core import (
+    AddDnsRecordModel,
+    BillingModel,
+    CountriesPublicGetCountryListResponse,
+    DnsRecordModel,
+    DnsZoneAddModel,
+    DnsZoneModel,
+    EdgeRuleV2Model,
+    LoadBalancerOriginCreateModel,
+    LoadBalancerOriginGroupModel,
+    LoadBalancerOriginModel,
+    LoadBalancerProfileEndpointGetLoadBalancersResponse,
+    LoadBalancerProfileModel,
+    LoadBalancerSettingsModel,
+    LoadBalancerStatisticsEndpointGetAttachedPullZonesResponse,
+    LoadBalancerStatisticsEndpointGetLoadBalancerAccountStatisticsResponse,
+    LoadBalancerStatisticsModel,
+    LoadBalancerUsageModel,
+    OriginGroupCreateModel,
+    PaginationListModelOfDnsZoneModel,
+    PaginationListModelOfVideoLibraryModel,
+    PullZoneAddModel,
+    PullZoneModel,
+    PullZonePublicIndexAllResponse,
+    PullZonePurgeModel,
+    PullZoneSettingsModel,
+    RegionPublicIndexResponse,
+    StatisticsModel,
+    StorageZoneModel,
+    StorageZoneModelAdd,
+    StorageZoneSettingsModel,
+    UpdateDnsRecordModel,
+    UpdateDnsZoneModel,
+    VideoLibraryCreateModel,
+    VideoLibraryModel,
+    VideoLibraryUpdateModel,
+)
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Mapping
 
     import httpx2
-
-    from bunny_cdn_sdk._types import PaginatedResponse
-
 __all__ = ["CoreClient"]
 
 _BASE_URL = "https://api.bunny.net"
@@ -56,7 +90,7 @@ class CoreClient(_BaseClient):
     # Pull Zones — CRUD (CORE-01)
     # ------------------------------------------------------------------
 
-    def list_pull_zones(self, search: str | None = None) -> list:
+    def list_pull_zones(self, search: str | None = None) -> PullZonePublicIndexAllResponse:
         """List all pull zones.
 
         Args:
@@ -66,10 +100,23 @@ class CoreClient(_BaseClient):
             List of pull zone dicts. Without a ``page`` param the API returns every
             zone as one flat list, so no paging is needed.
         """
-        params = {"search": search} if search is not None else {}
-        return self._json("GET", f"{self.base_url}/pullzone", params=params)
+        if search is None:
+            return self._json(
+                "GET", f"{self.base_url}/pullzone", expect=PullZonePublicIndexAllResponse
+            )
 
-    def get_pull_zone(self, id: int) -> dict:
+        # With search, the live API answered with a paginated envelope (Items, HasMoreItems)
+        # instead of the documented plain array; accept either.
+        def fetch_page(page: int) -> Any:
+            query = {"page": page, "perPage": 1000, "search": search}
+            return self._json("GET", f"{self.base_url}/pullzone", params=query)
+
+        first = fetch_page(1)
+        if isinstance(first, list):
+            return first
+        return list(pagination_iterator(lambda page: first if page == 1 else fetch_page(page)))
+
+    def get_pull_zone(self, id: int) -> PullZoneModel:
         """Get a single pull zone by ID.
 
         Args:
@@ -78,9 +125,9 @@ class CoreClient(_BaseClient):
         Returns:
             Pull zone dict.
         """
-        return self._json("GET", f"{self.base_url}/pullzone/{id}")
+        return self._json("GET", f"{self.base_url}/pullzone/{id}", expect=PullZoneModel)
 
-    def create_pull_zone(self, **kwargs: Any) -> dict:
+    def create_pull_zone(self, **kwargs: Unpack[PullZoneAddModel]) -> dict:
         """Create a new pull zone.
 
         Args:
@@ -91,7 +138,7 @@ class CoreClient(_BaseClient):
         """
         return self._json("POST", f"{self.base_url}/pullzone", json=kwargs)
 
-    def update_pull_zone(self, id: int, **kwargs: Any) -> dict:
+    def update_pull_zone(self, id: int, **kwargs: Unpack[PullZoneSettingsModel]) -> PullZoneModel:
         """Update an existing pull zone.
 
         Args:
@@ -101,7 +148,9 @@ class CoreClient(_BaseClient):
         Returns:
             Updated pull zone dict.
         """
-        return self._json("POST", f"{self.base_url}/pullzone/{id}", json=kwargs)
+        return self._json(
+            "POST", f"{self.base_url}/pullzone/{id}", json=kwargs, expect=PullZoneModel
+        )
 
     def delete_pull_zone(self, id: int) -> dict:
         """Delete a pull zone.
@@ -118,7 +167,7 @@ class CoreClient(_BaseClient):
     # Pull Zones — Iterator (CORE-04)
     # ------------------------------------------------------------------
 
-    def iter_pull_zones(self, search: str | None = None) -> Iterator[dict]:
+    def iter_pull_zones(self, search: str | None = None) -> Iterator[PullZoneModel]:
         """Iterate over all pull zones.
 
         Args:
@@ -133,7 +182,7 @@ class CoreClient(_BaseClient):
     # Pull Zones — Concurrent batch fetch (CORE-03)
     # ------------------------------------------------------------------
 
-    def get_pull_zones(self, ids: list[int]) -> list[dict]:
+    def get_pull_zones(self, ids: list[int]) -> list[PullZoneModel]:
         """Fetch multiple pull zones concurrently.
 
         Sends all requests in parallel via ThreadPoolExecutor and returns results
@@ -152,8 +201,8 @@ class CoreClient(_BaseClient):
             Any SDK error from the first failed request.
         """
 
-        def fetch_one(id: int) -> dict:
-            return self._json("GET", f"{self.base_url}/pullzone/{id}")
+        def fetch_one(id: int) -> PullZoneModel:
+            return self._json("GET", f"{self.base_url}/pullzone/{id}", expect=PullZoneModel)
 
         with ThreadPoolExecutor(max_workers=max(1, min(len(ids), 20))) as pool:
             return list(pool.map(fetch_one, ids))
@@ -162,7 +211,7 @@ class CoreClient(_BaseClient):
     # Pull Zones — Extras (CORE-02)
     # ------------------------------------------------------------------
 
-    def purge_pull_zone_cache(self, id: int, **kwargs: Any) -> dict:
+    def purge_pull_zone_cache(self, id: int, **kwargs: Unpack[PullZonePurgeModel]) -> dict:
         """Purge the cache for a pull zone.
 
         Args:
@@ -255,7 +304,7 @@ class CoreClient(_BaseClient):
         params: dict[str, Any] = {"page": page, "perPage": per_page}
         return self._json("GET", f"{self.base_url}/storagezone", params=params)
 
-    def get_storage_zone(self, id: int) -> dict:
+    def get_storage_zone(self, id: int) -> StorageZoneModel:
         """Get a storage zone by ID.
 
         Args:
@@ -264,9 +313,9 @@ class CoreClient(_BaseClient):
         Returns:
             Storage zone dict.
         """
-        return self._json("GET", f"{self.base_url}/storagezone/{id}")
+        return self._json("GET", f"{self.base_url}/storagezone/{id}", expect=StorageZoneModel)
 
-    def create_storage_zone(self, **kwargs: Any) -> dict:
+    def create_storage_zone(self, **kwargs: Unpack[StorageZoneModelAdd]) -> StorageZoneModel:
         """Create a new storage zone.
 
         Args:
@@ -275,9 +324,11 @@ class CoreClient(_BaseClient):
         Returns:
             Created storage zone dict.
         """
-        return self._json("POST", f"{self.base_url}/storagezone", json=kwargs)
+        return self._json(
+            "POST", f"{self.base_url}/storagezone", json=kwargs, expect=StorageZoneModel
+        )
 
-    def update_storage_zone(self, id: int, **kwargs: Any) -> dict:
+    def update_storage_zone(self, id: int, **kwargs: Unpack[StorageZoneSettingsModel]) -> dict:
         """Update an existing storage zone.
 
         Args:
@@ -300,14 +351,16 @@ class CoreClient(_BaseClient):
         """
         return self._json("DELETE", f"{self.base_url}/storagezone/{id}")
 
-    def _iter_paged(self, path: str, per_page: int, **params: Any) -> Iterator[dict]:
-        def fetch_page(page: int) -> PaginatedResponse:
+    def _iter_paged(
+        self, path: str, per_page: int, expect: Any = None, **params: Any
+    ) -> Iterator[Any]:
+        def fetch_page(page: int) -> Mapping[str, Any]:
             query = {"page": page, "perPage": per_page, **params}
-            return self._json("GET", f"{self.base_url}{path}", params=query)
+            return self._json("GET", f"{self.base_url}{path}", params=query, expect=expect)
 
         return pagination_iterator(fetch_page)
 
-    def iter_storage_zones(self, per_page: int = 1000) -> Iterator[dict]:
+    def iter_storage_zones(self, per_page: int = 1000) -> Iterator[StorageZoneModel]:
         """Iterate over all storage zones, auto-fetching pages as needed.
 
         Args:
@@ -328,7 +381,7 @@ class CoreClient(_BaseClient):
         page: int = 1,
         per_page: int = 1000,
         search: str | None = None,
-    ) -> dict:
+    ) -> PaginationListModelOfDnsZoneModel:
         """List DNS zones (single page).
 
         Args:
@@ -342,9 +395,14 @@ class CoreClient(_BaseClient):
         params: dict[str, Any] = {"page": page, "perPage": per_page}
         if search is not None:
             params["search"] = search
-        return self._json("GET", f"{self.base_url}/dnszone", params=params)
+        return self._json(
+            "GET",
+            f"{self.base_url}/dnszone",
+            params=params,
+            expect=PaginationListModelOfDnsZoneModel,
+        )
 
-    def get_dns_zone(self, id: int) -> dict:
+    def get_dns_zone(self, id: int) -> DnsZoneModel:
         """Get a DNS zone by ID.
 
         Args:
@@ -353,9 +411,9 @@ class CoreClient(_BaseClient):
         Returns:
             DNS zone dict.
         """
-        return self._json("GET", f"{self.base_url}/dnszone/{id}")
+        return self._json("GET", f"{self.base_url}/dnszone/{id}", expect=DnsZoneModel)
 
-    def create_dns_zone(self, **kwargs: Any) -> dict:
+    def create_dns_zone(self, **kwargs: Unpack[DnsZoneAddModel]) -> dict:
         """Create a new DNS zone.
 
         Args:
@@ -366,7 +424,7 @@ class CoreClient(_BaseClient):
         """
         return self._json("POST", f"{self.base_url}/dnszone", json=kwargs)
 
-    def update_dns_zone(self, id: int, **kwargs: Any) -> dict:
+    def update_dns_zone(self, id: int, **kwargs: Unpack[UpdateDnsZoneModel]) -> DnsZoneModel:
         """Update an existing DNS zone.
 
         Args:
@@ -376,7 +434,7 @@ class CoreClient(_BaseClient):
         Returns:
             Updated DNS zone dict.
         """
-        return self._json("POST", f"{self.base_url}/dnszone/{id}", json=kwargs)
+        return self._json("POST", f"{self.base_url}/dnszone/{id}", json=kwargs, expect=DnsZoneModel)
 
     def delete_dns_zone(self, id: int) -> dict:
         """Delete a DNS zone.
@@ -393,7 +451,7 @@ class CoreClient(_BaseClient):
         self,
         per_page: int = 1000,
         search: str | None = None,
-    ) -> Iterator[dict]:
+    ) -> Iterator[DnsZoneModel]:
         """Iterate over all DNS zones, auto-fetching pages as needed.
 
         Args:
@@ -405,14 +463,17 @@ class CoreClient(_BaseClient):
         """
 
         return self._iter_paged(
-            "/dnszone", per_page, **({"search": search} if search is not None else {})
+            "/dnszone",
+            per_page,
+            PaginationListModelOfDnsZoneModel,
+            **({"search": search} if search is not None else {}),
         )
 
     # ------------------------------------------------------------------
     # DNS Records (CORE-08)
     # ------------------------------------------------------------------
 
-    def add_dns_record(self, zone_id: int, **kwargs: Any) -> dict:
+    def add_dns_record(self, zone_id: int, **kwargs: Unpack[AddDnsRecordModel]) -> DnsRecordModel:
         """Add a DNS record to a zone.
 
         Args:
@@ -422,9 +483,13 @@ class CoreClient(_BaseClient):
         Returns:
             Created DNS record dict.
         """
-        return self._json("PUT", f"{self.base_url}/dnszone/{zone_id}/records", json=kwargs)
+        return self._json(
+            "PUT", f"{self.base_url}/dnszone/{zone_id}/records", json=kwargs, expect=DnsRecordModel
+        )
 
-    def update_dns_record(self, zone_id: int, record_id: int, **kwargs: Any) -> dict:
+    def update_dns_record(
+        self, zone_id: int, record_id: int, **kwargs: Unpack[UpdateDnsRecordModel]
+    ) -> dict:
         """Update a DNS record within a zone.
 
         Args:
@@ -457,7 +522,9 @@ class CoreClient(_BaseClient):
     # Video Libraries — CRUD (CORE-10)
     # ------------------------------------------------------------------
 
-    def list_video_libraries(self, page: int = 1, per_page: int = 1000) -> dict:
+    def list_video_libraries(
+        self, page: int = 1, per_page: int = 1000
+    ) -> PaginationListModelOfVideoLibraryModel:
         """List video libraries (single page).
 
         Args:
@@ -468,9 +535,14 @@ class CoreClient(_BaseClient):
             Paginated response dict.
         """
         params: dict[str, Any] = {"page": page, "perPage": per_page}
-        return self._json("GET", f"{self.base_url}/videolibrary", params=params)
+        return self._json(
+            "GET",
+            f"{self.base_url}/videolibrary",
+            params=params,
+            expect=PaginationListModelOfVideoLibraryModel,
+        )
 
-    def get_video_library(self, id: int) -> dict:
+    def get_video_library(self, id: int) -> VideoLibraryModel:
         """Get a video library by ID.
 
         Args:
@@ -479,9 +551,9 @@ class CoreClient(_BaseClient):
         Returns:
             Video library dict.
         """
-        return self._json("GET", f"{self.base_url}/videolibrary/{id}")
+        return self._json("GET", f"{self.base_url}/videolibrary/{id}", expect=VideoLibraryModel)
 
-    def create_video_library(self, **kwargs: Any) -> dict:
+    def create_video_library(self, **kwargs: Unpack[VideoLibraryCreateModel]) -> VideoLibraryModel:
         """Create a new video library.
 
         Args:
@@ -490,9 +562,13 @@ class CoreClient(_BaseClient):
         Returns:
             Created video library dict.
         """
-        return self._json("POST", f"{self.base_url}/videolibrary", json=kwargs)
+        return self._json(
+            "POST", f"{self.base_url}/videolibrary", json=kwargs, expect=VideoLibraryModel
+        )
 
-    def update_video_library(self, id: int, **kwargs: Any) -> dict:
+    def update_video_library(
+        self, id: int, **kwargs: Unpack[VideoLibraryUpdateModel]
+    ) -> VideoLibraryModel:
         """Update a video library.
 
         Args:
@@ -502,7 +578,9 @@ class CoreClient(_BaseClient):
         Returns:
             Updated video library dict.
         """
-        return self._json("POST", f"{self.base_url}/videolibrary/{id}", json=kwargs)
+        return self._json(
+            "POST", f"{self.base_url}/videolibrary/{id}", json=kwargs, expect=VideoLibraryModel
+        )
 
     def delete_video_library(self, id: int) -> dict:
         """Delete a video library.
@@ -515,7 +593,7 @@ class CoreClient(_BaseClient):
         """
         return self._json("DELETE", f"{self.base_url}/videolibrary/{id}")
 
-    def iter_video_libraries(self, per_page: int = 1000) -> Iterator[dict]:
+    def iter_video_libraries(self, per_page: int = 1000) -> Iterator[VideoLibraryModel]:
         """Iterate over all video libraries, auto-fetching pages as needed.
 
         Args:
@@ -525,7 +603,7 @@ class CoreClient(_BaseClient):
             Individual video library dicts across all pages.
         """
 
-        return self._iter_paged("/videolibrary", per_page)
+        return self._iter_paged("/videolibrary", per_page, PaginationListModelOfVideoLibraryModel)
 
     # ------------------------------------------------------------------
     # Utilities
@@ -548,7 +626,7 @@ class CoreClient(_BaseClient):
             query = f"{query}&{extra}"
         return self._json("POST", f"{self.base_url}/purge?{query}")
 
-    def get_statistics(self, **kwargs: Any) -> dict:
+    def get_statistics(self, **kwargs: Any) -> StatisticsModel:
         """Get CDN statistics.
 
         Args:
@@ -557,37 +635,41 @@ class CoreClient(_BaseClient):
         Returns:
             Statistics dict.
         """
-        return self._json("GET", f"{self.base_url}/statistics", params=kwargs)
+        return self._json(
+            "GET", f"{self.base_url}/statistics", params=kwargs, expect=StatisticsModel
+        )
 
-    def list_countries(self) -> list:
+    def list_countries(self) -> CountriesPublicGetCountryListResponse:
         """List available countries.
 
         Returns:
             List of country dicts with Name, IsoCode, IsEU, TaxRate, TaxPrefix fields.
         """
-        return self._json("GET", f"{self.base_url}/country")
+        return self._json(
+            "GET", f"{self.base_url}/country", expect=CountriesPublicGetCountryListResponse
+        )
 
-    def list_regions(self) -> list:
+    def list_regions(self) -> RegionPublicIndexResponse:
         """List available CDN regions.
 
         Returns:
             List of region dicts with Id, Name, PricePerGigabyte, RegionCode, ContinentCode fields.
         """
-        return self._json("GET", f"{self.base_url}/region")
+        return self._json("GET", f"{self.base_url}/region", expect=RegionPublicIndexResponse)
 
-    def get_billing(self) -> dict:
+    def get_billing(self) -> BillingModel:
         """Get billing information for the account.
 
         Returns:
             Billing info dict.
         """
-        return self._json("GET", f"{self.base_url}/billing")
+        return self._json("GET", f"{self.base_url}/billing", expect=BillingModel)
 
     # ------------------------------------------------------------------
     # Edge Rules
     # ------------------------------------------------------------------
 
-    def add_or_update_edge_rule(self, pull_zone_id: int, **kwargs: Any) -> dict:
+    def add_or_update_edge_rule(self, pull_zone_id: int, **kwargs: Unpack[EdgeRuleV2Model]) -> dict:
         """Create or update an edge rule on a pull zone.
 
         Edge rules have no list endpoint; read them from ``get_pull_zone(id)["EdgeRules"]``.
@@ -638,7 +720,9 @@ class CoreClient(_BaseClient):
     # Load Balancers
     # ------------------------------------------------------------------
 
-    def list_load_balancers(self, page: int = 1, count: int = 50) -> list:
+    def list_load_balancers(
+        self, page: int = 1, count: int = 50
+    ) -> LoadBalancerProfileEndpointGetLoadBalancersResponse:
         """List load balancers.
 
         Args:
@@ -649,10 +733,13 @@ class CoreClient(_BaseClient):
             List of load balancer dicts.
         """
         return self._json(
-            "GET", f"{self.base_url}/loadbalancer", params={"page": page, "count": count}
+            "GET",
+            f"{self.base_url}/loadbalancer",
+            params={"page": page, "count": count},
+            expect=LoadBalancerProfileEndpointGetLoadBalancersResponse,
         )
 
-    def get_load_balancer(self, id: int) -> dict:
+    def get_load_balancer(self, id: int) -> LoadBalancerProfileModel:
         """Get a load balancer.
 
         Args:
@@ -661,9 +748,13 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict.
         """
-        return self._json("GET", f"{self.base_url}/loadbalancer/{id}")
+        return self._json(
+            "GET", f"{self.base_url}/loadbalancer/{id}", expect=LoadBalancerProfileModel
+        )
 
-    def create_load_balancer(self, **kwargs: Any) -> dict:
+    def create_load_balancer(
+        self, **kwargs: Unpack[LoadBalancerSettingsModel]
+    ) -> LoadBalancerProfileModel:
         """Create a load balancer.
 
         Args:
@@ -672,9 +763,13 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict.
         """
-        return self._json("POST", f"{self.base_url}/loadbalancer", json=kwargs)
+        return self._json(
+            "POST", f"{self.base_url}/loadbalancer", json=kwargs, expect=LoadBalancerProfileModel
+        )
 
-    def update_load_balancer(self, id: int, **kwargs: Any) -> dict:
+    def update_load_balancer(
+        self, id: int, **kwargs: Unpack[LoadBalancerSettingsModel]
+    ) -> LoadBalancerProfileModel:
         """Update a load balancer.
 
         Args:
@@ -684,7 +779,12 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict.
         """
-        return self._json("POST", f"{self.base_url}/loadbalancer/{id}", json=kwargs)
+        return self._json(
+            "POST",
+            f"{self.base_url}/loadbalancer/{id}",
+            json=kwargs,
+            expect=LoadBalancerProfileModel,
+        )
 
     def delete_load_balancer(self, id: int) -> dict:
         """Delete a load balancer.
@@ -697,7 +797,9 @@ class CoreClient(_BaseClient):
         """
         return self._json("DELETE", f"{self.base_url}/loadbalancer/{id}")
 
-    def add_origin_group(self, lb_id: int, **kwargs: Any) -> dict:
+    def add_origin_group(
+        self, lb_id: int, **kwargs: Unpack[OriginGroupCreateModel]
+    ) -> LoadBalancerOriginGroupModel:
         """Add an origin group to a load balancer.
 
         Args:
@@ -707,9 +809,16 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict.
         """
-        return self._json("POST", f"{self.base_url}/loadbalancer/{lb_id}/origingroup", json=kwargs)
+        return self._json(
+            "POST",
+            f"{self.base_url}/loadbalancer/{lb_id}/origingroup",
+            json=kwargs,
+            expect=LoadBalancerOriginGroupModel,
+        )
 
-    def update_origin_group(self, lb_id: int, group_id: int, **kwargs: Any) -> dict:
+    def update_origin_group(
+        self, lb_id: int, group_id: int, **kwargs: Unpack[OriginGroupCreateModel]
+    ) -> LoadBalancerOriginGroupModel:
         """Update an origin group.
 
         Args:
@@ -721,7 +830,10 @@ class CoreClient(_BaseClient):
             Response dict.
         """
         return self._json(
-            "POST", f"{self.base_url}/loadbalancer/{lb_id}/origingroup/{group_id}", json=kwargs
+            "POST",
+            f"{self.base_url}/loadbalancer/{lb_id}/origingroup/{group_id}",
+            json=kwargs,
+            expect=LoadBalancerOriginGroupModel,
         )
 
     def delete_origin_group(self, lb_id: int, group_id: int) -> dict:
@@ -736,7 +848,9 @@ class CoreClient(_BaseClient):
         """
         return self._json("DELETE", f"{self.base_url}/loadbalancer/{lb_id}/origingroup/{group_id}")
 
-    def add_origin(self, lb_id: int, group_id: int, **kwargs: Any) -> dict:
+    def add_origin(
+        self, lb_id: int, group_id: int, **kwargs: Unpack[LoadBalancerOriginCreateModel]
+    ) -> LoadBalancerOriginModel:
         """Add an origin to an origin group.
 
         Args:
@@ -751,9 +865,16 @@ class CoreClient(_BaseClient):
             "POST",
             f"{self.base_url}/loadbalancer/{lb_id}/origingroup/{group_id}/origin",
             json=kwargs,
+            expect=LoadBalancerOriginModel,
         )
 
-    def update_origin(self, lb_id: int, group_id: int, origin_id: int, **kwargs: Any) -> dict:
+    def update_origin(
+        self,
+        lb_id: int,
+        group_id: int,
+        origin_id: int,
+        **kwargs: Unpack[LoadBalancerOriginCreateModel],
+    ) -> LoadBalancerOriginModel:
         """Update an origin.
 
         Args:
@@ -769,6 +890,7 @@ class CoreClient(_BaseClient):
             "POST",
             f"{self.base_url}/loadbalancer/{lb_id}/origingroup/{group_id}/origin/{origin_id}",
             json=kwargs,
+            expect=LoadBalancerOriginModel,
         )
 
     def delete_origin(self, lb_id: int, group_id: int, origin_id: int) -> dict:
@@ -787,7 +909,7 @@ class CoreClient(_BaseClient):
             f"{self.base_url}/loadbalancer/{lb_id}/origingroup/{group_id}/origin/{origin_id}",
         )
 
-    def get_load_balancer_statistics(self, id: int, **kwargs: Any) -> dict:
+    def get_load_balancer_statistics(self, id: int, **kwargs: Any) -> LoadBalancerStatisticsModel:
         """Get statistics for a load balancer.
 
         Args:
@@ -797,9 +919,16 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict.
         """
-        return self._json("GET", f"{self.base_url}/loadbalancer/{id}/statistics", params=kwargs)
+        return self._json(
+            "GET",
+            f"{self.base_url}/loadbalancer/{id}/statistics",
+            params=kwargs,
+            expect=LoadBalancerStatisticsModel,
+        )
 
-    def get_load_balancer_pull_zones(self, id: int, **kwargs: Any) -> dict:
+    def get_load_balancer_pull_zones(
+        self, id: int, **kwargs: Any
+    ) -> LoadBalancerStatisticsEndpointGetAttachedPullZonesResponse:
         """Get pull zones using a load balancer.
 
         Args:
@@ -809,9 +938,16 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict.
         """
-        return self._json("GET", f"{self.base_url}/loadbalancer/{id}/pullzones", params=kwargs)
+        return self._json(
+            "GET",
+            f"{self.base_url}/loadbalancer/{id}/pullzones",
+            params=kwargs,
+            expect=LoadBalancerStatisticsEndpointGetAttachedPullZonesResponse,
+        )
 
-    def get_load_balancer_account_statistics(self, **kwargs: Any) -> dict:
+    def get_load_balancer_account_statistics(
+        self, **kwargs: Any
+    ) -> LoadBalancerStatisticsEndpointGetLoadBalancerAccountStatisticsResponse:
         """Get account-wide load balancer statistics.
 
         Args:
@@ -820,9 +956,14 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict.
         """
-        return self._json("GET", f"{self.base_url}/loadbalancer/statistics", params=kwargs)
+        return self._json(
+            "GET",
+            f"{self.base_url}/loadbalancer/statistics",
+            params=kwargs,
+            expect=LoadBalancerStatisticsEndpointGetLoadBalancerAccountStatisticsResponse,
+        )
 
-    def get_load_balancer_usage(self, id: int, **kwargs: Any) -> dict:
+    def get_load_balancer_usage(self, id: int, **kwargs: Any) -> LoadBalancerUsageModel:
         """Get usage for a load balancer.
 
         Args:
@@ -832,4 +973,9 @@ class CoreClient(_BaseClient):
         Returns:
             Response dict.
         """
-        return self._json("GET", f"{self.base_url}/loadbalancer/{id}/usage", params=kwargs)
+        return self._json(
+            "GET",
+            f"{self.base_url}/loadbalancer/{id}/usage",
+            params=kwargs,
+            expect=LoadBalancerUsageModel,
+        )

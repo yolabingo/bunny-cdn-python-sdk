@@ -2,9 +2,21 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Unpack
 
 from bunny_cdn_sdk._client import _BaseClient
+from bunny_cdn_sdk.models.partner import (
+    BillingModel,
+    CreatePartnerCustomerRequest,
+    CreatePartnerCustomerResponse,
+    GetPartnerCustomerProductsEndpointGetProductsResponse,
+    GetUserAuditLogResponse,
+    ListPartnerCustomersEndpointListCustomersResponse,
+    PartnerCustomerContractModel,
+    PartnerCustomerOverviewModel,
+    PartnerCustomerPricingModel,
+    UserAuditLog,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -50,15 +62,21 @@ class PartnerClient(_BaseClient):
     # Customers
     # ------------------------------------------------------------------
 
-    def list_customers(self) -> list:
+    def list_customers(self) -> ListPartnerCustomersEndpointListCustomersResponse:
         """List the partner's customers.
 
         Returns:
             Response JSON.
         """
-        return self._json("GET", f"{self.base_url}/customers")
+        return self._json(
+            "GET",
+            f"{self.base_url}/customers",
+            expect=ListPartnerCustomersEndpointListCustomersResponse,
+        )
 
-    def create_customer(self, email: str, **kwargs: Any) -> dict:
+    def create_customer(
+        self, email: str, **kwargs: Unpack[CreatePartnerCustomerRequest]
+    ) -> CreatePartnerCustomerResponse:
         """Create a customer account.
 
         Args:
@@ -70,7 +88,12 @@ class PartnerClient(_BaseClient):
         Returns:
             Response JSON.
         """
-        return self._json("POST", f"{self.base_url}/customers", json={"Email": email, **kwargs})
+        return self._json(
+            "POST",
+            f"{self.base_url}/customers",
+            expect=CreatePartnerCustomerResponse,
+            json={"Email": email, **kwargs},
+        )
 
     def invite_customer(self, email: str) -> dict:
         """Invite an existing or new user to become a customer.
@@ -83,7 +106,7 @@ class PartnerClient(_BaseClient):
         """
         return self._json("POST", f"{self.base_url}/customers/invite", json={"Email": email})
 
-    def get_customer_overview(self, customer_user_id: str) -> dict:
+    def get_customer_overview(self, customer_user_id: str) -> PartnerCustomerOverviewModel:
         """Get a customer overview.
 
         Args:
@@ -92,15 +115,19 @@ class PartnerClient(_BaseClient):
         Returns:
             Response JSON.
         """
-        return self._json("GET", f"{self.base_url}/customer/{customer_user_id}")
+        return self._json(
+            "GET",
+            f"{self.base_url}/customer/{customer_user_id}",
+            expect=PartnerCustomerOverviewModel,
+        )
 
-    def get_partner_overview(self) -> dict:
+    def get_partner_overview(self) -> PartnerCustomerOverviewModel:
         """Get the partner overview.
 
         Returns:
             Response JSON.
         """
-        return self._json("GET", f"{self.base_url}/overview")
+        return self._json("GET", f"{self.base_url}/overview", expect=PartnerCustomerOverviewModel)
 
     def iter_audit_log(  # noqa: PLR0913
         self,
@@ -113,7 +140,7 @@ class PartnerClient(_BaseClient):
         actor_id: list[str] | None = None,
         order: str | None = None,
         limit: int | None = None,
-    ) -> Iterator[dict]:
+    ) -> Iterator[UserAuditLog]:
         """Iterate over all of a customer's audit log entries for a date.
 
         Follows ``ContinuationToken`` while ``HasMoreData`` is true; stops on an empty
@@ -154,7 +181,7 @@ class PartnerClient(_BaseClient):
         order: str | None = None,
         continuation_token: str | None = None,
         limit: int | None = None,
-    ) -> dict:
+    ) -> GetUserAuditLogResponse:
         """Get a customer's audit log for a date.
 
         Args:
@@ -182,22 +209,25 @@ class PartnerClient(_BaseClient):
         }
         params = {k: v for k, v in candidates.items() if v is not None}
         return self._json(
-            "GET", f"{self.base_url}/customer/{customer_user_id}/audit/{date}", params=params
+            "GET",
+            f"{self.base_url}/customer/{customer_user_id}/audit/{date}",
+            expect=GetUserAuditLogResponse,
+            params=params,
         )
 
     # ------------------------------------------------------------------
     # Contract, Billing, Pricing
     # ------------------------------------------------------------------
 
-    def get_contract(self) -> dict:
+    def get_contract(self) -> PartnerCustomerContractModel:
         """Get the partner contract.
 
         Returns:
             Response JSON.
         """
-        return self._json("GET", f"{self.base_url}/contract")
+        return self._json("GET", f"{self.base_url}/contract", expect=PartnerCustomerContractModel)
 
-    def get_customer_billing(self, customer_user_id: str) -> dict:
+    def get_customer_billing(self, customer_user_id: str) -> BillingModel:
         """Get a customer's billing records.
 
         Args:
@@ -206,7 +236,9 @@ class PartnerClient(_BaseClient):
         Returns:
             Response JSON.
         """
-        return self._json("GET", f"{self.base_url}/customer/{customer_user_id}/billing")
+        return self._json(
+            "GET", f"{self.base_url}/customer/{customer_user_id}/billing", expect=BillingModel
+        )
 
     def download_invoice_pdf(self, customer_user_id: str, billing_record_id: int) -> bytes:
         """Download a customer's invoice as a PDF.
@@ -221,7 +253,7 @@ class PartnerClient(_BaseClient):
         url = f"{self.base_url}/customer/{customer_user_id}/billing/{billing_record_id}/pdf"
         return self._request("GET", url).content
 
-    def get_customer_pricing(self, customer_user_id: str) -> dict:
+    def get_customer_pricing(self, customer_user_id: str) -> PartnerCustomerPricingModel:
         """Get a customer's pricing.
 
         Args:
@@ -230,21 +262,27 @@ class PartnerClient(_BaseClient):
         Returns:
             Response JSON.
         """
-        return self._json("GET", f"{self.base_url}/customer/{customer_user_id}/pricing")
+        return self._json(
+            "GET",
+            f"{self.base_url}/customer/{customer_user_id}/pricing",
+            expect=PartnerCustomerPricingModel,
+        )
 
-    def get_partner_pricing(self) -> dict:
+    def get_partner_pricing(self) -> PartnerCustomerPricingModel:
         """Get the partner pricing.
 
         Returns:
             Response JSON.
         """
-        return self._json("GET", f"{self.base_url}/pricing")
+        return self._json("GET", f"{self.base_url}/pricing", expect=PartnerCustomerPricingModel)
 
     # ------------------------------------------------------------------
     # Customer products
     # ------------------------------------------------------------------
 
-    def list_customer_products(self, customer_user_id: str) -> list:
+    def list_customer_products(
+        self, customer_user_id: str
+    ) -> GetPartnerCustomerProductsEndpointGetProductsResponse:
         """List the products and whether each is enabled for a customer.
 
         Args:
@@ -253,7 +291,11 @@ class PartnerClient(_BaseClient):
         Returns:
             Response JSON.
         """
-        return self._json("GET", f"{self.base_url}/customer/{customer_user_id}/products")
+        return self._json(
+            "GET",
+            f"{self.base_url}/customer/{customer_user_id}/products",
+            expect=GetPartnerCustomerProductsEndpointGetProductsResponse,
+        )
 
     def set_customer_product(
         self, customer_user_id: str, product_id: int, *, enabled: bool | None = None

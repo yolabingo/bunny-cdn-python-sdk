@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 from bunny_cdn_sdk._exceptions import BunnyAPIError, BunnyAuthenticationError, BunnyNotFoundError
 from bunny_cdn_sdk.cli import app
@@ -214,6 +214,20 @@ def test_pull_zone_purge_success(runner) -> None:
     assert result.exit_code == 0
     assert "Purged cache" in result.output or "purge" in result.output.lower()
     MockClient.return_value.purge_pull_zone_cache.assert_called_once_with(1)
+
+
+def test_pull_zone_purge_tag(runner) -> None:
+    with patch("bunny_cdn_sdk.core.CoreClient") as MockClient:
+        MockClient.return_value.purge_pull_zone_cache.return_value = {}
+        result = runner.invoke(
+            app, ["--api-key", "k", "pull-zone", "purge", "1", "--tag", "a", "--tag", "b"]
+        )
+    assert result.exit_code == 0
+    assert "tag 'a'" in result.output
+    assert MockClient.return_value.purge_pull_zone_cache.call_args_list == [
+        call(1, CacheTag="a"),
+        call(1, CacheTag="b"),
+    ]
 
 
 def test_pull_zone_purge_error(runner) -> None:

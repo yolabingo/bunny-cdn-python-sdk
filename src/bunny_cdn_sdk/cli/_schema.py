@@ -5,7 +5,7 @@ Typer vendors Click privately, so commands and params are duck-typed (``Any``).
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, get_args
 
 import typer
 import typer.core
@@ -21,11 +21,18 @@ _FOOTER_TEXT = (
 FOOTER = f"[dim]{_FOOTER_TEXT}[/dim]" if typer.core.HAS_RICH else _FOOTER_TEXT
 
 
+def _with_footer(epilog: Any) -> str:
+    # Idempotent: add_footer may run more than once on the same app (e.g. in tests).
+    if not isinstance(epilog, str) or not epilog or epilog == FOOTER:
+        return FOOTER
+    return epilog if epilog.endswith(FOOTER) else f"{epilog}\n\n{FOOTER}"
+
+
 def add_footer(app: typer.Typer) -> None:
-    """Set the footer as the help epilog of ``app`` and every sub-group and command."""
-    app.info.epilog = FOOTER
+    """Append the footer to the help epilog (e.g. examples) of ``app`` and every command."""
+    app.info.epilog = _with_footer(app.info.epilog)
     for cmd in app.registered_commands:
-        cmd.epilog = FOOTER
+        cmd.epilog = _with_footer(cmd.epilog)
     for group in app.registered_groups:
         if group.typer_instance is not None:
             add_footer(group.typer_instance)
@@ -39,12 +46,26 @@ def _jsonable(value: Any) -> Any:
     return str(value)
 
 
+def _type_and_choices(p: Any) -> tuple[str, Any]:
+    if hasattr(p, "type"):  # typer < 0.29: Click ParamType
+        return p.type.name, getattr(p.type, "choices", None)
+    # typer >= 0.29 dropped `.type`; rebuild Click's names so schema_version 1 output is unchanged.
+    d = p.type_descriptor
+    if d.is_choice:
+        return "choice", [getattr(c, "value", c) for c in d.choices or ()]
+    if d.is_ranged:
+        return f"{d.ranged_type_name} range", None
+    # Click reported a list's item type; `multiple` carries the list-ness.
+    name = get_args(d.annotation)[0].__name__ if d.is_list else p.bare_type()
+    return {"bool": "boolean"}.get(name, name), None
+
+
 def _param(p: Any) -> dict[str, Any]:
-    choices = getattr(p.type, "choices", None)
+    type_name, choices = _type_and_choices(p)
     return {
         "name": max(p.opts, key=len) if p.param_type_name == "option" else p.name,
         "kind": p.param_type_name,
-        "type": p.type.name,
+        "type": type_name,
         "required": p.required,
         "multiple": p.multiple,
         "is_flag": getattr(p, "is_flag", False),

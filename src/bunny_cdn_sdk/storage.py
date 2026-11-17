@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+import builtins
 import urllib.parse
 from typing import TYPE_CHECKING, Any, BinaryIO
 
 from bunny_cdn_sdk._client import _BaseClient
+from bunny_cdn_sdk.models.storage import StorageObject
 
 if TYPE_CHECKING:
-    import builtins
-
     import httpx2
 
 __all__ = ["StorageClient"]
@@ -137,7 +137,7 @@ class StorageClient(_BaseClient):
         url = self._build_url(path)
         self._request("DELETE", url)
 
-    def list(self, path: str = "/") -> builtins.list[dict[str, Any]]:
+    def list(self, path: str = "/") -> builtins.list[StorageObject]:
         """List files and directories in the storage zone (STOR-04).
 
         The path should end with ``"/"`` to indicate a directory listing.
@@ -150,4 +150,4 @@ class StorageClient(_BaseClient):
             List of file/directory metadata dicts returned by the Storage API.
         """
         url = self._build_url(path)
-        return self._json("GET", url)
+        return self._json("GET", url, expect=builtins.list[StorageObject])

@@ -69,6 +69,23 @@ storage.list("path/")
 storage.delete("path/to/file.txt")
 ```
 
+Results are plain dicts, typed for your editor and type checker with `TypedDict`s generated from Bunny's OpenAPI specs (`bunny_cdn_sdk.models.core`, `.shield`, `.partner`, `.logging`, `.storage`). The types aren't enforced: Bunny's specs don't always match its API, so every key is optional. To see where a response differs from its spec type, enable debug logging:
+
+```python
+import logging
+
+logging.basicConfig()
+logging.getLogger("bunny_cdn_sdk").setLevel(logging.DEBUG)
+```
+
+The CLI does the same with `--debug` (or `BUNNY_DEBUG=1`), logging to stderr.
+
+Debug logging also covers failed requests (`request_failed`: method, URL, status, request and response headers and bodies), network errors (`request_error`) and retries (`request_retry`: attempt, delay, reason). Events are built with [structlog](https://www.structlog.org/) but go through the standard `logging` logger above, so your handlers and levels decide what's shown. Secrets are replaced with `***` before anything is logged: the `AccessKey` header, fields named like keys, passwords, secrets or tokens (`Password`, `ZoneSecurityKey`, …), and such query parameters in URLs.
+
+See [docs/LOGGING.md](docs/LOGGING.md) for every event and its fields, JSON and structlog setups, logging only failures, and catching spec drift in tests.
+
+**For AI coding agents:** this repo includes a Claude skill, [`.claude/skills/bunny-cdn-sdk-logging`](.claude/skills/bunny-cdn-sdk-logging/SKILL.md), that teaches an agent to debug failing Bunny calls with these logs. To use it in your own project, copy that folder into your project's `.claude/skills/`.
+
 ## CoreClient
 
 ```python
@@ -182,7 +199,7 @@ storage = StorageClient(
 storage.upload(path: str, data: bytes)
 storage.download(path: str) -> bytes
 storage.delete(path: str)
-storage.list(path: str) -> list[dict]
+storage.list(path: str) -> list[StorageObject]
 ```
 
 ## ShieldClient
@@ -304,7 +321,7 @@ client.iter_logs(pull_zone_id, limit=1000, **params)  # yields every entry
 from bunny_cdn_sdk import CoreClient, RetryTransport
 import httpx2
 
-transport = RetryTransport(max_retries=5, backoff_base=0.5)
+transport = RetryTransport(httpx2.HTTPTransport(), max_retries=5, backoff_base=0.5)
 core = CoreClient(api_key="...", client=httpx2.Client(transport=transport))
 ```
 
@@ -314,7 +331,7 @@ Or via constructor shorthand:
 core = CoreClient(api_key="...", max_retries=5, backoff_base=0.5)
 ```
 
-Retries on: `429 Too Many Requests`, `5xx` server errors, and network failures. Uses exponential backoff with jitter.
+Retries are off by default. When on, the SDK retries `429 Too Many Requests` (honouring `Retry-After`) and connection failures for any request, and `5xx` errors and timeouts only for GET, HEAD, OPTIONS and DELETE, which are safe to repeat. Uses exponential backoff with jitter.
 
 ## Exceptions
 
@@ -411,6 +428,10 @@ bunnycdn --output-format json-file pull-zone list  # JSON in a new temp file; pr
 
 The CLI uses [Rich](https://github.com/Textualize/rich) for tables, colours and boxed help. For scripts, CI and other programs:
 
+- **Dates:** `--from`/`--to` (and other date inputs) take `YYYY-MM-DD`, an ISO timestamp (`2026-11-16T08:00Z`; no zone means UTC), or a relative time: `now`, `today`, `yesterday`, `30m`, `24h`, `7d`, `2w`. Defaults: `stats` and `load-balancer stats`/`pull-zones`/`account-stats` cover the last 7 days through today; `logs` covers the last 24 hours (logs are kept for 3 days, and a query spans at most 3 days).
+- **Help:** commands whose input format isn't obvious (`--set KEY=VALUE`, DNS records, storage paths, …) end their `--help` with examples.
+- **Debugging:** `--debug` (or `BUNNY_DEBUG=1`) logs SDK debug output to stderr, secrets redacted: failed requests with their headers and bodies, retries, and API responses that differ from Bunny's spec.
+- **DNS records:** `record add` and `record update` take the type by name (`--type AAAA`) and check that A/AAAA values are valid IPv4/IPv6 addresses before calling the API.
 - **Data:** pass `--output-format` before the command (or set `BUNNY_OUTPUT_FORMAT`):
   - `human` (default): Rich tables and text.
   - `json`: plain JSON on stdout.
@@ -435,6 +456,7 @@ bunnycdn schema | jq -r '.commands[].command'   # every command
 
 - Python 3.12+
 - [httpx2](https://www.python-httpx2.org/)
+- [structlog](https://www.structlog.org/) (debug logging; it never configures structlog globally)
 
 CLI requirements are optional:
 

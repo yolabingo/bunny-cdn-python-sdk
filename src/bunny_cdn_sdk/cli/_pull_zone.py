@@ -7,6 +7,7 @@ from rich.table import Table
 from rich.text import Text
 
 from bunny_cdn_sdk import core
+from bunny_cdn_sdk.cli._options import SET_HELP, examples
 from bunny_cdn_sdk.cli._output import (
     api_client,
     console,
@@ -24,7 +25,7 @@ def list_zones(ctx: typer.Context) -> None:
     """List all pull zones."""
     state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        zones = sorted(client.iter_pull_zones(), key=lambda z: z.get("Name", ""))
+        zones = sorted(client.iter_pull_zones(), key=lambda z: z.get("Name") or "")
         output_result(zones, columns=_COLUMNS, json_mode=state.json_output)
 
 
@@ -40,11 +41,25 @@ def get_zone(
         output_result(zone, columns=_COLUMNS, json_mode=state.json_output)
 
 
-@pull_zone_app.command("create")
+@pull_zone_app.command(
+    "create",
+    epilog=examples(
+        "bunnycdn pull-zone create --name my-site \\",
+        "  --origin-url https://origin.example.com",
+    ),
+)
 def create_zone(
     ctx: typer.Context,
-    name: str = typer.Option(..., "--name", help="Pull zone name"),
-    origin_url: str = typer.Option(..., "--origin-url", help="Origin URL"),
+    name: str = typer.Option(
+        ...,
+        "--name",
+        help="Pull zone name: lowercase letters, numbers and hyphens; becomes NAME.b-cdn.net",
+    ),
+    origin_url: str = typer.Option(
+        ...,
+        "--origin-url",
+        help="Origin server URL the zone pulls from, e.g. https://origin.example.com",
+    ),
 ) -> None:
     """Create a new pull zone."""
     state, client = api_client(ctx, core.CoreClient)
@@ -70,25 +85,55 @@ def delete_zone(
         typer.echo(f"Deleted pull zone {id} ({name}).")
 
 
-@pull_zone_app.command("purge")
+@pull_zone_app.command(
+    "purge",
+    epilog=examples(
+        "bunnycdn pull-zone purge 12345",
+        "bunnycdn pull-zone purge 12345 --tag product-images",
+        "bunnycdn pull-zone purge 12345 --tag a --tag b",
+    ),
+)
 def purge_zone(
     ctx: typer.Context,
     id: int = typer.Argument(..., help="Pull zone ID"),
+    tag: list[str] = typer.Option(
+        [], "--tag", help="Purge only files with this cache tag; repeat for several tags"
+    ),
 ) -> None:
-    """Purge cache for a pull zone."""
+    """Purge cache for a pull zone: everything, or only files with a cache tag.
+
+    A full purge counts toward Bunny's stricter prefix purge rate limit
+    (about 30 per minute); a tag purge counts toward the exact limit
+    (about 300 per minute). Tag purging is not supported on zones with
+    Perma-Cache.
+    """
     _state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
-        client.purge_pull_zone_cache(id)
-        typer.echo(f"Purged cache for pull zone {id}.")
+        if not tag:
+            client.purge_pull_zone_cache(id)
+            typer.echo(f"Purged cache for pull zone {id}.")
+        for t in tag:
+            client.purge_pull_zone_cache(id, CacheTag=t)
+            typer.echo(f"Purged cache tag {t!r} for pull zone {id}.")
 
 
-@pull_zone_app.command("update")
+@pull_zone_app.command(
+    "update",
+    epilog=examples(
+        "bunnycdn pull-zone update 12345 --set EnableLogging=true",
+        "bunnycdn pull-zone update 12345 --set OriginUrl=https://o.example.com",
+        "bunnycdn pull-zone update 12345 --set CacheControlMaxAgeOverride=86400",
+    ),
+)
 def update_zone(
     ctx: typer.Context,
     id: int = typer.Argument(..., help="Pull zone ID"),
-    set_: list[str] = typer.Option([], "--set", help="Field to update as KEY=VALUE (repeatable)"),
+    set_: list[str] = typer.Option([], "--set", help=SET_HELP),
 ) -> None:
-    """Update pull zone fields using --set KEY=VALUE."""
+    """Update pull zone fields using --set KEY=VALUE.
+
+    Only the fields you pass change; the output lists what differed.
+    """
     state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
         updates = parse_set_pairs(set_)  # ValueError is caught by sdk_errors
@@ -134,15 +179,27 @@ def list_edge_rules(
         output_result(rules, columns=_EDGE_COLUMNS, json_mode=state.json_output)
 
 
-@edge_rule_app.command("set")
+@edge_rule_app.command(
+    "set",
+    epilog=examples(
+        "# add a rule: no Guid",
+        "bunnycdn pull-zone edge-rule set 12345 --set Enabled=true \\",
+        "  --set Description=Block-bots --set OrderIndex=0",
+        "# update a rule: pass its Guid (from edge-rule list)",
+        "bunnycdn pull-zone edge-rule set 12345 --set Guid=<guid> \\",
+        "  --set Enabled=false",
+    ),
+)
 def set_edge_rule(
     ctx: typer.Context,
     pull_zone_id: int = typer.Argument(..., help="Pull zone ID"),
-    set_: list[str] = typer.Option(
-        [], "--set", help="Rule field as KEY=VALUE (repeatable); include Guid=... to update"
-    ),
+    set_: list[str] = typer.Option([], "--set", help=SET_HELP),
 ) -> None:
-    """Add an edge rule, or update one when --set Guid=... is given."""
+    """Add an edge rule, or update one when --set Guid=... is given.
+
+    Without Guid a new rule is added; with the Guid of an existing rule
+    (shown by `edge-rule list`) that rule is updated.
+    """
     state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
         fields = parse_set_pairs(set_)

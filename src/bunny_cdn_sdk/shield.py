@@ -2,9 +2,44 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Unpack, overload
 
 from bunny_cdn_sdk._client import _BaseClient
+from bunny_cdn_sdk.models.shield import (
+    AccessListsDetailsResponse,
+    BotDetectionConfigurationResponse,
+    CreateCustomAccessListRequest,
+    CreateCustomWafRuleRequest,
+    CreateShieldZoneResponse,
+    CreateWafRateLimitRequest,
+    CustomAccessListResponse,
+    CustomWafRule,
+    EventLogsSearchRequest,
+    EventLogsSearchResponse,
+    GenericRequestResponse,
+    GetCustomWafRulesResponse,
+    GetShieldZoneMetricsOverviewResponse,
+    GetShieldZoneResponse,
+    GetShieldZonesResponse,
+    GetTriggeredRulesResponse,
+    GetWafEngineConfigResponse,
+    GetWafEnumsResponse,
+    GetWafProfilesResponse,
+    GetWAFRulesResponse,
+    RateLimitRule,
+    ShieldZoneRequest,
+    ShieldZoneResponse,
+    UpdateAccessListConfigurationRequest,
+    UpdateAccessListConfigurationResponse,
+    UpdateBotDetectionRequest,
+    UpdateBotDetectionResponse,
+    UpdateCustomAccessListRequest,
+    UpdateCustomWafRuleRequest,
+    UpdateReviewTriggeredRuleResponse,
+    UpdateShieldZoneResponse,
+    UpdateWafRateLimitRequest,
+    WafLoggingResponse,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -45,12 +80,30 @@ class ShieldClient(_BaseClient):
         super().__init__(api_key, client=client, max_retries=max_retries, backoff_base=backoff_base)
         self.base_url = base_url.rstrip("/")
 
-    def _iter_pages(self, path: str, per_page: int) -> Iterator[dict]:
+    @overload
+    def _iter_pages(
+        self, path: str, per_page: int, expect: type[GetShieldZonesResponse]
+    ) -> Iterator[ShieldZoneResponse]: ...
+
+    @overload
+    def _iter_pages(
+        self, path: str, per_page: int, expect: type[GetCustomWafRulesResponse]
+    ) -> Iterator[CustomWafRule]: ...
+
+    def _iter_pages(
+        self,
+        path: str,
+        per_page: int,
+        expect: type[GetShieldZonesResponse | GetCustomWafRulesResponse],
+    ) -> Iterator[ShieldZoneResponse] | Iterator[CustomWafRule]:
         """Yield every ``data`` item from a Shield ``{data, page: {nextPage}}`` list endpoint."""
         page = 1
         while True:
             resp = self._json(
-                "GET", f"{self.base_url}{path}", params={"page": page, "perPage": per_page}
+                "GET",
+                f"{self.base_url}{path}",
+                expect=expect,
+                params={"page": page, "perPage": per_page},
             )
             data = resp.get("data") or []
             yield from data
@@ -62,7 +115,7 @@ class ShieldClient(_BaseClient):
     # Shield Zones
     # ------------------------------------------------------------------
 
-    def list_shield_zones(self, page: int = 1, per_page: int = 10) -> dict:
+    def list_shield_zones(self, page: int = 1, per_page: int = 10) -> GetShieldZonesResponse:
         """List shield zones (one page).
 
         Args:
@@ -73,10 +126,13 @@ class ShieldClient(_BaseClient):
             Response JSON (envelope not unwrapped).
         """
         return self._json(
-            "GET", f"{self.base_url}/shield-zones", params={"page": page, "perPage": per_page}
+            "GET",
+            f"{self.base_url}/shield-zones",
+            expect=GetShieldZonesResponse,
+            params={"page": page, "perPage": per_page},
         )
 
-    def iter_shield_zones(self, per_page: int = 100) -> Iterator[dict]:
+    def iter_shield_zones(self, per_page: int = 100) -> Iterator[ShieldZoneResponse]:
         """Iterate over all shield zones across pages.
 
         Args:
@@ -85,9 +141,9 @@ class ShieldClient(_BaseClient):
         Yields:
             Item dicts from each page's ``data`` list.
         """
-        yield from self._iter_pages("/shield-zones", per_page)
+        yield from self._iter_pages("/shield-zones", per_page, GetShieldZonesResponse)
 
-    def get_shield_zone(self, id: int) -> dict:
+    def get_shield_zone(self, id: int) -> GetShieldZoneResponse:
         """Get a shield zone by ID.
 
         Args:
@@ -96,9 +152,9 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("GET", f"{self.base_url}/shield-zone/{id}")
+        return self._json("GET", f"{self.base_url}/shield-zone/{id}", expect=GetShieldZoneResponse)
 
-    def get_shield_zone_by_pull_zone(self, pull_zone_id: int) -> dict:
+    def get_shield_zone_by_pull_zone(self, pull_zone_id: int) -> GetShieldZoneResponse:
         """Get the shield zone attached to a pull zone.
 
         Args:
@@ -107,9 +163,15 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("GET", f"{self.base_url}/shield-zone/get-by-pullzone/{pull_zone_id}")
+        return self._json(
+            "GET",
+            f"{self.base_url}/shield-zone/get-by-pullzone/{pull_zone_id}",
+            expect=GetShieldZoneResponse,
+        )
 
-    def create_shield_zone(self, pull_zone_id: int, **shield_zone: Any) -> dict:
+    def create_shield_zone(
+        self, pull_zone_id: int, **shield_zone: Unpack[ShieldZoneRequest]
+    ) -> CreateShieldZoneResponse:
         """Create a shield zone for a pull zone.
 
         Args:
@@ -122,10 +184,13 @@ class ShieldClient(_BaseClient):
         return self._json(
             "POST",
             f"{self.base_url}/shield-zone",
+            expect=CreateShieldZoneResponse,
             json={"pullZoneId": pull_zone_id, "shieldZone": shield_zone},
         )
 
-    def update_shield_zone(self, shield_zone_id: int, **shield_zone: Any) -> dict:
+    def update_shield_zone(
+        self, shield_zone_id: int, **shield_zone: Unpack[ShieldZoneRequest]
+    ) -> UpdateShieldZoneResponse:
         """Update a shield zone (``PATCH /shield-zone``; the ID travels in the body).
 
         Args:
@@ -138,6 +203,7 @@ class ShieldClient(_BaseClient):
         return self._json(
             "PATCH",
             f"{self.base_url}/shield-zone",
+            expect=UpdateShieldZoneResponse,
             json={
                 "shieldZoneId": shield_zone_id,
                 "shieldZone": {"shieldZoneId": shield_zone_id, **shield_zone},
@@ -148,7 +214,7 @@ class ShieldClient(_BaseClient):
     # WAF Rules
     # ------------------------------------------------------------------
 
-    def list_waf_rules(self, zone_id: int) -> dict:
+    def list_waf_rules(self, zone_id: int) -> GetWAFRulesResponse:
         """List the managed WAF rules for a shield zone.
 
         Args:
@@ -157,9 +223,11 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("GET", f"{self.base_url}/waf/rules/{zone_id}")
+        return self._json("GET", f"{self.base_url}/waf/rules/{zone_id}", expect=GetWAFRulesResponse)
 
-    def list_custom_waf_rules(self, zone_id: int, page: int = 1, per_page: int = 10) -> dict:
+    def list_custom_waf_rules(
+        self, zone_id: int, page: int = 1, per_page: int = 10
+    ) -> GetCustomWafRulesResponse:
         """List custom WAF rules (one page).
 
         Args:
@@ -173,10 +241,11 @@ class ShieldClient(_BaseClient):
         return self._json(
             "GET",
             f"{self.base_url}/waf/custom-rules/{zone_id}",
+            expect=GetCustomWafRulesResponse,
             params={"page": page, "perPage": per_page},
         )
 
-    def iter_custom_waf_rules(self, zone_id: int, per_page: int = 100) -> Iterator[dict]:
+    def iter_custom_waf_rules(self, zone_id: int, per_page: int = 100) -> Iterator[CustomWafRule]:
         """Iterate over all custom WAF rules across pages.
 
         Args:
@@ -186,9 +255,11 @@ class ShieldClient(_BaseClient):
         Yields:
             Item dicts from each page's ``data`` list.
         """
-        yield from self._iter_pages(f"/waf/custom-rules/{zone_id}", per_page)
+        yield from self._iter_pages(
+            f"/waf/custom-rules/{zone_id}", per_page, GetCustomWafRulesResponse
+        )
 
-    def get_custom_waf_rule(self, id: int) -> dict:
+    def get_custom_waf_rule(self, id: int) -> CustomWafRule:
         """Get a custom WAF rule.
 
         Args:
@@ -197,9 +268,11 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("GET", f"{self.base_url}/waf/custom-rule/{id}")
+        return self._json("GET", f"{self.base_url}/waf/custom-rule/{id}", expect=CustomWafRule)
 
-    def create_custom_waf_rule(self, shield_zone_id: int, **kwargs: Any) -> dict:
+    def create_custom_waf_rule(
+        self, shield_zone_id: int, **kwargs: Unpack[CreateCustomWafRuleRequest]
+    ) -> CustomWafRule:
         """Create a custom WAF rule.
 
         Args:
@@ -212,10 +285,13 @@ class ShieldClient(_BaseClient):
         return self._json(
             "POST",
             f"{self.base_url}/waf/custom-rule",
+            expect=CustomWafRule,
             json={"shieldZoneId": shield_zone_id, **kwargs},
         )
 
-    def update_custom_waf_rule(self, id: int, **kwargs: Any) -> dict:
+    def update_custom_waf_rule(
+        self, id: int, **kwargs: Unpack[UpdateCustomWafRuleRequest]
+    ) -> CustomWafRule:
         """Update a custom WAF rule (PATCH).
 
         Args:
@@ -225,9 +301,11 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("PATCH", f"{self.base_url}/waf/custom-rule/{id}", json=kwargs)
+        return self._json(
+            "PATCH", f"{self.base_url}/waf/custom-rule/{id}", expect=CustomWafRule, json=kwargs
+        )
 
-    def delete_custom_waf_rule(self, id: int) -> dict:
+    def delete_custom_waf_rule(self, id: int) -> GenericRequestResponse:
         """Delete a custom WAF rule.
 
         Args:
@@ -236,33 +314,37 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("DELETE", f"{self.base_url}/waf/custom-rule/{id}")
+        return self._json(
+            "DELETE", f"{self.base_url}/waf/custom-rule/{id}", expect=GenericRequestResponse
+        )
 
-    def list_waf_profiles(self) -> dict:
+    def list_waf_profiles(self) -> GetWafProfilesResponse:
         """List WAF profiles.
 
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("GET", f"{self.base_url}/waf/profiles")
+        return self._json("GET", f"{self.base_url}/waf/profiles", expect=GetWafProfilesResponse)
 
-    def get_waf_enums(self) -> dict:
+    def get_waf_enums(self) -> GetWafEnumsResponse:
         """Get WAF enum values.
 
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("GET", f"{self.base_url}/waf/enums")
+        return self._json("GET", f"{self.base_url}/waf/enums", expect=GetWafEnumsResponse)
 
-    def get_waf_engine_config(self) -> dict:
+    def get_waf_engine_config(self) -> GetWafEngineConfigResponse:
         """Get the WAF engine configuration.
 
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("GET", f"{self.base_url}/waf/engine-config")
+        return self._json(
+            "GET", f"{self.base_url}/waf/engine-config", expect=GetWafEngineConfigResponse
+        )
 
-    def list_triggered_waf_rules(self, zone_id: int) -> dict:
+    def list_triggered_waf_rules(self, zone_id: int) -> GetTriggeredRulesResponse:
         """List triggered WAF rules awaiting review.
 
         Args:
@@ -271,9 +353,15 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("GET", f"{self.base_url}/waf/rules/review-triggered/{zone_id}")
+        return self._json(
+            "GET",
+            f"{self.base_url}/waf/rules/review-triggered/{zone_id}",
+            expect=GetTriggeredRulesResponse,
+        )
 
-    def review_triggered_waf_rule(self, zone_id: int, rule_id: str, action: int) -> dict:
+    def review_triggered_waf_rule(
+        self, zone_id: int, rule_id: str, action: int
+    ) -> UpdateReviewTriggeredRuleResponse:
         """Review a triggered WAF rule.
 
         Args:
@@ -287,6 +375,7 @@ class ShieldClient(_BaseClient):
         return self._json(
             "POST",
             f"{self.base_url}/waf/rules/review-triggered/{zone_id}",
+            expect=UpdateReviewTriggeredRuleResponse,
             json={"ruleId": rule_id, "action": action},
         )
 
@@ -294,7 +383,9 @@ class ShieldClient(_BaseClient):
     # Rate Limits
     # ------------------------------------------------------------------
 
-    def list_rate_limits(self, zone_id: int, page: int = 1, per_page: int = 10) -> dict:
+    def list_rate_limits(
+        self, zone_id: int, page: int = 1, per_page: int = 10
+    ) -> GetCustomWafRulesResponse:
         """List rate limits (one page).
 
         Args:
@@ -308,10 +399,11 @@ class ShieldClient(_BaseClient):
         return self._json(
             "GET",
             f"{self.base_url}/rate-limits/{zone_id}",
+            expect=GetCustomWafRulesResponse,
             params={"page": page, "perPage": per_page},
         )
 
-    def iter_rate_limits(self, zone_id: int, per_page: int = 100) -> Iterator[dict]:
+    def iter_rate_limits(self, zone_id: int, per_page: int = 100) -> Iterator[CustomWafRule]:
         """Iterate over all rate limits across pages.
 
         Args:
@@ -321,9 +413,9 @@ class ShieldClient(_BaseClient):
         Yields:
             Item dicts from each page's ``data`` list.
         """
-        yield from self._iter_pages(f"/rate-limits/{zone_id}", per_page)
+        yield from self._iter_pages(f"/rate-limits/{zone_id}", per_page, GetCustomWafRulesResponse)
 
-    def get_rate_limit(self, id: int) -> dict:
+    def get_rate_limit(self, id: int) -> CustomWafRule:
         """Get a rate limit.
 
         Args:
@@ -332,9 +424,11 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("GET", f"{self.base_url}/rate-limit/{id}")
+        return self._json("GET", f"{self.base_url}/rate-limit/{id}", expect=CustomWafRule)
 
-    def create_rate_limit(self, shield_zone_id: int, **kwargs: Any) -> dict:
+    def create_rate_limit(
+        self, shield_zone_id: int, **kwargs: Unpack[CreateWafRateLimitRequest]
+    ) -> RateLimitRule:
         """Create a rate limit.
 
         Args:
@@ -345,10 +439,15 @@ class ShieldClient(_BaseClient):
             Response JSON (envelope not unwrapped).
         """
         return self._json(
-            "POST", f"{self.base_url}/rate-limit", json={"shieldZoneId": shield_zone_id, **kwargs}
+            "POST",
+            f"{self.base_url}/rate-limit",
+            expect=RateLimitRule,
+            json={"shieldZoneId": shield_zone_id, **kwargs},
         )
 
-    def update_rate_limit(self, id: int, **kwargs: Any) -> dict:
+    def update_rate_limit(
+        self, id: int, **kwargs: Unpack[UpdateWafRateLimitRequest]
+    ) -> RateLimitRule:
         """Update a rate limit (PATCH).
 
         Args:
@@ -358,9 +457,11 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("PATCH", f"{self.base_url}/rate-limit/{id}", json=kwargs)
+        return self._json(
+            "PATCH", f"{self.base_url}/rate-limit/{id}", expect=RateLimitRule, json=kwargs
+        )
 
-    def delete_rate_limit(self, id: int) -> dict:
+    def delete_rate_limit(self, id: int) -> GenericRequestResponse:
         """Delete a rate limit.
 
         Args:
@@ -369,13 +470,15 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("DELETE", f"{self.base_url}/rate-limit/{id}")
+        return self._json(
+            "DELETE", f"{self.base_url}/rate-limit/{id}", expect=GenericRequestResponse
+        )
 
     # ------------------------------------------------------------------
     # Access Lists
     # ------------------------------------------------------------------
 
-    def list_access_lists(self, zone_id: int) -> dict:
+    def list_access_lists(self, zone_id: int) -> AccessListsDetailsResponse:
         """List access lists for a shield zone.
 
         Args:
@@ -384,9 +487,13 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("GET", f"{self.base_url}/shield-zone/{zone_id}/access-lists")
+        return self._json(
+            "GET",
+            f"{self.base_url}/shield-zone/{zone_id}/access-lists",
+            expect=AccessListsDetailsResponse,
+        )
 
-    def get_access_list(self, zone_id: int, id: int) -> dict:
+    def get_access_list(self, zone_id: int, id: int) -> CustomAccessListResponse:
         """Get an access list.
 
         Args:
@@ -396,9 +503,15 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("GET", f"{self.base_url}/shield-zone/{zone_id}/access-lists/{id}")
+        return self._json(
+            "GET",
+            f"{self.base_url}/shield-zone/{zone_id}/access-lists/{id}",
+            expect=CustomAccessListResponse,
+        )
 
-    def create_access_list(self, zone_id: int, **kwargs: Any) -> dict:
+    def create_access_list(
+        self, zone_id: int, **kwargs: Unpack[CreateCustomAccessListRequest]
+    ) -> CustomAccessListResponse:
         """Create a custom access list.
 
         Args:
@@ -409,10 +522,15 @@ class ShieldClient(_BaseClient):
             Response JSON (envelope not unwrapped).
         """
         return self._json(
-            "POST", f"{self.base_url}/shield-zone/{zone_id}/access-lists", json=kwargs
+            "POST",
+            f"{self.base_url}/shield-zone/{zone_id}/access-lists",
+            expect=CustomAccessListResponse,
+            json=kwargs,
         )
 
-    def update_access_list(self, zone_id: int, id: int, **kwargs: Any) -> dict:
+    def update_access_list(
+        self, zone_id: int, id: int, **kwargs: Unpack[UpdateCustomAccessListRequest]
+    ) -> CustomAccessListResponse:
         """Update a custom access list (PATCH).
 
         Args:
@@ -424,10 +542,15 @@ class ShieldClient(_BaseClient):
             Response JSON (envelope not unwrapped).
         """
         return self._json(
-            "PATCH", f"{self.base_url}/shield-zone/{zone_id}/access-lists/{id}", json=kwargs
+            "PATCH",
+            f"{self.base_url}/shield-zone/{zone_id}/access-lists/{id}",
+            expect=CustomAccessListResponse,
+            json=kwargs,
         )
 
-    def update_access_list_configuration(self, zone_id: int, id: int, **kwargs: Any) -> dict:
+    def update_access_list_configuration(
+        self, zone_id: int, id: int, **kwargs: Unpack[UpdateAccessListConfigurationRequest]
+    ) -> UpdateAccessListConfigurationResponse:
         """Update an access list's enabled state or action (PATCH).
 
         Args:
@@ -441,10 +564,11 @@ class ShieldClient(_BaseClient):
         return self._json(
             "PATCH",
             f"{self.base_url}/shield-zone/{zone_id}/access-lists/configurations/{id}",
+            expect=UpdateAccessListConfigurationResponse,
             json=kwargs,
         )
 
-    def delete_access_list(self, zone_id: int, id: int) -> dict:
+    def delete_access_list(self, zone_id: int, id: int) -> GenericRequestResponse:
         """Delete a custom access list.
 
         Args:
@@ -454,13 +578,17 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("DELETE", f"{self.base_url}/shield-zone/{zone_id}/access-lists/{id}")
+        return self._json(
+            "DELETE",
+            f"{self.base_url}/shield-zone/{zone_id}/access-lists/{id}",
+            expect=GenericRequestResponse,
+        )
 
     # ------------------------------------------------------------------
     # Bot Detection
     # ------------------------------------------------------------------
 
-    def get_bot_detection(self, zone_id: int) -> dict:
+    def get_bot_detection(self, zone_id: int) -> BotDetectionConfigurationResponse:
         """Get bot detection settings.
 
         Args:
@@ -469,9 +597,15 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("GET", f"{self.base_url}/shield-zone/{zone_id}/bot-detection")
+        return self._json(
+            "GET",
+            f"{self.base_url}/shield-zone/{zone_id}/bot-detection",
+            expect=BotDetectionConfigurationResponse,
+        )
 
-    def update_bot_detection(self, zone_id: int, **kwargs: Any) -> dict:
+    def update_bot_detection(
+        self, zone_id: int, **kwargs: Unpack[UpdateBotDetectionRequest]
+    ) -> UpdateBotDetectionResponse:
         """Update bot detection settings (PATCH; ``shieldZoneId`` is added to the body).
 
         Args:
@@ -485,6 +619,7 @@ class ShieldClient(_BaseClient):
         return self._json(
             "PATCH",
             f"{self.base_url}/shield-zone/{zone_id}/bot-detection",
+            expect=UpdateBotDetectionResponse,
             json={"shieldZoneId": zone_id, **kwargs},
         )
 
@@ -492,7 +627,9 @@ class ShieldClient(_BaseClient):
     # Event Logs
     # ------------------------------------------------------------------
 
-    def get_event_logs(self, zone_id: int, date: str, continuation_token: str) -> dict:
+    def get_event_logs(
+        self, zone_id: int, date: str, continuation_token: str
+    ) -> WafLoggingResponse:
         """Get event logs for one day.
 
         Args:
@@ -505,10 +642,14 @@ class ShieldClient(_BaseClient):
             Response JSON (envelope not unwrapped).
         """
         return self._json(
-            "GET", f"{self.base_url}/event-logs/{zone_id}/{date}/{continuation_token}"
+            "GET",
+            f"{self.base_url}/event-logs/{zone_id}/{date}/{continuation_token}",
+            expect=WafLoggingResponse,
         )
 
-    def search_event_logs(self, zone_id: int, **kwargs: Any) -> dict:
+    def search_event_logs(
+        self, zone_id: int, **kwargs: Unpack[EventLogsSearchRequest]
+    ) -> EventLogsSearchResponse:
         """Search event logs.
 
         Args:
@@ -521,13 +662,18 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("POST", f"{self.base_url}/event-logs/{zone_id}/search", json=kwargs)
+        return self._json(
+            "POST",
+            f"{self.base_url}/event-logs/{zone_id}/search",
+            expect=EventLogsSearchResponse,
+            json=kwargs,
+        )
 
     # ------------------------------------------------------------------
     # Metrics
     # ------------------------------------------------------------------
 
-    def get_metrics_overview(self, zone_id: int) -> dict:
+    def get_metrics_overview(self, zone_id: int) -> GetShieldZoneMetricsOverviewResponse:
         """Get the metrics overview for a shield zone.
 
         Args:
@@ -536,4 +682,8 @@ class ShieldClient(_BaseClient):
         Returns:
             Response JSON (envelope not unwrapped).
         """
-        return self._json("GET", f"{self.base_url}/metrics/overview/{zone_id}")
+        return self._json(
+            "GET",
+            f"{self.base_url}/metrics/overview/{zone_id}",
+            expect=GetShieldZoneMetricsOverviewResponse,
+        )

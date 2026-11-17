@@ -36,3 +36,18 @@ def _plain_errors():
     _output.set_output_format(_output.OutputFormat.human)
     yield
     _output.set_output_format(_output.OutputFormat.human)
+
+
+FROZEN_NOW = "2026-01-02T12:00:00+00:00"
+
+
+@pytest.fixture
+def frozen_now(monkeypatch: pytest.MonkeyPatch):
+    """Pin the CLI clock (``_options.utcnow``) to ``FROZEN_NOW``."""
+    from datetime import datetime
+
+    from bunny_cdn_sdk.cli import _options
+
+    now = datetime.fromisoformat(FROZEN_NOW)
+    monkeypatch.setattr(_options, "utcnow", lambda: now)
+    return now

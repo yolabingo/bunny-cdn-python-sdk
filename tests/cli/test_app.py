@@ -294,3 +294,16 @@ def test_top_level_commands_listed_by_panel(runner) -> None:
     positions = [out.index(f" {p} ") for p in panels]  # panel titles; ANSI-styled borders
     assert positions == sorted(positions)
     assert out.index("pull-zone") < out.index("storage-zone") < out.index("schema")
+
+
+def test_debug_flag_enables_sdk_debug_logging(runner, monkeypatch) -> None:
+    import logging
+
+    from bunny_cdn_sdk.cli import app
+
+    sdk_logger = logging.getLogger("bunny_cdn_sdk")
+    monkeypatch.setattr(sdk_logger, "level", logging.NOTSET)
+    assert runner.invoke(app, ["schema"]).exit_code == 0
+    assert sdk_logger.level == logging.NOTSET
+    assert runner.invoke(app, ["--debug", "schema"]).exit_code == 0
+    assert sdk_logger.level == logging.DEBUG

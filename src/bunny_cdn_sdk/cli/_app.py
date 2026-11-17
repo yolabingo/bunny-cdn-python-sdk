@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import typer
 from typer.core import TyperGroup
@@ -14,7 +14,9 @@ from typer.core import TyperGroup
 from bunny_cdn_sdk import __version__, core
 from bunny_cdn_sdk.cli._dns_zone import dns_zone_app
 from bunny_cdn_sdk.cli._load_balancer import load_balancer_app
+from bunny_cdn_sdk.cli._logs import EPILOG as LOGS_EPILOG
 from bunny_cdn_sdk.cli._logs import logs_cmd
+from bunny_cdn_sdk.cli._options import date_range, examples, from_option, to_option
 from bunny_cdn_sdk.cli._output import (
     OutputFormat,
     api_client,
@@ -29,6 +31,10 @@ from bunny_cdn_sdk.cli._shield import shield_app
 from bunny_cdn_sdk.cli._storage import storage_app
 from bunny_cdn_sdk.cli._storage_zone import storage_zone_app
 from bunny_cdn_sdk.cli._video_library import video_library_app
+from bunny_cdn_sdk.storage import REGION_MAP
+
+if TYPE_CHECKING:
+    from bunny_cdn_sdk.models.core import PullZoneModel, StatisticsModel
 
 # Help panels group the top-level commands in `bunnycdn --help`, in this order.
 _CDN, _STORAGE, _NETWORK = "CDN", "Storage", "DNS & Load Balancing"
@@ -51,7 +57,7 @@ class _PanelOrderGroup(TyperGroup):
 app = typer.Typer(cls=_PanelOrderGroup, no_args_is_help=True, help="Bunny CDN management CLI.")
 
 app.add_typer(pull_zone_app, name="pull-zone", rich_help_panel=_CDN)
-app.command("logs", rich_help_panel=_CDN)(logs_cmd)
+app.command("logs", rich_help_panel=_CDN, epilog=LOGS_EPILOG)(logs_cmd)
 app.add_typer(storage_zone_app, name="storage-zone", rich_help_panel=_STORAGE)
 app.add_typer(storage_app, name="storage", rich_help_panel=_STORAGE)
 app.add_typer(dns_zone_app, name="dns-zone", rich_help_panel=_NETWORK)
@@ -110,7 +116,7 @@ def main(
     region: str = typer.Option(
         "falkenstein",
         envvar="BUNNY_STORAGE_REGION",
-        help="Storage region (default: falkenstein).",
+        help=f"Storage region: {', '.join(REGION_MAP)}. Prefer BUNNY_STORAGE_REGION env var.",
     ),
     output_format: OutputFormat = typer.Option(
         OutputFormat.human,
@@ -121,6 +127,12 @@ def main(
             "human: tables and text. json: JSON on stdout. json-file: JSON written to a new "
             "temp file whose path is printed. With json/json-file, errors are JSON on stderr."
         ),
+    ),
+    debug: bool = typer.Option(
+        False,
+        "--debug",
+        envvar="BUNNY_DEBUG",
+        help="Log SDK debug output to stderr, including API responses that differ from the spec.",
     ),
 ) -> None:
     """Bunny CDN management CLI — auth options apply to all sub-commands."""
@@ -133,13 +145,16 @@ def main(
     state.region = region
     state.output_format = output_format
     set_output_format(output_format)
+    if debug:
+        logging.basicConfig(format="%(levelname)s %(name)s: %(message)s")
+        logging.getLogger("bunny_cdn_sdk").setLevel(logging.DEBUG)
 
 
 _GB = 1024**3
 _K = 1000
 
 
-def _build_stats_row(name: str, stats: dict | None) -> dict:
+def _build_stats_row(name: str, stats: StatisticsModel | None) -> dict:
     """Build a display row dict from a zone name and statistics API response."""
     if stats is None:
         stats = {}
@@ -156,7 +171,7 @@ def _build_stats_row(name: str, stats: dict | None) -> dict:
         "Requests\n(K)": f"{round(served / _K):,}" if served >= _K else str(served),
         "Bandwidth\nUsed (GB)": f"{round(bw_used / _GB):,}",
         "Bandwidth\nCached (GB)": f"{round(bw_cached / _GB):,}",
-        "Cache\nHit\nRate (%)": str(round(stats.get("CacheHitRate", 0))),
+        "Cache\nHit\nRate (%)": str(round(stats.get("CacheHitRate") or 0)),
         "Error\n(%)": error_pct.rstrip("%") if error_pct != "—" else "—",
         "_requests": served,
         "_bw_used": bw_used,
@@ -164,12 +179,25 @@ def _build_stats_row(name: str, stats: dict | None) -> dict:
     }
 
 
-@app.command("purge", rich_help_panel=_CDN)
+@app.command(
+    "purge",
+    rich_help_panel=_CDN,
+    epilog=examples(
+        "bunnycdn purge https://cdn.example.com/logo.png    # one file",
+        "bunnycdn purge 'https://cdn.example.com/img/*'     # all under /img/",
+    ),
+)
 def purge_url_cmd(
     ctx: typer.Context,
-    url: str = typer.Argument(..., help="URL to purge from CDN cache"),
+    url: str = typer.Argument(
+        ..., help="Full URL to purge; a trailing * (quote it) purges everything under the path"
+    ),
 ) -> None:
-    """Purge a specific URL from CDN cache."""
+    """Purge a URL from the CDN cache.
+
+    Bunny rate-limits purges per account: about 300/minute for exact URLs and 30/minute
+    for wildcard purges and whole pull-zone purges.
+    """
     _state, client = api_client(ctx, core.CoreClient)
     with sdk_errors():
         client.purge_url(url)
@@ -212,38 +240,50 @@ def _stats_sort_key(row: dict, field: _StatSort) -> Any:
     return -(float(val) if val != "—" else 0.0)
 
 
-@app.command("stats", rich_help_panel=_CDN)
+@app.command(
+    "stats",
+    rich_help_panel=_CDN,
+    epilog=examples(
+        "bunnycdn stats                       # last 7 days, all pull zones",
+        "bunnycdn stats --from 30d --sort-by BandwidthUsed",
+        "bunnycdn stats --pull-zone-id 12345 --from 2026-10-01 --to 2026-10-31",
+    ),
+)
 def stats_cmd(
     ctx: typer.Context,
     pull_zone_id: int | None = typer.Option(
         None, "--pull-zone-id", help="Narrow report to a single pull zone ID"
     ),
-    from_: str | None = typer.Option(None, "--from", help="Start date (ISO, default: 7 days ago)"),
-    to_: str | None = typer.Option(None, "--to", help="End date (ISO, default: today)"),
+    from_: str = from_option("7d"),
+    to_: str = to_option("today"),
     sort_by: _StatSort = typer.Option(
         _StatSort.Name,
         "--sort-by",
         help="Column to sort by (Name sorts A→Z; others sort highest first)",
     ),
 ) -> None:
-    """Display CDN statistics per pull zone."""
+    """Display CDN statistics per pull zone.
+
+    Bunny reports statistics per whole UTC day, so the range covers every full day from
+    --from's day through --to's day (--from 12h means today, or yesterday and today
+    before noon UTC).
+    """
     state, client = api_client(ctx, core.CoreClient)
 
-    today = datetime.now(tz=UTC).date()
-    date_from = from_ or (today - timedelta(days=7)).isoformat()
-    date_to = to_ or today.isoformat()
+    start, end = date_range(from_, to_)
+    date_from, date_to = start.date().isoformat(), end.date().isoformat()  # whole days
 
     with sdk_errors():
         if pull_zone_id is not None:
             zone = client.get_pull_zone(pull_zone_id)
             stats = client.get_statistics(pullZone=pull_zone_id, dateFrom=date_from, dateTo=date_to)
-            rows = [_build_stats_row(zone["Name"], stats)]
+            rows = [_build_stats_row(zone.get("Name") or "", stats)]
         else:
             zones = list(client.iter_pull_zones())
 
-            def _fetch_one(z: dict) -> dict:
+            def _fetch_one(z: PullZoneModel) -> dict:
                 s = client.get_statistics(pullZone=z["Id"], dateFrom=date_from, dateTo=date_to)
-                return _build_stats_row(z.get("Name", ""), s)
+                return _build_stats_row(z.get("Name") or "", s)
 
             with ThreadPoolExecutor(max_workers=max(1, min(len(zones), 20))) as pool:
                 rows = list(pool.map(_fetch_one, zones))

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from bunny_cdn_sdk._client import _BaseClient
+from bunny_cdn_sdk.models.logging import LogEntry, LogQueryResponse
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -40,7 +41,7 @@ class LoggingClient(_BaseClient):
         super().__init__(api_key, client=client, max_retries=max_retries, backoff_base=backoff_base)
         self.base_url = base_url.rstrip("/")
 
-    def get_logs(self, pull_zone_id: int, **params: Any) -> dict:
+    def get_logs(self, pull_zone_id: int, **params: Any) -> LogQueryResponse:
         """Get one page of request logs for a pull zone.
 
         Args:
@@ -57,9 +58,14 @@ class LoggingClient(_BaseClient):
             Dict with ``data``, ``pagination`` (``offset``, ``limit``, ``returned``,
             ``hasMore``) and ``query``.
         """
-        return self._json("GET", f"{self.base_url}/v2/pullzones/{pull_zone_id}/logs", params=params)
+        return self._json(
+            "GET",
+            f"{self.base_url}/v2/pullzones/{pull_zone_id}/logs",
+            expect=LogQueryResponse,
+            params=params,
+        )
 
-    def iter_logs(self, pull_zone_id: int, limit: int = 1000, **params: Any) -> Iterator[dict]:
+    def iter_logs(self, pull_zone_id: int, limit: int = 1000, **params: Any) -> Iterator[LogEntry]:
         """Iterate over every log entry, following offset pagination.
 
         Args:
@@ -74,7 +80,7 @@ class LoggingClient(_BaseClient):
         offset = params.pop("offset", 0)
         while True:
             resp = self.get_logs(pull_zone_id, **params, limit=limit, offset=offset)
-            yield from resp["data"]
+            yield from resp.get("data") or ()  # the spec allows null data
             page = resp["pagination"]
             if not page["hasMore"] or page["returned"] == 0:
                 return

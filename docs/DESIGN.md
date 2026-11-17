@@ -8,7 +8,8 @@ A thin, typed Python SDK wrapping the Bunny CDN REST APIs using `httpx2`.
 - Thin wrapper: no caching, no magic — just a clean HTTP client
 - **Sync API** — one `httpx2.Client` per SDK client; batch methods fan out on a `ThreadPoolExecutor` (max 20 workers) where concurrency helps
 - Type-annotated throughout (PEP 561 `py.typed` marker)
-- Return plain dicts from `response.json()`, not model objects
+- Return plain dicts from `response.json()`, not model objects. Requests and responses are annotated with `TypedDict`s generated from the specs (`bunny_cdn_sdk.models.<api>`, by `tools/gen_types.py`): static types only, never validated. All keys are optional because Bunny's specs drift. With the `bunny_cdn_sdk` logger at DEBUG (CLI: `--debug`), responses that differ from their type are logged, never raised
+- Logging: every SDK event goes through `_log.log`, a structlog logger wrapping the stdlib `bunny_cdn_sdk` logger (no global structlog config). Its processor redacts secret-named fields, headers and URL query parameters. Failed requests, network errors and retries are logged at DEBUG
 - Each API service is a separate client with its own credentials
 - Optional retry with exponential backoff via `max_retries` constructor kwarg or a composable `RetryTransport`
 
@@ -45,7 +46,7 @@ All APIs use the same header: `AccessKey: <key>`. The key value differs per serv
 
 - `401` — bad API key
 - `404` — resource not found
-- `429` — rate limited (undocumented but observed)
+- `429` — rate limited (documented for purges: per-account token buckets)
 - `5xx` — server error
 
 ## 3. Package Structure
@@ -58,6 +59,9 @@ src/bunny_cdn_sdk/
     _types.py            # TypedDict definitions (pagination envelopes)
     _pagination.py       # Page/item iterators
     _retry.py            # RetryTransport (composable httpx2 transport)
+    _log.py              # structlog logger over stdlib `bunny_cdn_sdk`, secret redaction
+    _typecheck.py        # DEBUG-only check of responses against their spec types
+    models/              # TypedDicts generated from docs/apis/ (tools/gen_types.py)
     core.py              # CoreClient
     storage.py           # StorageClient
     shield.py            # ShieldClient
@@ -103,7 +107,7 @@ When `client` is provided, `max_retries` is ignored (a `UserWarning` is emitted)
 Single requests are plain blocking calls. Batch methods fan out on a thread pool sharing the one `httpx2.Client` (which is thread-safe):
 
 ```python
-def get_pull_zones(self, ids: list[int]) -> list[dict]:
+def get_pull_zones(self, ids: list[int]) -> list[PullZoneModel]:
     def fetch_one(id: int) -> dict:
         return self._json("GET", f"{self.base_url}/pullzone/{id}")
 
@@ -143,7 +147,7 @@ Constructor: `CoreClient(api_key: str, base_url: str = "https://api.bunny.net", 
 
 | Method | HTTP | Path |
 |--------|------|------|
-| `list_pull_zones(search)` | GET | `/pullzone` (returns a plain list, unpaginated) |
+| `list_pull_zones(search)` | GET | `/pullzone` (a plain list; with `search`, pages the `Items` envelope the live API returns) |
 | `iter_pull_zones(search)` | GET | `/pullzone` (yields from `list_pull_zones`) |
 | `get_pull_zone(id)` | GET | `/pullzone/{id}` |
 | `get_pull_zones(ids)` | GET | `/pullzone/{id}` (concurrent) |
@@ -262,7 +266,7 @@ URL pattern: `/{storage_zone}/{path}`
 - `upload()` accepts `bytes | BinaryIO`, returns the API's JSON `dict`
 - `download()` returns `bytes`
 - `delete()` returns `None`
-- `list()` returns `list[dict]` (no pagination — flat directory listing)
+- `list()` returns `list[StorageObject]` (no pagination — flat directory listing)
 
 ## 6a. Service: Shield API (`shield.py`)
 
@@ -478,7 +482,7 @@ core = CoreClient(api_key="account-key", client=client)
 
 ## 12. Out of Scope (v1)
 
-- Response model objects (Pydantic/dataclass) — return plain dicts
+- Response model objects (Pydantic/dataclass/msgspec) — return plain dicts typed as generated `TypedDict`s
 - Rate limit handling / auto-retry on 429 beyond what RetryTransport provides
 - Webhook signature verification
 - Response caching
@@ -492,7 +496,7 @@ core = CoreClient(api_key="account-key", client=client)
 
 1. `_exceptions.py` — no deps, test immediately
 2. `_client.py` — `_BaseClient` with sync `httpx2.Client`, error mapping, context manager
-3. `_types.py` — `PaginatedResponse` TypedDict
+3. `_types.py` — `PaginatedResponse` TypedDict; `models/` — generated spec TypedDicts; `_typecheck.py` — DEBUG-only response check
 4. `_pagination.py` — iterators
 5. `_retry.py` — `RetryTransport`
 6. `storage.py` — simplest surface (4 operations, no pagination), validates base client design
@@ -511,4 +515,4 @@ core = CoreClient(api_key="account-key", client=client)
 - **Errors:** `cli/_output.py` `fail()` handles every error. In `json`/`json-file` mode it prints `{"error": {code, message, status, retryable}}` on stderr; exit code 1. Usage errors stay Typer's (exit 2).
 - **Discovery:** `bunnycdn schema` emits the command tree from Click's own objects (`schema_version` 1). Every help page ends with a dim footer pointing to `schema`, `--output-format` and `NO_COLOR=1 TYPER_USE_RICH=0`.
 - **Help layout:** top-level commands are grouped with `rich_help_panel`; `_PanelOrderGroup` lists them panel by panel. `no_args_is_help=True` on every group.
-- **Typer internals:** Typer 0.28 vendors Click (`typer._click`). `_schema.py` duck-types Click objects, and tests fail if those attributes change. The `json-file` name reads the current Click context from `typer._click` and falls back to `bunnycdn-<random>.json` if that import ever fails.
+- **Typer internals:** Typer 0.28+ vendors Click (`typer._click`). `_schema.py` duck-types Click objects (typer 0.29 dropped `Parameter.type`, so it rebuilds the Click type names from `type_descriptor`), and tests fail if those attributes change. The `json-file` name reads the current Click context from `typer._click` and falls back to `bunnycdn-<random>.json` if that import ever fails.
