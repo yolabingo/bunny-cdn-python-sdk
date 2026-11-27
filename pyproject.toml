@@ -114,7 +114,7 @@ release.shell = """
   fi
   uv run poe test-all
   git commit -m "chore: release v$version" pyproject.toml uv.lock
-  git tag "v$version"
+  git tag -m "v$version" "v$version"
   uv run poe build
   git push origin "$branch"
   git push origin "v$version"
